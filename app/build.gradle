@@ -7,8 +7,9 @@ plugins {
 //   ./gradlew assembleRelease -PversionCode=42 -PversionName=3.1.0
 //
 // or as the environment variables ORG_GRADLE_PROJECT_versionCode and
-// ORG_GRADLE_PROJECT_versionName. Local builds default to versionCode 1
-// and versionName 0.0.0-dev.
+// ORG_GRADLE_PROJECT_versionName. The publish workflow sets them, see
+// publish.sh. Local builds default to versionCode 1 and versionName
+// 0.0.0-dev.
 //
 // The version name is only shown to the user and written to exports for
 // information. The app does not compare it: the database and exports have

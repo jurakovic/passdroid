@@ -1,7 +1,8 @@
 name: Build
 
 # Runs the tests and lint and builds the APKs for every push and pull request.
-# The version is the default of local builds, see app/build.gradle.
+# The version is the default of local builds, see app/build.gradle. Releases
+# are made with the Publish workflow, see publish.yml.
 #
 # The debug APK is uploaded for testing. It is signed with a debug key that
 # is generated for each run, so it can not update the APK of another run.
