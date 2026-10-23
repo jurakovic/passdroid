@@ -19,8 +19,6 @@
 
 package com.kodholken.passdroid;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -28,17 +26,18 @@ import java.io.OutputStream;
  * Class that handles the exporting of the password database to file.
  */
 public class FileExporter {
-    private String filename;
+    private OutputStream output;
     private String appVersion;
 
     /**
      * Exporter constructor.
-     * 
-     * @param filename   full path to the exported file.
+     *
+     * @param output     stream to write the exported file to. The caller is
+     *                   responsible for closing it.
      * @param appVersion passdroid version to be recorded in the exported file.
      */
-    public FileExporter(String filename, String appVersion) {
-        this.filename = filename;
+    public FileExporter(OutputStream output, String appVersion) {
+        this.output = output;
         this.appVersion = appVersion;
     }
 
@@ -52,7 +51,7 @@ public class FileExporter {
     public void exportCleartext(PasswordEntry [] passwords) throws ExportException {
         String xml = createXmlTree(passwords);
         try {
-            writeToFile(filename, xml.getBytes());
+            write(xml.getBytes());
         } catch (Exception ex) {
             throw new ExportException(ex.getMessage());
         }
@@ -75,13 +74,16 @@ public class FileExporter {
 
         byte [] magic = { 's', 'q', 't' };
         byte [] encrypted = Crypto.encryptAesCbc(key, xml);
+        if (encrypted == null) {
+            throw new ExportException("Encryption failed");
+        }
 
         byte [] all = new byte[magic.length + encrypted.length];
         System.arraycopy(magic, 0, all, 0, magic.length);
         System.arraycopy(encrypted, 0, all, magic.length, encrypted.length);
 
         try {
-            writeToFile(filename, all);
+            write(all);
         } catch (Exception ex) {
             throw new ExportException(ex.getMessage());
         }
@@ -125,22 +127,13 @@ public class FileExporter {
     }
 
     /**
-     * Write a byte array to file. If a previous file with the same name exists
-     * it is truncated.
-     * 
-     * @param filename  full path to the file.
-     * @param data      byte array to write to file.
+     * Write a byte array to the output stream.
+     *
+     * @param data      byte array to write.
      * @throws IOException on failure.
      */
-    private void writeToFile(String filename, byte [] data) throws IOException {
-        File f = new File(filename);
-        if (f.exists()) {
-            f.delete();
-        }
-
-        f.createNewFile();
-        OutputStream os = new FileOutputStream(f);
-        os.write(data);
-        os.close();
+    private void write(byte [] data) throws IOException {
+        output.write(data);
+        output.flush();
     }
 }

@@ -23,7 +23,9 @@ import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.DbMigration;
 import com.kodholken.passdroid.db.SystemData;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
@@ -32,6 +34,8 @@ import android.view.View.OnKeyListener;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 /**
  * Activity that displays the login screen and verifies the master password.
@@ -39,7 +43,6 @@ import android.widget.EditText;
 public class LoginActivity extends Activity {
     private Button loginButton;
     private EditText passwordView;
-    private boolean hasBackKeyDown;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +83,21 @@ public class LoginActivity extends Activity {
                 handleLogin();
             }
         });
+
+        Utils.applySystemBarInsets(this);
+
+        // From Android 13 back events are delivered through callbacks instead
+        // of onBackPressed() (see android:enableOnBackInvokedCallback).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    new OnBackInvokedCallback() {
+                        @Override
+                        public void onBackInvoked() {
+                            handleBack();
+                        }
+                    });
+        }
     }
 
     @Override
@@ -95,35 +113,21 @@ public class LoginActivity extends Activity {
     }
 
     /**
-     * Handles events when the user release the back button. This is used in
-     * conjunction with onKeyDown() to make sure that we only react to back
-     * events initialized in this view. 
+     * Back handler for Android 12 and earlier. Later versions use the
+     * callback registered in onCreate().
      */
+    @SuppressLint("GestureBackNavigation")
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (hasBackKeyDown) {
-                // A back key on the login menu should exit the application
-                // so we need to indicate to MainActivity that it should exit
-                // in onResume()
-                Session.getInstance().setExitMain(true);
-                hasBackKeyDown = false;
-                finish();
-                return true;
-            }
-            hasBackKeyDown = false;
-        }
-
-        return false;
+    public void onBackPressed() {
+        handleBack();
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            hasBackKeyDown = true;
-        }
-
-        return false;
+    private void handleBack() {
+        // A back key on the login menu should exit the application
+        // so we need to indicate to MainActivity that it should exit
+        // in onResume()
+        Session.getInstance().setExitMain(true);
+        finish();
     }
 
     /**

@@ -21,13 +21,11 @@ package com.kodholken.passdroid;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,12 +42,18 @@ import org.xml.sax.SAXException;
 import android.util.Log;
 
 public class FileImporter {
-    private String filename;
+    private byte [] data;
     private String appVersion;
     private PasswordEntry[] passwordEntries;
 
-    public FileImporter(String filename, String appVersion) {
-        this.filename = filename;
+    /**
+     * Importer constructor.
+     *
+     * @param data       contents of the file to import.
+     * @param appVersion passdroid version of this application.
+     */
+    public FileImporter(byte [] data, String appVersion) {
+        this.data = data;
         this.appVersion = appVersion;
     }
 
@@ -88,33 +92,11 @@ public class FileImporter {
     }
 
     public boolean isEncrypted() throws FileImporterException {
-        InputStream is = null;
-
-        try {
-            byte [] sig = new byte[3];
-            is = new FileInputStream(new File(filename));
-            if (is.read(sig) != 3) {
-                throw new FileImporterException("Could not read signature");
-            }
-
-            if (sig[0] != 's' || sig[1] != 'q' || sig[2] != 't') {
-                return false;
-            }
-        } catch (Exception e) {
-            throw new FileImporterException(e.getMessage());
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {}
-            }
+        if (data.length < 3) {
+            throw new FileImporterException("Could not read signature");
         }
 
-        return true;
-    }
-    
-    public String getFilename() {
-    	return filename;
+        return data[0] == 's' && data[1] == 'q' && data[2] == 't';
     }
 
     /**
@@ -128,10 +110,8 @@ public class FileImporter {
      */
     private String getFileVersion() throws IOException {
         String version = null;
-        FileInputStream fstream = new FileInputStream(filename);
-
-        DataInputStream in = new DataInputStream(fstream);
-        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        BufferedReader br = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(data)));
 
         String s;
         Pattern p = Pattern.compile(".*passdroid version=\\\"([0-9]+.[0-9]+)\\\".*");
@@ -144,8 +124,6 @@ public class FileImporter {
         }
 
         br.close();
-        in.close();
-        fstream.close();
 
         return version;
     }
@@ -161,21 +139,19 @@ public class FileImporter {
         Version compVersion = new Version(1, 6);
 
         if (fileVersion.compareTo(compVersion) > 0) {
-            // Version 1.7 or later is passed as a FileInputStream instance.
-            return new FileInputStream(filename);
+            // Version 1.7 or later is passed as is.
+            return new ByteArrayInputStream(data);
         }
 
         /* 
          * If the version is 1.6 or earlier we need to pass the exported file
-         * through a filter to escape some non-allowed characters so we 
-         * read the file to memory, escapes the non-allowed characters and
-         * creates a StringInputStream instance from the string.
+         * through a filter to escape some non-allowed characters so we
+         * escape the non-allowed characters and create a new input stream
+         * from the result.
          */
 
-        FileInputStream fstream = new FileInputStream(filename);
-
-        DataInputStream in = new DataInputStream(fstream);
-        BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        BufferedReader br = new BufferedReader(
+                new InputStreamReader(new ByteArrayInputStream(data)));
 
         String s;
         StringBuilder sb = new StringBuilder();
@@ -191,8 +167,6 @@ public class FileImporter {
         }
 
         br.close();
-        in.close();
-        fstream.close();
 
         return new ByteArrayInputStream(sb.toString().getBytes("UTF-8"));
     }
@@ -286,47 +260,20 @@ public class FileImporter {
     }
 
     public void parseEncrypted(byte[] key) throws FileImporterException {
-        try {
-            File file = new File(filename);
-            long size = file.length();
-
-            // File needs to be atleast 3 bytes to have room for encryption signature
-            if (size < 3) {
-                throw new FileImporterException("File too small: " + size);
-            }
-
-            size -= 3;
-            byte[] buffer = new byte[(int) size];
-
-            FileInputStream fstream = new FileInputStream(filename);
-
-            if (fstream.read(buffer, 0, 3) != 3) {
-                throw new FileImporterException("Failed to read signature");
-            }
-
-            int nread, hasRead = 0;
-            while (hasRead < size) {
-                nread = fstream.read(buffer, hasRead, (int) (size - hasRead));
-                if (nread == -1) {
-                    break;
-                }
-                hasRead += nread;
-            }
-            fstream.close();
-
-            if (hasRead != size) {
-                throw new FileImporterException("Failed to read encrypted data");
-            }
-
-            byte[] decrypted = Crypto.decryptAesCbc(key, buffer);
-            if (decrypted == null) {
-                throw new FileImporterException("Decryption failed");
-            }
-
-            InputStream is = new ByteArrayInputStream(decrypted, 2 /* Skip salt */, decrypted.length - 1);
-            parse(is);
-        } catch (IOException ex) {
-            throw new FileImporterException(ex);
+        // File needs to be atleast 3 bytes to have room for encryption signature
+        if (data.length < 3) {
+            throw new FileImporterException("File too small: " + data.length);
         }
+
+        // Skip the signature
+        byte[] buffer = Arrays.copyOfRange(data, 3, data.length);
+
+        byte[] decrypted = Crypto.decryptAesCbc(key, buffer);
+        if (decrypted == null) {
+            throw new FileImporterException("Decryption failed");
+        }
+
+        InputStream is = new ByteArrayInputStream(decrypted, 2 /* Skip salt */, decrypted.length - 1);
+        parse(is);
     }
 }

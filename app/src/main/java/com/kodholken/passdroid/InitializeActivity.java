@@ -45,6 +45,8 @@ public class InitializeActivity extends Activity {
                 handleOK();
             }
         });
+
+        Utils.applySystemBarInsets(this);
     }
 
     private void handleOK() {

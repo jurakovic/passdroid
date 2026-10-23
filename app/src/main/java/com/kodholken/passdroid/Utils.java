@@ -22,12 +22,26 @@ package com.kodholken.passdroid;
 import java.util.Random;
 import java.util.zip.CRC32;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.database.Cursor;
+import android.graphics.Insets;
+import android.net.Uri;
+import android.os.Build;
+import android.os.PersistableBundle;
+import android.provider.OpenableColumns;
 import android.util.Log;
+import android.view.View;
+import android.view.WindowInsets;
 
 public class Utils {
     public static void alertDialog(Context context, String title, 
@@ -50,6 +64,88 @@ public class Utils {
     }
 
     public static void logoutConfirmDialog(Context context) {
+    }
+
+    /**
+     * Register a broadcast receiver that only receives broadcasts from this
+     * application and the system.
+     */
+    @SuppressLint("UnspecifiedRegisterReceiverFlag") // Flags are API 33+
+    public static void registerNotExportedReceiver(Context context,
+                                                   BroadcastReceiver receiver,
+                                                   IntentFilter filter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter,
+                                     Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            context.registerReceiver(receiver, filter);
+        }
+    }
+
+    /**
+     * Keep the content of an activity clear of the system bars, display
+     * cutouts and the soft keyboard. Starting with Android 15 the activity
+     * window is always drawn behind the system bars (edge-to-edge).
+     */
+    public static void applySystemBarInsets(Activity activity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            return;
+        }
+
+        View content = activity.findViewById(android.R.id.content);
+        content.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+            @Override
+            public WindowInsets onApplyWindowInsets(View view, WindowInsets insets) {
+                Insets bars = insets.getInsets(WindowInsets.Type.systemBars() |
+                                               WindowInsets.Type.displayCutout() |
+                                               WindowInsets.Type.ime());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                return WindowInsets.CONSUMED;
+            }
+        });
+    }
+
+    /**
+     * Copy a password to the clipboard. The clip is flagged as sensitive so
+     * that the clipboard preview (Android 13 and later) does not show it.
+     */
+    public static void copyPasswordToClipboard(Context context, String password) {
+        ClipboardManager clipboard =
+            (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+
+        ClipData clip = ClipData.newPlainText("password", password);
+        PersistableBundle extras = new PersistableBundle();
+        // ClipDescription.EXTRA_IS_SENSITIVE, which is only defined in API 33+
+        extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
+        clip.getDescription().setExtras(extras);
+
+        clipboard.setPrimaryClip(clip);
+        Session.getInstance().setPasswordInClipboard(true);
+    }
+
+    /**
+     * Get the name of a document to show to the user.
+     */
+    public static String getDisplayName(Context context, Uri uri) {
+        Cursor cursor = null;
+
+        try {
+            cursor = context.getContentResolver().query(uri,
+                    new String [] { OpenableColumns.DISPLAY_NAME },
+                    null, null, null);
+            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
+                return cursor.getString(0);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        String name = uri.getLastPathSegment();
+        return name != null ? name : uri.toString();
     }
 
     public static void debug(String message) {

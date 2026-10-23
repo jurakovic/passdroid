@@ -1,19 +1,36 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 android {
-    compileSdkVersion 28
-    buildToolsVersion "28.0.3"
+    namespace = 'com.kodholken.passdroid'
+    compileSdk = 37
 
     defaultConfig {
-        applicationId "com.kodholken.passdroid"
-        minSdkVersion 24
-        targetSdkVersion 28
+        applicationId = 'com.kodholken.passdroid'
+        minSdk = 24
+        targetSdk = 37
+        versionCode = 24
+        versionName = '2.3'
     }
 
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            minifyEnabled = false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
         }
     }
+
+    testOptions {
+        // FileImporter logs through android.util.Log, which is a stub in
+        // local unit tests.
+        unitTests.returnDefaultValues = true
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    // The app uses the platform's Bouncy Castle provider ("BC"), which is not
+    // part of the JVM used for local unit tests.
+    testImplementation 'org.bouncycastle:bcprov-jdk18on:1.86'
 }

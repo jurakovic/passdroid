@@ -4,22 +4,18 @@ import android.app.ListActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.WindowManager.LayoutParams;
 
 public class TimeoutListActivity extends ListActivity {
     private BroadcastReceiver receiver;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if(android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) {
             getWindow().setFlags(LayoutParams.FLAG_SECURE, LayoutParams.FLAG_SECURE);
         }
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Session.TIMEOUT_ACTION);
-        
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -28,9 +24,15 @@ public class TimeoutListActivity extends ListActivity {
             }
         };
 
-        registerReceiver(receiver, filter);
+        Session.registerTimeoutReceiver(this, receiver);
 
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        Utils.applySystemBarInsets(this);
     }
 
     @Override
@@ -40,14 +42,20 @@ public class TimeoutListActivity extends ListActivity {
         }
         super.onPause();
     }
-    
+
     @Override
     protected void onResume() {
         Session.getInstance().incResume();
         Session.clearTimeoutTimer(this);
         super.onResume();
+
+        // The session may have timed out or the process may have been
+        // restarted while we were in the background.
+        if (!Session.getInstance().isLoggedIn()) {
+            finish();
+        }
     }
-    
+
     @Override
     protected void onDestroy() {
         unregisterReceiver(receiver);

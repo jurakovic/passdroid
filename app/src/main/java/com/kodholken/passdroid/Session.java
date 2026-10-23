@@ -21,8 +21,10 @@ package com.kodholken.passdroid;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.SystemClock;
 
 /**
@@ -31,6 +33,13 @@ import android.os.SystemClock;
  */
 public class Session {
     public static final String TIMEOUT_ACTION = "com.kodholken.passdroid.TIMEOUT";
+
+    // Time the application may be in the background before the user is
+    // logged out.
+    private static final long TIMEOUT = 5000;
+    // Timeout used while an activity from another application, such as the
+    // system file picker, is in the foreground on our behalf.
+    private static final long EXTENDED_TIMEOUT = 2 * 60 * 1000;
 
     private byte [] key;         // Key derived from the master password. It is
     // used for all encryption and decryption of 
@@ -46,10 +55,15 @@ public class Session {
     private static Session session;  // Singleton instance of this class
     
     private PendingIntent timeoutIntent;
-    
+
+    private long timeoutStart;  // elapsedRealtime() when the timeout timer was
+    // set. 0 if no timer is running.
+
+    private boolean extendedTimeout;
+
     private int resumes = 0;
-    
-    private String clipboardPassword;
+
+    private boolean passwordInClipboard;
 
     private Session() {
         needReload = false;
@@ -80,6 +94,12 @@ public class Session {
 
     public void setLoggedIn(boolean isLoggedIn) {
         this.isLoggedIn = isLoggedIn;
+
+        if (isLoggedIn) {
+            // Make sure a timer left from before the login does not log out
+            // the user.
+            timeoutStart = 0;
+        }
     }
 
     public void setLoggedIn() {
@@ -140,25 +160,69 @@ public class Session {
             session.timeoutIntent = null;
         }
         
-        session.timeoutIntent = PendingIntent.getBroadcast(context, 0, new Intent(TIMEOUT_ACTION), PendingIntent.FLAG_ONE_SHOT);
-        am.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 5000, session.timeoutIntent);
+        // Only deliver the timeout broadcast to this application
+        Intent intent = new Intent(TIMEOUT_ACTION);
+        intent.setPackage(context.getPackageName());
+
+        session.timeoutIntent = PendingIntent.getBroadcast(context, 0, intent,
+                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        session.timeoutStart = SystemClock.elapsedRealtime();
+        am.set(AlarmManager.ELAPSED_REALTIME,
+               session.timeoutStart + session.getTimeout(),
+               session.timeoutIntent);
     }
 
+    /**
+     * Cancel the timeout timer. If the timeout has already passed the user is
+     * logged out, since the alarm is inexact and its broadcast may be held
+     * back while the application is in the background.
+     */
     public static void clearTimeoutTimer(Context context) {
         Session session = getInstance();
-        
+
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (session.timeoutIntent != null) {
             am.cancel(session.timeoutIntent);
             session.timeoutIntent = null;
         }
+
+        if (session.timeoutStart != 0 &&
+            SystemClock.elapsedRealtime() - session.timeoutStart >= session.getTimeout()) {
+            session.setLoggedIn(false);
+        }
+
+        session.timeoutStart = 0;
+        session.extendedTimeout = false;
     }
-    
-    public String getClipboardPassword() {
-        return clipboardPassword;
+
+    /**
+     * Use a longer timeout the next time the application goes to the
+     * background. Call this before starting an activity from another
+     * application, e.g. the system file picker.
+     */
+    public void setExtendedTimeout(boolean extendedTimeout) {
+        this.extendedTimeout = extendedTimeout;
     }
-    
-    public void setClipboardPassword(String clipboardPassword) {
-        this.clipboardPassword = clipboardPassword;
+
+    private long getTimeout() {
+        return extendedTimeout ? EXTENDED_TIMEOUT : TIMEOUT;
+    }
+
+    /**
+     * Register a receiver for the timeout broadcast. The receiver is not
+     * exported, i.e. it only receives broadcasts from this application.
+     */
+    public static void registerTimeoutReceiver(Context context,
+                                               BroadcastReceiver receiver) {
+        Utils.registerNotExportedReceiver(context, receiver,
+                                          new IntentFilter(TIMEOUT_ACTION));
+    }
+
+    public boolean isPasswordInClipboard() {
+        return passwordInClipboard;
+    }
+
+    public void setPasswordInClipboard(boolean passwordInClipboard) {
+        this.passwordInClipboard = passwordInClipboard;
     }
 }

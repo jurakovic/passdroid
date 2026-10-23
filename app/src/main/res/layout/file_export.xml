@@ -24,19 +24,6 @@
                 android:paddingBottom="10dip"
                 android:text="@string/export_description" />
 
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/filename" />
-
-            <EditText
-                android:id="@+id/filename"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:inputType="textNoSuggestions"
-                android:text="" />
-
             <CheckBox
                 android:id="@+id/encrypt_export"
                 android:layout_width="fill_parent"

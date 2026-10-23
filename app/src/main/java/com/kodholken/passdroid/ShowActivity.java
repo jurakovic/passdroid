@@ -22,13 +22,13 @@ package com.kodholken.passdroid;
 import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.PasswordData;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.text.ClipboardManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -141,11 +141,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
             public void onClick(DialogInterface dialog, int which) {
                 String password = passwordView.getText().toString();
 
-                ClipboardManager clipboard = 
-                    (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                clipboard.setText(password);
-
-                Session.getInstance().setClipboardPassword(password);
+                Utils.copyPasswordToClipboard(ShowActivity.this, password);
             }
         });
 
@@ -213,6 +209,9 @@ public class ShowActivity extends SherlockTimeoutActivity {
         finish();
     }
     
+    // Only called before Android 13. Later versions use the default back
+    // handling, including its animation.
+    @SuppressLint("GestureBackNavigation")
     @Override
     public void onBackPressed() {
         super.onBackPressed();

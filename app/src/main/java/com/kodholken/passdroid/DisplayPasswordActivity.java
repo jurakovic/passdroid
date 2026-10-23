@@ -22,7 +22,6 @@ package com.kodholken.passdroid;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.text.ClipboardManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
@@ -56,10 +55,8 @@ public class DisplayPasswordActivity extends TimeoutActivity {
                 new DialogInterface.OnClickListener() { 
             public void onClick(DialogInterface dialog, int which) {
                 String password = passwordView.getText().toString();
-                ClipboardManager clipboard = 
-                    (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                clipboard.setText(password);
-                Session.getInstance().setClipboardPassword(password);
+                Utils.copyPasswordToClipboard(DisplayPasswordActivity.this,
+                                              password);
             }
         });
 

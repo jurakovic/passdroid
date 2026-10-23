@@ -21,20 +21,20 @@ package com.kodholken.passdroid;
 
 import com.kodholken.passdroid.db.PasswordData;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.text.ClipboardManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -46,6 +46,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 /**
  * Activity that displays the user passwords.
@@ -61,7 +63,6 @@ PasswordModelListener {
     private static final int OPTION_MENU_GENERATE = 7;
     private static final int OPTION_MENU_SEARCH   = 8;
 
-    private boolean hasBackKeyDown;
     // Used to keep the activity from reloading the settings on resumes where
     // the settings has not changed.
     private boolean loadSettingsOnResume;
@@ -83,7 +84,6 @@ PasswordModelListener {
 
     public PasswordListActivity() {
         loadSettingsOnResume = false;
-        hasBackKeyDown = false;
         countdownLayout = null;
         listPosition = 0;
     }
@@ -132,6 +132,19 @@ PasswordModelListener {
         countdownHandler = new Handler();
 
         PasswordModel.getInstance(this).addListener(this);
+
+        // From Android 13 back events are delivered through callbacks instead
+        // of onBackPressed() (see android:enableOnBackInvokedCallback).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    new OnBackInvokedCallback() {
+                        @Override
+                        public void onBackInvoked() {
+                            handleBack();
+                        }
+                    });
+        }
     }
 
     @Override
@@ -238,24 +251,24 @@ PasswordModelListener {
         menu.add(Menu.NONE, OPTION_MENU_ADD, Menu.NONE, getString(R.string.options_add))
         .setIcon(R.drawable.ic_menu_add);
         
-        searchMenuItem = menu.add(Menu.NONE, OPTION_MENU_GENERATE, Menu.NONE,
-                getString(R.string.options_generate_password));
-        searchMenuItem.setIcon(R.drawable.ic_menu_rotate);
+        menu.add(Menu.NONE, OPTION_MENU_GENERATE, Menu.NONE,
+                getString(R.string.options_generate_password))
+        .setIcon(R.drawable.ic_menu_rotate);
 
-        searchMenuItem = menu.add(Menu.NONE, OPTION_MENU_SETTINGS, Menu.NONE,
-                getString(R.string.options_settings));
-        searchMenuItem.setIcon(R.drawable.ic_menu_preferences);
+        menu.add(Menu.NONE, OPTION_MENU_SETTINGS, Menu.NONE,
+                getString(R.string.options_settings))
+        .setIcon(R.drawable.ic_menu_preferences);
 
-        searchMenuItem = menu.add(Menu.NONE, OPTION_MENU_ABOUT, Menu.NONE,
-                getString(R.string.options_about));
-        searchMenuItem.setIcon(R.drawable.ic_menu_info_details);
+        menu.add(Menu.NONE, OPTION_MENU_ABOUT, Menu.NONE,
+                getString(R.string.options_about))
+        .setIcon(R.drawable.ic_menu_info_details);
 
-        searchMenuItem = menu.add(Menu.NONE, OPTION_MENU_LOGOUT, Menu.NONE,
-                getString(R.string.options_logout));
-        searchMenuItem.setIcon(R.drawable.ic_menu_close_clear_cancel);
+        menu.add(Menu.NONE, OPTION_MENU_LOGOUT, Menu.NONE,
+                getString(R.string.options_logout))
+        .setIcon(R.drawable.ic_menu_close_clear_cancel);
 
         if (Constants.DEBUG) {
-            searchMenuItem = menu.add(Menu.NONE,OPTION_MENU_DROPDB, Menu.NONE, "Drop DB");
+            menu.add(Menu.NONE,OPTION_MENU_DROPDB, Menu.NONE, "Drop DB");
         }
 
         return super.onCreateOptionsMenu(menu);
@@ -328,27 +341,22 @@ PasswordModelListener {
         super.onUserInteraction();
     }
 
+    /**
+     * Back handler for Android 12 and earlier. Later versions use the
+     * callback registered in onCreate().
+     */
+    @SuppressLint("GestureBackNavigation")
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (hasBackKeyDown) {
-                confirmLogout();
-                hasBackKeyDown = false;
-                return true;
-            }
-            hasBackKeyDown = false;
-        }
-
-        return false;
+    public void onBackPressed() {
+        handleBack();
     }
 
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            hasBackKeyDown = true;
+    private void handleBack() {
+        if (searchMenuItem != null && searchMenuItem.isActionViewExpanded()) {
+            searchMenuItem.collapseActionView();
+        } else {
+            confirmLogout();
         }
-
-        return false;
     }
 
     /**
@@ -374,9 +382,7 @@ PasswordModelListener {
                 alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                         new DialogInterface.OnClickListener() { 
                     public void onClick(DialogInterface dialog, int which) {
-                        ClipboardManager clipboard = 
-                            (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                        clipboard.setText(password);
+                        Utils.copyPasswordToClipboard(context, password);
                     }
                 });
 
