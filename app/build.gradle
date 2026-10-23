@@ -7,7 +7,9 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = 'com.kodholken.passdroid'
+        // Differs from the original Passdroid, com.kodholken.passdroid, which
+        // is signed by its author. The Java package (namespace) is unchanged.
+        applicationId = 'com.jurakovic.passdroid'
         minSdk = 24
         targetSdk = 37
         versionCode = 24

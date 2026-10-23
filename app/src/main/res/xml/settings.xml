@@ -2,22 +2,17 @@
 <PreferenceScreen
   xmlns:android="http://schemas.android.com/apk/res/android">
 
+<!-- The intents of change_password and import_export are set in
+     SettingsActivity, since an <intent> here would have to hardcode the
+     application id. -->
 <Preference
   android:key="change_password"
-  android:title="Change master password">
-
-   <intent android:targetPackage="com.kodholken.passdroid"
-           android:targetClass="com.kodholken.passdroid.ChangePasswordActivity"/>
-</Preference>    
+  android:title="Change master password"/>
 
 <Preference
   android:key="import_export"
   android:title="Import / Export"
-  android:summary="Allows you to import and export the password database">
-
-   <intent android:targetPackage="com.kodholken.passdroid"
-           android:targetClass="com.kodholken.passdroid.ImportExportActivity"/>
-</Preference>  
+  android:summary="Allows you to import and export the password database"/>
 
 <CheckBoxPreference
   android:key="close_logout"

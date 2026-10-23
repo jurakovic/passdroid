@@ -19,6 +19,7 @@
 
 package com.kodholken.passdroid;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
@@ -28,6 +29,11 @@ public class ImportExportActivity extends TimeoutPreferenceActivity implements O
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.import_export);
+
+        findPreference("file_export").setIntent(
+                new Intent(this, FileExportActivity.class));
+        findPreference("file_import").setIntent(
+                new Intent(this, FileImportActivity.class));
 
         getPreferenceScreen().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
         updateSummaries();

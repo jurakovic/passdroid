@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<string name="app_name">Passdroid</string>
+<string name="app_name">Passdroid++</string>
 <string name="categories">Categories</string>
 <string name="passwords">Passwords</string>
 
@@ -8,14 +8,15 @@
 <string name="show_title">Show</string>
 <string name="edit_title">Edit Password</string>
 
-<string name="logo_description">Passdroid logo</string>
+<string name="logo_description">Passdroid++ logo</string>
 
 <!-- About -->
-<string name="about_title">About Passdroid</string>
-<string name="about_text">Passdroid is an open source application that lets you store your passwords in a secure way on your Android device. The application use AES and SHA-256 to store the passwords on the device \
-to prevent access without the master password.\n\
-http://passdroid.kodholken.com/\n\
-Copyright &#169; 2009-2019  Magnus Eriksson &lt;eriksson.mag@gmail.com&gt;. All rights reserved.\n\
+<string name="about_title">About Passdroid++</string>
+<string name="about_text">Passdroid++ is an open source application that lets you store your passwords in a secure way on your Android device. The passwords are encrypted with AES-256 and a key derived from the master password, \
+so they cannot be read without it.\n\
+https://github.com/jurakovic/passdroid\n\
+Passdroid++ is based on Passdroid by Magnus Eriksson (http://passdroid.kodholken.com/).\n\
+Copyright &#169; 2009-2019  Magnus Eriksson &lt;eriksson.mag@gmail.com&gt;, and the contributors of Passdroid.\n\
 Application icon by VisualPharm (http://www.visualpharm.com/).\n\
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n\
@@ -31,7 +32,7 @@ You should have received a copy of the GNU General Public License along with thi
 
 <!-- Initialize  -->
 <string name="initialize_title">Initialize</string>
-<string name="initialize_welcome">Welcome to Passdroid!</string>
+<string name="initialize_welcome">Welcome to Passdroid++!</string>
 <string name="initialize_text">Before continuing you need to choose a master password \
 that will protect the information that is stored on the device. If this password is forgotten \
 the passwords stored are not recoverable.</string>
@@ -71,13 +72,13 @@ the passwords stored are not recoverable.</string>
 <string name="export_description">\
 This will export the password database to a file of your choice. \
 In combination with the import function this can be used to move the \
-password database between Passdroid devices or as a way to back up your data. \
+password database to another device or as a way to back up your data. \
 If you export the file unencrypted make sure it is \
 removed from the phone as quickly as possible since other applications will \
 be able to read it.</string>
 
 <string name="import_description">\
-This will import a database of passwords that has been exported from Passdroid. \
+This will import a database of passwords that has been exported from Passdroid++ or Passdroid. \
 The import will remove any existing passwords on this device.</string>
 
 <string name="import_description_file_present" formatted="false">%f contains %n entries.</string>

@@ -33,7 +33,7 @@ public class AboutActivity extends TimeoutActivity {
         setContentView(R.layout.about);
 
         TextView title = (TextView) findViewById(R.id.about_title);
-        title.setText("Passdroid v" + Utils.getVersion(this));
+        title.setText(getString(R.string.app_name) + " " + Utils.getVersion(this));
 
         getString(R.string.about_text);
         ((TextView) findViewById(R.id.about_content)).setText(

@@ -21,6 +21,7 @@ package com.kodholken.passdroid;
 
 import com.kodholken.passdroid.R;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
@@ -34,6 +35,11 @@ public class SettingsActivity extends TimeoutPreferenceActivity
 
         getPreferenceScreen().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
         updateSummaries();
+
+        findPreference("change_password").setIntent(
+                new Intent(this, ChangePasswordActivity.class));
+        findPreference("import_export").setIntent(
+                new Intent(this, ImportExportActivity.class));
     }
 
     @Override
