@@ -2,6 +2,38 @@ plugins {
     id 'com.android.application'
 }
 
+// The version is supplied at build time, either as Gradle properties
+//
+//   ./gradlew assembleRelease -PversionCode=42 -PversionName=3.1.0
+//
+// or as the environment variables ORG_GRADLE_PROJECT_versionCode and
+// ORG_GRADLE_PROJECT_versionName. Local builds default to versionCode 1
+// and versionName 0.0.0-dev.
+//
+// The version name is only shown to the user and written to exports for
+// information. The app does not compare it: the database and exports have
+// their own versions, see DbMigration.DATA_VERSION and
+// FileExporter.FORMAT_VERSION.
+def appVersionCode = providers.gradleProperty('versionCode').getOrElse('1')
+def appVersionName = providers.gradleProperty('versionName').getOrElse('0.0.0-dev')
+
+// Google Play accepts version codes up to 2100000000
+if (!(appVersionCode ==~ /[1-9][0-9]{0,9}/) || (appVersionCode as long) > 2100000000L) {
+    throw new GradleException(
+        "Invalid versionCode '${appVersionCode}': " +
+        'it must be a whole number between 1 and 2100000000')
+}
+
+// Semantic Versioning 2.0.0, see https://semver.org
+def semver = /(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)/ +
+             /(-(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?/ +
+             /(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?/
+if (!(appVersionName ==~ semver)) {
+    throw new GradleException(
+        "Invalid versionName '${appVersionName}': " +
+        'it must be a semantic version, e.g. 3.1.0 or 3.1.0-preview.1')
+}
+
 android {
     namespace = 'com.kodholken.passdroid'
     compileSdk = 37
@@ -12,8 +44,8 @@ android {
         applicationId = 'com.jurakovic.passdroid'
         minSdk = 24
         targetSdk = 37
-        versionCode = 24
-        versionName = '2.3'
+        versionCode = appVersionCode as int
+        versionName = appVersionName
     }
 
     buildTypes {
