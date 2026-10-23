@@ -43,18 +43,15 @@ import android.util.Log;
 
 public class FileImporter {
     private byte [] data;
-    private String appVersion;
     private PasswordEntry[] passwordEntries;
 
     /**
      * Importer constructor.
      *
-     * @param data       contents of the file to import.
-     * @param appVersion passdroid version of this application.
+     * @param data contents of the file to import.
      */
-    public FileImporter(byte [] data, String appVersion) {
+    public FileImporter(byte [] data) {
         this.data = data;
-        this.appVersion = appVersion;
     }
 
     public void parse() throws FileImporterException {
@@ -114,7 +111,7 @@ public class FileImporter {
                 new InputStreamReader(new ByteArrayInputStream(data)));
 
         String s;
-        Pattern p = Pattern.compile(".*passdroid version=\\\"([0-9]+.[0-9]+)\\\".*");
+        Pattern p = Pattern.compile(".*passdroid version=\"([0-9]+(\\.[0-9]+)?)\".*");
         while ((s = br.readLine()) != null) {
             Matcher m = p.matcher(s);
             if (m.matches()) {
@@ -135,10 +132,7 @@ public class FileImporter {
             throw new FileImporterException("Unable to get exported file version");
         }
 
-        Version fileVersion = Version.parse(version);
-        Version compVersion = new Version(1, 6);
-
-        if (fileVersion.compareTo(compVersion) > 0) {
+        if (getFormatVersion(version) > 1) {
             // Version 1.7 or later is passed as is.
             return new ByteArrayInputStream(data);
         }
@@ -173,23 +167,53 @@ public class FileImporter {
 
     private void parseImportFile(String version, Node root) throws FileImporterException {
         ImportFileParser parser = null;
-        Version fileVersion, appVersion;
 
-        try {
-            fileVersion = Version.parse(version);
-            appVersion = Version.parse(this.appVersion);
-        } catch (NumberFormatException ex) {
-            throw new FileImporterException(ex);
-        }
-
-        if (fileVersion.compareTo(appVersion) > 0) {
-            throw new FileImporterException("Import file version (" + 
-                    fileVersion + ") is larger than the app version (" +
-                    appVersion +")");
+        int formatVersion = getFormatVersion(version);
+        if (formatVersion > FileExporter.FORMAT_VERSION) {
+            throw new FileImporterException("Import file format (" +
+                    formatVersion + ") is newer than this app supports (" +
+                    FileExporter.FORMAT_VERSION + "). Update the app to import it.");
         }
 
         parser = new ImportFileParser_v_1_0();		
         parser.parse(root);
+    }
+
+    /**
+     * Get the version of the file format from the version attribute of the
+     * passdroid element. Since Passdroid++ 3.0 it is the format version, a
+     * whole number, see FileExporter.FORMAT_VERSION. Earlier files have the
+     * version of the app that exported them, <major>.<minor>:
+     *
+     *   1  Passdroid 1.6 and earlier, see createInputStream()
+     *   2  Passdroid 1.7 to 2.3
+     *   3  Passdroid++. Its first builds were numbered 2.4.
+     *
+     * @throws FileImporterException if the version is invalid.
+     */
+    static int getFormatVersion(String version) throws FileImporterException {
+        if (version.matches("[1-9][0-9]{0,8}")) {
+            return Integer.parseInt(version);
+        }
+
+        Version appVersion;
+        try {
+            appVersion = Version.parse(version);
+        } catch (NumberFormatException ex) {
+            throw new FileImporterException("Invalid import file version: " + version);
+        }
+
+        if (appVersion.compareTo(new Version(1, 6)) <= 0) {
+            return 1;
+        }
+        if (appVersion.compareTo(new Version(2, 3)) <= 0) {
+            return 2;
+        }
+        if (appVersion.compareTo(new Version(2, 4)) <= 0) {
+            return 3;
+        }
+        // No app version after 2.4 was written to the file
+        throw new FileImporterException("Unknown import file version: " + version);
     }
 
     public PasswordEntry [] getPasswordEntries() {

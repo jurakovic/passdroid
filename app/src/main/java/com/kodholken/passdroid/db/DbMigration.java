@@ -32,44 +32,91 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 public class DbMigration {
-    public static boolean preLoginMigration(Context context, String oldVersion, String newVersion) {
-        return true;
-    }
+    /**
+     * The version of the data in the database, how the entries are encrypted.
+     * Increase it, and add the conversion to postLoginMigration(), when that
+     * changes.
+     *
+     *   1  Passdroid 0.9: AES-ECB
+     *   2  Passdroid 0.95 to 1.x: AES-CBC with a zero IV
+     *   3  Passdroid 2.0 and later: AES-CBC with a random IV
+     *
+     * Versions before Passdroid++ 3.0 stored the version of the app instead,
+     * and converted the entries when it crossed one of these versions. The
+     * version name of the app is not used for anything but display anymore.
+     */
+    public static final int DATA_VERSION = 3;
 
-    public static boolean postLoginMigration(Context context, String oldVersion, String newVersion) {
-        boolean result = false;
-
-        Version _oldVersion = Version.parse(oldVersion);
-        Version _newVersion = Version.parse(newVersion);
-        Version _2_0_Version = new Version(2, 0);
-
-        /*
-         * Version 0.95 changed the AES mode from ECB to CBC so we
-         * convert the database entries from version 0.9
-         */
-        if (oldVersion.equals("0.9") && newVersion.equals("0.95")) {
-            Utils.debug("Version 0.9 to 0.95 conversion: ECB -> CBC");
-            result = ecb2cbcConversion(context);
-            if (result) {
-                Utils.debug("Database converted successfully");
-            } else {
-                Utils.error("Database conversion failed");
-            }
-        } else if ((_oldVersion.compareTo(_2_0_Version) < 0) &&
-                   (_newVersion.compareTo(_2_0_Version)) >= 0) {
-            result = zeroIvToIvConversion(context);
-            if (result) {
-                Utils.debug("Database successfully converted from zero IV to IV");
-            } else {
-                Utils.debug("Database convertion from zero IV to IV failed");
-            }
-        } else {
-            result = true;
+    /**
+     * Store the data version if the database has none: in a new database, or
+     * in place of the app version that earlier versions stored. This does not
+     * need the key, so it is done before the login.
+     */
+    public static void preLoginMigration(SystemData system) {
+        if (system.hasDataVersion()) {
+            return;
         }
 
-        return result;
+        String appVersion = system.getLegacyVersion();
+        system.setDataVersion(appVersion == null ? DATA_VERSION :
+                              getLegacyDataVersion(appVersion));
     }
-    
+
+    /**
+     * Convert the entries to the current data version. This needs the key, so
+     * it is done after the login. If it fails, it is tried again at the next
+     * login.
+     */
+    public static void postLoginMigration(Context context) {
+        SystemData system = new SystemData(context);
+        int dataVersion = system.getDataVersion();
+
+        boolean result;
+        if (dataVersion == 1) {
+            // The entries are encrypted again with a random IV
+            Utils.debug("Data version 1 to " + DATA_VERSION + " conversion: ECB -> CBC");
+            result = ecb2cbcConversion(context);
+        } else if (dataVersion == 2) {
+            Utils.debug("Data version 2 to " + DATA_VERSION + " conversion: zero IV -> IV");
+            result = zeroIvToIvConversion(context);
+        } else {
+            return;
+        }
+
+        if (result) {
+            Utils.debug("Database converted successfully");
+            system.setDataVersion(DATA_VERSION);
+        } else {
+            Utils.error("Database conversion failed");
+        }
+    }
+
+    /**
+     * @param appVersion version of the app that last used the database, as
+     *                   stored by the versions before Passdroid++ 3.0.
+     * @return the data version of the database.
+     */
+    static int getLegacyDataVersion(String appVersion) {
+        Version version;
+        try {
+            version = Version.parse(appVersion);
+        } catch (NumberFormatException ex) {
+            // Only the versions before 2.0 stored the entries differently.
+            // Converting entries that are already in the current format
+            // would destroy them.
+            Utils.error("Invalid app version in the database: " + appVersion);
+            return DATA_VERSION;
+        }
+
+        if (version.compareTo(new Version(0, 9)) <= 0) {
+            return 1;
+        }
+        if (version.compareTo(new Version(2, 0)) < 0) {
+            return 2;
+        }
+        return 3;
+    }
+
     /*
      * Since we have two SQLiteOpenHelper derived classes (PasswordData and
      * SystemData) that work on the same database table (Constants.DBNAME) all

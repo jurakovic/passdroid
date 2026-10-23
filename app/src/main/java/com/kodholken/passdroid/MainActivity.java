@@ -59,14 +59,12 @@ public class MainActivity extends Activity {
     /*
      * This method launch different activities depending on the application
      * state. If the user is flagged as logged in we proceed to the password
-     * list activity. If we detect that the application has been updated to a
-     * newer version we perform migration steps. if we detect that this is the
+     * list activity. If the database was written by a version that stored the
+     * data differently we perform migration steps. if we detect that this is the
      * first time the application is run we prompt the user for a master
      * password.
      */
     private void startup() {
-    	String appVersion = Utils.getVersion(this);
-
     	if (Session.getInstance().isLoggedIn()) {
     		Utils.startPasswordActivity(this);
     		return;
@@ -74,20 +72,10 @@ public class MainActivity extends Activity {
 
     	SystemData system = new SystemData(this);
     	system.verifyTable();
-    	
-    	if (!system.hasVersion()) {
-    		system.setVersion(appVersion);
-    	} else {
-        	String dbVersion = system.getVersion();
 
-        	// Check for application update. If we detect an update we call
-        	// the pre-login migration function. The post-login function is 
-        	// called when the user has logged in.
-        	// @see LoginActivity#handleVersionChange
-        	if (!dbVersion.equals(appVersion)) {
-        		DbMigration.preLoginMigration(this, dbVersion, appVersion);
-        	}
-    	}
+    	// The entries are converted after the login, see
+    	// LoginActivity#loginDone
+    	DbMigration.preLoginMigration(system);
 
     	// First time logins is detected by the absence of a master password
     	if (system.hasKey()) {

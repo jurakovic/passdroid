@@ -16,7 +16,7 @@ import org.junit.Test;
  * Round trip tests for exporting and importing the password database.
  */
 public class FileExportImportTest {
-    private static final String APP_VERSION = "2.3";
+    private static final String APP_VERSION = "3.0.0";
 
     @BeforeClass
     public static void addBouncyCastle() {
@@ -65,7 +65,7 @@ public class FileExportImportTest {
 
         new FileExporter(output, APP_VERSION).exportCleartext(entries);
 
-        FileImporter importer = new FileImporter(output.toByteArray(), APP_VERSION);
+        FileImporter importer = new FileImporter(output.toByteArray());
         assertFalse(importer.isEncrypted());
         importer.parse();
         assertEntriesEqual(entries, importer.getPasswordEntries());
@@ -79,7 +79,7 @@ public class FileExportImportTest {
 
         new FileExporter(output, APP_VERSION).exportEncrypted(key, entries);
 
-        FileImporter importer = new FileImporter(output.toByteArray(), APP_VERSION);
+        FileImporter importer = new FileImporter(output.toByteArray());
         assertTrue(importer.isEncrypted());
         importer.parseEncrypted(key);
         assertEntriesEqual(entries, importer.getPasswordEntries());
@@ -91,7 +91,7 @@ public class FileExportImportTest {
         new FileExporter(output, APP_VERSION).exportEncrypted(
                 Crypto.hmacFromPassword("master password"), createEntries());
 
-        FileImporter importer = new FileImporter(output.toByteArray(), APP_VERSION);
+        FileImporter importer = new FileImporter(output.toByteArray());
         try {
             importer.parseEncrypted(Crypto.hmacFromPassword("wrong password"));
             fail("Expected FileImporterException");
@@ -101,14 +101,76 @@ public class FileExportImportTest {
     }
 
     @Test
-    public void newerFileVersionIsRejected() throws Exception {
+    public void exportHasFormatVersion() throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        new FileExporter(output, "9.9").exportCleartext(createEntries());
+        new FileExporter(output, APP_VERSION).exportCleartext(createEntries());
 
-        FileImporter importer = new FileImporter(output.toByteArray(), APP_VERSION);
+        String xml = output.toString("UTF-8");
+        assertTrue(xml, xml.contains("<passdroid version=\"" +
+                                     FileExporter.FORMAT_VERSION +
+                                     "\" app-version=\"" + APP_VERSION + "\">"));
+    }
+
+    @Test
+    public void formatVersionOfEarlierFiles() throws Exception {
+        // The version of the app that exported the file
+        assertEquals(1, FileImporter.getFormatVersion("0.9"));
+        assertEquals(1, FileImporter.getFormatVersion("1.6"));
+        assertEquals(2, FileImporter.getFormatVersion("1.7"));
+        assertEquals(2, FileImporter.getFormatVersion("2.3"));
+        assertEquals(3, FileImporter.getFormatVersion("2.4"));
+        // The format version
+        assertEquals(3, FileImporter.getFormatVersion("3"));
+    }
+
+    @Test
+    public void filesOfEarlierVersionsAreImported() throws Exception {
+        // Passdroid 1.6 and earlier did not escape the system name
+        assertImported("1.6", "Tom & Jerry", "Tom & Jerry");
+        assertImported("2.3", "Tom &amp; Jerry", "Tom & Jerry");
+        assertImported("2.4", "Tom &amp; Jerry", "Tom & Jerry");
+        assertImported("3", "Tom &amp; Jerry", "Tom & Jerry");
+    }
+
+    @Test
+    public void newerFileFormatIsRejected() throws Exception {
+        assertImportRejected(String.valueOf(FileExporter.FORMAT_VERSION + 1));
+        // No later app versions were written to files
+        assertImportRejected("2.5");
+        assertImportRejected("3.0");
+        // Invalid versions
+        assertImportRejected("0");
+        assertImportRejected("3.0.0");
+        assertImportRejected("x");
+    }
+
+    private static byte [] createFile(String version, String systemName)
+            throws Exception {
+        String xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<passdroid version=\"" + version + "\">\n" +
+            "  <system name=\"" + systemName + "\">\n" +
+            "    <username>alice</username>\n" +
+            "    <password>secret</password>\n" +
+            "  </system>\n" +
+            "</passdroid>\n";
+        return xml.getBytes("UTF-8");
+    }
+
+    private static void assertImported(String version, String systemName,
+                                       String expected) throws Exception {
+        FileImporter importer = new FileImporter(createFile(version, systemName));
+        importer.parse();
+        assertEntriesEqual(new PasswordEntry [] {
+            createEntry(expected, "alice", "secret", "", "")
+        }, importer.getPasswordEntries());
+    }
+
+    private static void assertImportRejected(String version) throws Exception {
+        FileImporter importer = new FileImporter(createFile(version, "Mail"));
         try {
             importer.parse();
-            fail("Expected FileImporterException");
+            fail("Version " + version + " was accepted");
         } catch (FileImporterException ex) {
             // Expected
         }

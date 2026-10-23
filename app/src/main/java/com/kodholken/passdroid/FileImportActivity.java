@@ -284,8 +284,7 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         importLayout.setVisibility(View.VISIBLE);
 
         try {
-            fileImporter = new FileImporter(readFile(importUri),
-                                            Utils.getVersion(FileImportActivity.this));
+            fileImporter = new FileImporter(readFile(importUri));
 
             if (fileImporter.isEncrypted()) {
                 String desc2 = getString(R.string.import_description_encrypted_file_present, filename);

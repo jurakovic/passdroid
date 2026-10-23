@@ -26,6 +26,14 @@ import java.io.OutputStream;
  * Class that handles the exporting of the password database to file.
  */
 public class FileExporter {
+    /**
+     * The version of the file format, see FileImporter.getFormatVersion().
+     * Increase it when the format changes in a way that earlier versions
+     * would not import correctly, e.g. a new field, which they would leave
+     * out. They refuse files with a newer format.
+     */
+    static final int FORMAT_VERSION = 3;
+
     private OutputStream output;
     private String appVersion;
 
@@ -34,7 +42,8 @@ public class FileExporter {
      *
      * @param output     stream to write the exported file to. The caller is
      *                   responsible for closing it.
-     * @param appVersion passdroid version to be recorded in the exported file.
+     * @param appVersion version name of the app, recorded in the file for
+     *                   information.
      */
     public FileExporter(OutputStream output, String appVersion) {
         this.output = output;
@@ -100,7 +109,8 @@ public class FileExporter {
         StringBuilder sb = new StringBuilder();
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        sb.append("<passdroid version=\"" + appVersion + "\">\n");
+        sb.append("<passdroid version=\"" + FORMAT_VERSION + "\" app-version=\"" +
+                  Utils.escapeXMLChars(appVersion) + "\">\n");
         for (PasswordEntry entry : passwords) {
             sb.append("  <system name=\"" + Utils.escapeXMLChars(entry.getDecSystem()) + "\">\n");
             if (entry.getDecUsername() != null) {

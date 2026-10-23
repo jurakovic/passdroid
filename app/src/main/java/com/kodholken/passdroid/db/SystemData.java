@@ -29,6 +29,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 public class SystemData extends SQLiteOpenHelper {
+    private static final String DATA_VERSION = "data_version";
+    private static final String LEGACY_VERSION = "version";
 
     public SystemData(Context ctx) {
         super(ctx, Constants.DBNAME, null, Constants.DBVERSION);
@@ -77,8 +79,8 @@ public class SystemData extends SQLiteOpenHelper {
         return hasAttribute("key");
     }
 
-    public boolean hasVersion() {
-        return hasAttribute("version");
+    public boolean hasDataVersion() {
+        return hasAttribute(DATA_VERSION);
     }
 
     public String getAttribute(String attr) {
@@ -99,8 +101,20 @@ public class SystemData extends SQLiteOpenHelper {
         return getAttribute("key");
     }
 
-    public String getVersion() {
-        return getAttribute("version");
+    /**
+     * @return the version of the data, see DbMigration.DATA_VERSION.
+     */
+    public int getDataVersion() {
+        return Integer.parseInt(getAttribute(DATA_VERSION));
+    }
+
+    /**
+     * @return the version of the app that last used the database, which
+     *         versions before Passdroid++ 3.0 stored instead of the data
+     *         version. null if there is none.
+     */
+    public String getLegacyVersion() {
+        return getAttribute(LEGACY_VERSION);
     }
 
     public void setAttribute(String attr, String value) {
@@ -125,11 +139,24 @@ public class SystemData extends SQLiteOpenHelper {
         setAttribute("key", value);
     }
 
-    public void setVersion(String value) {
-        setAttribute("version", value);	
-    }
-
-    public void updateVersion(String value) {
-        updateAttribute("version", value);
+    /**
+     * Store the version of the data. The app version that earlier versions
+     * stored is removed at the same time.
+     */
+    public void setDataVersion(int version) {
+        SQLiteDatabase db = getWritableDatabase();
+        try {
+            db.beginTransaction();
+            db.delete("system", "attribute=? OR attribute=?",
+                      new String[] { DATA_VERSION, LEGACY_VERSION });
+            ContentValues values = new ContentValues();
+            values.put("attribute", DATA_VERSION);
+            values.put("value", String.valueOf(version));
+            db.insertOrThrow("system", null, values);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 }

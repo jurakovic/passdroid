@@ -144,7 +144,7 @@ public class LoginActivity extends Activity {
                 Session.getInstance().setKey(Crypto.hmacFromPassword(password));
                 Session.getInstance().setLoggedIn();
 
-                handleVersionChange();
+                DbMigration.postLoginMigration(this);
                 Utils.startPasswordActivity(this);
             } else {
                 Utils.alertDialog(this, "Login Failure",
@@ -152,23 +152,6 @@ public class LoginActivity extends Activity {
                 ((EditText) findViewById(R.id.login_password)).selectAll();
             }
         }	
-    }
-
-    /**
-     * Handle the post-login version change processing. This is where the app
-     * version will be updated in the database.
-     */
-    private void handleVersionChange() {
-        SystemData system = new SystemData(this);
-        String dbVersion = system.getVersion();
-        String appVersion = Utils.getVersion(this);
-
-        if (!dbVersion.equals(appVersion)) {
-            if (DbMigration.postLoginMigration(this, dbVersion, appVersion)) {
-                Utils.debug("Setting version to " + appVersion);
-                system.updateVersion(appVersion);
-            }
-        }
     }
 
     private boolean verifyPassword(String password) {
