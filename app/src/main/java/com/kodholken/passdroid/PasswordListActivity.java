@@ -371,9 +371,10 @@ PasswordModelListener {
             public boolean onItemLongClick(AdapterView<?> a, View v,
                     int position, long id) {
 
-                final String password = PasswordModel.getInstance(context)
-                .getPasswords()[position]
-                                .getDecPassword();
+                // Get the entry from the adapter since the list may be filtered
+                final String password =
+                    ((PasswordEntry) passwordAdapter.getItem(position))
+                    .getDecPassword();
 
                 final AlertDialog alertDialog = new AlertDialog.Builder(context).create();
                 alertDialog.setTitle("Copy to clipboard");
