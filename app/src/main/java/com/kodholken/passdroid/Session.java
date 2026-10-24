@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 
 /**
  * Singleton class for keeping application state accessible to all classes of
@@ -159,7 +160,13 @@ public class Session {
             am.cancel(session.timeoutIntent);
             session.timeoutIntent = null;
         }
-        
+
+        // Automatic logout can be turned off in the settings
+        if (!PreferenceManager.getDefaultSharedPreferences(context).
+                               getBoolean("close_logout", true)) {
+            return;
+        }
+
         // Only deliver the timeout broadcast to this application
         Intent intent = new Intent(TIMEOUT_ACTION);
         intent.setPackage(context.getPackageName());

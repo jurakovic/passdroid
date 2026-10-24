@@ -18,7 +18,7 @@
   android:key="close_logout"
   android:title="Log out on close"
   android:defaultValue="true"
-  android:summary="Automatic logout when the application loses focus." />
+  android:summary="Automatic logout when the application has been in the background for 5 seconds." />
 
 <CheckBoxPreference
   android:key="display_username"
