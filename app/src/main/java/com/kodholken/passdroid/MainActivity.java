@@ -24,7 +24,6 @@ import com.kodholken.passdroid.db.SystemData;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.os.Bundle;
 
 /**
  * Main activity of the application. This is started upon application startup
@@ -32,14 +31,6 @@ import android.os.Bundle;
  * state.
  */
 public class MainActivity extends Activity {	
-    /** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        ScreenOffListener.register(this);
-    }
-    
     @Override
     public void onResume() {
     	super.onResume();
