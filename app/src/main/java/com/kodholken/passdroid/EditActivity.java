@@ -89,6 +89,13 @@ public class EditActivity extends SherlockTimeoutActivity {
 
     private void updatePassword() {
         String system   = ((TextView) findViewById(R.id.system)).getText().toString();
+        // We require a valid system name, as when adding the entry
+        if (system.matches("^\\s*$")) {
+            Utils.alertDialog(this, "Empty system name",
+            "Please enter a system name before saving the password.");
+            return;
+        }
+
         String username = ((TextView) findViewById(R.id.username)).getText().toString();
         String password = ((TextView) findViewById(R.id.password)).getText().toString();
         String note = ((TextView) findViewById(R.id.note)).getText().toString();
