@@ -187,7 +187,7 @@ public class FileImporter {
      *
      *   1  Passdroid 1.6 and earlier, see createInputStream()
      *   2  Passdroid 1.7 to 2.3
-     *   3  Passdroid++. Its first builds were numbered 2.4.
+     *   3  Passdroid++: CDATA values. Its first builds were numbered 2.4.
      *
      * @throws FileImporterException if the version is invalid.
      */
@@ -251,24 +251,18 @@ public class FileImporter {
 
             NodeList nodes = system.getChildNodes();
 
+            // The values are read with getTextContent() since a value
+            // containing "]]>" is exported as several CDATA sections.
             for (int i = 0; i < nodes.getLength(); i++) {
                 Node node = nodes.item(i);
                 if (node.getNodeName().equals("username")) {
-                    if (node.getFirstChild() != null) {
-                        username = node.getFirstChild().getNodeValue();
-                    }
+                    username = node.getTextContent();
                 } else if (node.getNodeName().equals("password")) {
-                    if (node.getFirstChild() != null) {
-                        password = node.getFirstChild().getNodeValue();
-                    }
+                    password = node.getTextContent();
                 } else if (node.getNodeName().equals("note")) {
-                    if (node.getFirstChild() != null) {
-                        note = node.getFirstChild().getNodeValue();
-                    }
+                    note = node.getTextContent();
                 } else if (node.getNodeName().equals("url")) {
-                    if (node.getFirstChild() != null) {
-                        url = node.getFirstChild().getNodeValue();
-                    }
+                    url = node.getTextContent();
                 }
             }
 

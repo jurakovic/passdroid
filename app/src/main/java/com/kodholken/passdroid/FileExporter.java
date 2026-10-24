@@ -112,26 +112,51 @@ public class FileExporter {
         sb.append("<passdroid version=\"" + FORMAT_VERSION + "\" app-version=\"" +
                   Utils.escapeXMLChars(appVersion) + "\">\n");
         for (PasswordEntry entry : passwords) {
-            sb.append("  <system name=\"" + Utils.escapeXMLChars(entry.getDecSystem()) + "\">\n");
-            if (entry.getDecUsername() != null) {
-                String username = "<![CDATA[" + entry.getDecUsername().replaceAll("]]>", "]]>]]><![CDATA[") + "]]>";
-                sb.append("    <username>" + username + "</username>\n");
-            }
-            if (entry.getDecPassword() != null) {
-                String password = "<![CDATA[" + entry.getDecPassword().replaceAll("]]>", "]]>]]><![CDATA[") + "]]>";
-                sb.append("    <password>" + password + "</password>\n");
-            }
-            if (entry.getDecNote() != null) {  
-                String note = "<![CDATA[" + entry.getDecNote().replaceAll("]]>", "]]>]]><![CDATA[") + "]]>";
-                sb.append("    <note>" + note + "</note>\n");
-            }
-            if (entry.getDecUrl() != null) {  
-                String url = "<![CDATA[" + entry.getDecUrl().replaceAll("]]>", "]]>]]><![CDATA[") + "]]>";
-                sb.append("    <url>" + url + "</url>\n");
-            }
+            sb.append("  <system name=\"" +
+                      Utils.escapeXMLChars(removeInvalidChars(entry.getDecSystem())) +
+                      "\">\n");
+            appendElement(sb, "username", entry.getDecUsername());
+            appendElement(sb, "password", entry.getDecPassword());
+            appendElement(sb, "note", entry.getDecNote());
+            appendElement(sb, "url", entry.getDecUrl());
             sb.append("  </system>\n");
         }
+
         sb.append("</passdroid>\n");
+
+        return sb.toString();
+    }
+
+    /**
+     * Append an element with a value in a CDATA section, unless the value is
+     * null. A "]]>" in the value is split across two CDATA sections.
+     */
+    private static void appendElement(StringBuilder sb, String name, String value) {
+        if (value == null) {
+            return;
+        }
+
+        sb.append("    <" + name + "><![CDATA[" +
+                  removeInvalidChars(value).replaceAll("]]>", "]]]]><![CDATA[>") +
+                  "]]></" + name + ">\n");
+    }
+
+    /**
+     * Remove the characters that XML 1.0 does not allow, not even in a CDATA
+     * section, such as most control characters. A file with them could not
+     * be imported.
+     */
+    static String removeInvalidChars(String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); ) {
+            int c = s.codePointAt(i);
+            if (c == 0x9 || c == 0xa || c == 0xd ||
+                (c >= 0x20 && c <= 0xd7ff) || (c >= 0xe000 && c <= 0xfffd) ||
+                c >= 0x10000) {
+                sb.appendCodePoint(c);
+            }
+            i += Character.charCount(c);
+        }
 
         return sb.toString();
     }

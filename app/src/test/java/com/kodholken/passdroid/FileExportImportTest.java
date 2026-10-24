@@ -39,8 +39,9 @@ public class FileExportImportTest {
     private static PasswordEntry [] createEntries() {
         return new PasswordEntry [] {
             createEntry("Mail", "user@example.com", "secret", "", ""),
-            createEntry("Tom & Jerry's <\"shop\">", "a<b", "p]w&d<",
+            createEntry("Tom & Jerry's <\"shop\">", "a<b", "p]]>w&d<",
                         "line 1\nline 2", "https://example.com/?a=1&b=2"),
+            createEntry("CDATA", "]]>", "]]]]>>", "x]]>y]]>", "]]"),
             createEntry("Unicode åäö", "ü", "€ß",
                         "", "")
         };
@@ -69,6 +70,27 @@ public class FileExportImportTest {
         assertFalse(importer.isEncrypted());
         importer.parse();
         assertEntriesEqual(entries, importer.getPasswordEntries());
+    }
+
+    @Test
+    public void invalidCharactersAreRemoved() throws Exception {
+        // Control characters, e.g. in a pasted note, are not allowed in XML.
+        // Tabs, line breaks and characters outside the BMP are.
+        PasswordEntry [] entries = {
+            createEntry("Sys\u0001tem", "user\u0000", "pass\uFFFEword",
+                        "tab\tnew\nline \uD83D\uDE00 \uD800",
+                        "https://example.com/\u0008")
+        };
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        new FileExporter(output, APP_VERSION).exportCleartext(entries);
+
+        FileImporter importer = new FileImporter(output.toByteArray());
+        importer.parse();
+        assertEntriesEqual(new PasswordEntry [] {
+            createEntry("System", "user", "password",
+                        "tab\tnew\nline \uD83D\uDE00 ", "https://example.com/")
+        }, importer.getPasswordEntries());
     }
 
     @Test
