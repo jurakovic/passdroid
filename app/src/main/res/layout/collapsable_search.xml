@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.kodholken.passdroid.FullWidthLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal"
@@ -9,12 +9,10 @@
     android:focusableInTouchMode="true">
 
     <EditText
-        xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/search_field"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:hint="Search"
+        android:hint="@string/options_search"
         android:singleLine="true"
-        android:inputType="text|textNoSuggestions"
-        android:layout_toLeftOf="@+id/search_button"/> 
-</LinearLayout>
+        android:inputType="text|textNoSuggestions"/>
+</com.kodholken.passdroid.FullWidthLayout>
