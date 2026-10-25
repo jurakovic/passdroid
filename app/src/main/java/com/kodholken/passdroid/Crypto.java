@@ -19,11 +19,12 @@
 
 package com.kodholken.passdroid;
 
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.zip.CRC32;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -160,7 +161,7 @@ public class Crypto {
 
         SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
         try {
-            Random rnd = new Random();
+            SecureRandom rnd = new SecureRandom();
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
             byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
@@ -250,7 +251,58 @@ public class Crypto {
             byte[] decrypted = decryptAesCbc(key, encrypted);
             return new String(decrypted, 2, decrypted.length - 2, "UTF8");
         } catch(Exception ex) {}
-        
+
         return null;
+    }
+
+    /**
+     * Length in bytes of the nonce used by encryptAesGcm().
+     */
+    public static final int GCM_NONCE_LENGTH = 12;
+
+    private static final int GCM_TAG_BITS = 128;
+
+    /**
+     * Encrypt and authenticate data using AES in GCM mode.
+     *
+     * @param key   AES key.
+     * @param nonce GCM_NONCE_LENGTH random bytes. A nonce must never be used
+     *              twice with the same key.
+     * @param clear data to encrypt.
+     * @param aad   additional data that is authenticated but not encrypted.
+     * @return the encrypted data followed by the authentication tag. null on
+     *         error.
+     */
+    public static byte[] encryptAesGcm(byte[] key, byte[] nonce, byte[] clear,
+                                       byte[] aad) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"),
+                        new GCMParameterSpec(GCM_TAG_BITS, nonce));
+            cipher.updateAAD(aad);
+            return cipher.doFinal(clear);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Decrypt data encrypted with encryptAesGcm().
+     *
+     * @return the decrypted data or null if the key is wrong or the data has
+     *         been modified.
+     */
+    public static byte[] decryptAesGcm(byte[] key, byte[] nonce,
+                                       byte[] encrypted, byte[] aad) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"),
+                        new GCMParameterSpec(GCM_TAG_BITS, nonce));
+            cipher.updateAAD(aad);
+            return cipher.doFinal(encrypted);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 }

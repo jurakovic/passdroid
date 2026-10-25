@@ -22,11 +22,32 @@ package com.kodholken.passdroid;
 public class FileImporterException extends Exception {
     private static final long serialVersionUID = 1L;
 
+    private boolean wrongKey;
+
     public FileImporterException(String message) {
         super(message);
     }
 
     public FileImporterException(Exception ex) {
         super(ex);
+    }
+
+    /**
+     * @return an exception for an encrypted file that could not be
+     *         decrypted, most likely because the key is wrong.
+     */
+    static FileImporterException wrongKey(String message) {
+        FileImporterException ex = new FileImporterException(message);
+        ex.wrongKey = true;
+        return ex;
+    }
+
+    /**
+     * @return true if the file may be imported with another password. False
+     *         if the file itself can not be imported, e.g. because it has a
+     *         newer format.
+     */
+    public boolean isWrongKey() {
+        return wrongKey;
     }
 }

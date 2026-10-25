@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -93,7 +94,8 @@ public class FileImporter {
             throw new FileImporterException("Could not read signature");
         }
 
-        return data[0] == 's' && data[1] == 'q' && data[2] == 't';
+        return hasSignature(FileExporter.ENCRYPTED_SIGNATURE) ||
+               hasSignature(FileExporter.LEGACY_ENCRYPTED_SIGNATURE);
     }
 
     /**
@@ -277,7 +279,34 @@ public class FileImporter {
         }
     }
 
+    /**
+     * Decrypt and parse an encrypted file.
+     *
+     * @param key key derived from the master password that was used when the
+     *            file was exported.
+     * @throws FileImporterException if the key is wrong or the file is invalid.
+     */
     public void parseEncrypted(byte[] key) throws FileImporterException {
+        if (hasSignature(FileExporter.ENCRYPTED_SIGNATURE)) {
+            EncryptedHeader header = new EncryptedHeader();
+
+            byte [] aad = Arrays.copyOfRange(data, 0, header.length);
+            byte [] nonce = Arrays.copyOfRange(data, header.length,
+                    header.length + Crypto.GCM_NONCE_LENGTH);
+            byte [] encrypted = Arrays.copyOfRange(data,
+                    header.length + Crypto.GCM_NONCE_LENGTH, data.length);
+
+            byte [] decrypted = Crypto.decryptAesGcm(key, nonce, encrypted, aad);
+            if (decrypted == null) {
+                throw FileImporterException.wrongKey("Decryption failed");
+            }
+
+            // The file is authenticated, so the key was right and the errors
+            // from here on are errors of the file
+            parse(new ByteArrayInputStream(decrypted));
+            return;
+        }
+
         // File needs to be atleast 3 bytes to have room for encryption signature
         if (data.length < 3) {
             throw new FileImporterException("File too small: " + data.length);
@@ -288,10 +317,79 @@ public class FileImporter {
 
         byte[] decrypted = Crypto.decryptAesCbc(key, buffer);
         if (decrypted == null) {
-            throw new FileImporterException("Decryption failed");
+            throw FileImporterException.wrongKey("Decryption failed");
         }
 
+        // This format is not authenticated: a wrong key can also give data
+        // that can not be parsed
         InputStream is = new ByteArrayInputStream(decrypted, 2 /* Skip salt */, decrypted.length - 1);
-        parse(is);
+        try {
+            parse(is);
+        } catch (FileImporterException ex) {
+            throw FileImporterException.wrongKey(ex.getMessage());
+        }
+    }
+
+    /**
+     * Decrypt and parse an encrypted file using the master password that was
+     * used when the file was exported. This is slow and should not be called
+     * on the UI thread.
+     *
+     * @throws FileImporterException if the password is wrong or the file is
+     *         invalid.
+     */
+    public void parseEncryptedWithPassword(String password) throws FileImporterException {
+        if (hasSignature(FileExporter.ENCRYPTED_SIGNATURE)) {
+            EncryptedHeader header = new EncryptedHeader();
+            parseEncrypted(MasterKey.deriveKey(password, header.salt,
+                                               header.iterations));
+        } else {
+            parseEncrypted(Crypto.hmacFromPassword(password));
+        }
+    }
+
+    private boolean hasSignature(byte [] signature) {
+        if (data.length < signature.length) {
+            return false;
+        }
+
+        for (int i = 0; i < signature.length; i++) {
+            if (data[i] != signature[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The unencrypted header of an encrypted file, @see
+     * FileExporter#exportEncrypted(byte[], byte[], int, PasswordEntry[]).
+     */
+    private class EncryptedHeader {
+        final int iterations;
+        final byte [] salt;
+        final int length;  // Length of the header in bytes
+
+        EncryptedHeader() throws FileImporterException {
+            int offset = FileExporter.ENCRYPTED_SIGNATURE.length;
+            if (data.length < offset + 5) {
+                throw new FileImporterException("File too small: " + data.length);
+            }
+
+            iterations = ByteBuffer.wrap(data, offset, 4).getInt();
+            int saltLength = data[offset + 4] & 0xff;
+            length = offset + 5 + saltLength;
+
+            if (iterations < 1 || iterations > MasterKey.MAX_ITERATIONS) {
+                throw new FileImporterException("Invalid iteration count: " + iterations);
+            }
+
+            if (data.length < length + Crypto.GCM_NONCE_LENGTH) {
+                throw new FileImporterException("File too small: " + data.length);
+            }
+
+            salt = Arrays.copyOfRange(data, offset + 5, length);
+        }
     }
 }

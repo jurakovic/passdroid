@@ -25,8 +25,9 @@ Each entry has a **system** (the name of the service, required),
 
 ### Master password and encryption
 
-- Each field is encrypted with AES-256, with a key derived from the master
-  password.
+- The master password is turned into the encryption key with
+  PBKDF2-HMAC-SHA256 and 600,000 iterations, which makes every guess slow for
+  someone who has a copy of the data. Each field is encrypted with AES-256.
 - The master password can be changed in Settings. If it is forgotten, the
   data can't be recovered.
 
@@ -57,7 +58,7 @@ Each entry has a **system** (the name of the service, required),
 
 - **Export** to a file you choose, encrypted (recommended) or unencrypted XML.
   An encrypted export needs the master password that was current when it was
-  made.
+  made, and a modified file is not imported.
 - **Import** an encrypted file made with the current master password directly.
   For other encrypted files Passdroid++ asks for the master password they were
   made with. Exports of the original Passdroid can be imported.
@@ -97,10 +98,27 @@ Each entry has a **system** (the name of the service, required),
 3. Check that all entries are there. Then delete the export file and
    uninstall the original app.
 
+The original Passdroid derives its key from the master password in a very
+weak way: anyone with a copy of its database or of an export can try
+passwords extremely fast. Delete old copies wherever they are (cloud storage,
+email), and if one may have leaked, don't reuse that master password. See
+[INTERNALS.md](INTERNALS.md#legacy-formats).
+
 ## Changes from Passdroid 2.3
 
 Passdroid 2.3, the last release of the original Passdroid, is the baseline
 of Passdroid++.
+
+### Security
+
+- **Key derivation:** PBKDF2-HMAC-SHA256 with 600,000 iterations and a random
+  salt. Passdroid 2.3 used a single HMAC-SHA256 with a fixed key and no salt,
+  so a copied database or export could be attacked very fast. Its exports
+  can still be imported, and are then stored with the new key derivation.
+- **Encrypted exports:** AES-256-GCM, which also detects changes to the file.
+  2.3 used AES-CBC with a fixed IV and no authentication.
+- Random values (IVs and salts) come from `SecureRandom` instead of
+  `java.util.Random`, which is not secure.
 
 ### Bugs fixed from 2.3
 
@@ -110,6 +128,8 @@ of Passdroid++.
 - With a search active, a long press copied the password of another entry.
 - "Log out on close" was ignored: the app always logged out after 5 seconds.
 - Editing an entry could save it without a system name.
+- An encrypted file that couldn't be imported for another reason, e.g. a
+  newer file format, was reported as a wrong password.
 
 ### Updated for current Android
 
@@ -130,7 +150,8 @@ of Passdroid++.
 ## Documentation
 
 [INTERNALS.md](INTERNALS.md): building Passdroid++ from source, how it
-works, the database and file formats, and releasing.
+works, the database and file formats, the security design with its threat
+model, trade-offs and open items, and releasing.
 
 ## License
 

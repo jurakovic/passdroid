@@ -32,6 +32,8 @@ import android.widget.Button;
 import android.widget.EditText;
 
 public class ChangePasswordActivity extends TimeoutActivity {
+    private boolean changing = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,27 +60,22 @@ public class ChangePasswordActivity extends TimeoutActivity {
     }
 
     private void handleOK() {
-        EditText oldPasswordView = (EditText) this.findViewById(
-                R.id.old_master_password);
-
-        String oldPassword = oldPasswordView.getText().toString();
-        SystemData systemData = new SystemData(this);
-        if (!Crypto.verifyPassword(oldPassword, systemData.getKey())) {
-            Utils.alertDialog(this, "Invalid password",
-            "The master password entered is incorrect.");
-            oldPasswordView.requestFocus();
-            oldPasswordView.selectAll();
-
-            return ;
+        if (changing) {
+            return;
         }
 
+        final EditText oldPasswordView = (EditText) this.findViewById(
+                R.id.old_master_password);
         EditText newPassword1View = (EditText) this.findViewById(
                 R.id.master_password_1);
         EditText newPassword2View = (EditText) this.findViewById(
                 R.id.master_password_2);
 
-        String newPassword1 = newPassword1View.getText().toString();
+        final String oldPassword = oldPasswordView.getText().toString();
+        final String newPassword1 = newPassword1View.getText().toString();
         String newPassword2 = newPassword2View.getText().toString();
+
+        // Check this first since verifying the old password is slow
         if (!newPassword1.equals(newPassword2)) {
             Utils.alertDialog(this, "Passwords mismatch",
             "The new passwords you entered does not match.");
@@ -87,8 +84,39 @@ public class ChangePasswordActivity extends TimeoutActivity {
             return;
         }
 
-        if (DbMigration.changePassword(this, oldPassword, newPassword1)) {
-            Session.getInstance().setKey(Crypto.hmacFromPassword(newPassword1));
+        final String record = new SystemData(this).getKey();
+        final MasterKey [] keys = new MasterKey[2];
+
+        changing = true;
+        Utils.runWithProgress(this, "Changing password…", new Runnable() {
+            @Override
+            public void run() {
+                keys[0] = MasterKey.unlock(oldPassword, record);
+                if (keys[0] != null) {
+                    keys[1] = MasterKey.create(newPassword1);
+                }
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                changing = false;
+                if (keys[0] == null) {
+                    Utils.alertDialog(ChangePasswordActivity.this,
+                                      "Invalid password",
+                                      "The master password entered is incorrect.");
+                    oldPasswordView.requestFocus();
+                    oldPasswordView.selectAll();
+                } else {
+                    changeKey(keys[0], keys[1]);
+                }
+            }
+        });
+    }
+
+    private void changeKey(MasterKey oldKey, MasterKey newKey) {
+        if (newKey != null && DbMigration.changeKey(this, oldKey.getKey(), newKey)) {
+            Session.getInstance().setKey(newKey.getKey());
+            Session.getInstance().setNeedReload(true);
 
             AlertDialog alertDialog;
 

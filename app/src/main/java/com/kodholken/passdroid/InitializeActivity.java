@@ -32,6 +32,7 @@ import android.widget.EditText;
 
 public class InitializeActivity extends Activity {
     Button okButton;
+    private boolean initializing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,19 +60,42 @@ public class InitializeActivity extends Activity {
 
         if (p1.equals(p2.getText().toString())) {
             initialize(p1);
-            Session.getInstance().setKey(Crypto.hmacFromPassword(p1));
-            Session.getInstance().setLoggedIn();
-            Utils.startPasswordActivity(this);
-            finish();
         } else {
             Utils.alertDialog(this, getString(R.string.initialize_mismatch_title), getString(R.string.initialize_mismatch_text));
         }
     }
 
-    private void initialize(String masterPassword) {
-        String xorString = Utils.generateKey(masterPassword);
+    private void initialize(final String masterPassword) {
+        if (initializing) {
+            return;
+        }
 
-        SystemData system = new SystemData(this);
-        system.setAttribute("key", xorString);
+        final MasterKey [] masterKey = new MasterKey[1];
+
+        initializing = true;
+        Utils.runWithProgress(this, "Creating key…", new Runnable() {
+            @Override
+            public void run() {
+                masterKey[0] = MasterKey.create(masterPassword);
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                initializing = false;
+                if (masterKey[0] == null) {
+                    Utils.alertDialog(InitializeActivity.this, "Failure",
+                                      "Failed to create the master key.");
+                    return;
+                }
+
+                SystemData system = new SystemData(InitializeActivity.this);
+                system.setAttribute("key", masterKey[0].getRecord());
+
+                Session.getInstance().setKey(masterKey[0].getKey());
+                Session.getInstance().setLoggedIn();
+                Utils.startPasswordActivity(InitializeActivity.this);
+                finish();
+            }
+        });
     }
 }

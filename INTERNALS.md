@@ -2,7 +2,8 @@
 
 How Passdroid++ is built and how it works: the structure of the code, the
 session and logout handling, the key derivation and encryption, the database
-and file formats, testing, making changes and releasing.
+and file formats, the security design, testing, making changes and
+releasing.
 
 ## Contents
 
@@ -21,6 +22,13 @@ and file formats, testing, making changes and releasing.
 - [Password generator](#password-generator)
 - [Settings](#settings)
 - [Android platform details](#android-platform-details)
+- [Security](#security)
+  - [Threat model](#threat-model)
+  - [Design](#design)
+  - [Decisions](#decisions)
+  - [Open items](#open-items)
+  - [Recommendations](#recommendations)
+  - [Sources](#sources)
 - [Tests](#tests)
 - [Making changes](#making-changes)
 - [Releasing](#releasing)
@@ -82,7 +90,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 |---|---|
 | Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `LoginActivity` |
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
-| Crypto | `Crypto` (key derivation, AES helpers), `PasswordEntry` (field encryption), `Base64` |
+| Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
 | Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `ScreenOffListener` |
@@ -111,12 +119,12 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
      `DbMigration.preLoginMigration()`, which stores the data version if
      there is none (see [Database](#database)), and starts `LoginActivity`
      if a master key record exists, else `InitializeActivity`.
-3. `InitializeActivity` checks that the new password was entered the same
-   twice, stores the master key record and logs in.
-4. `LoginActivity` checks the password against the record, derives the key
-   (see [Master key](#master-key)), runs the data migrations
-   (`DbMigration.postLoginMigration()`), and starts `PasswordListActivity`.
-   It stays below the list, so a logout returns to it.
+3. `InitializeActivity` creates the master key from the new password, stores
+   the record and logs in.
+4. `LoginActivity` derives the key in a background thread, runs the data
+   migrations (`DbMigration.postLoginMigration()`), upgrades a legacy master
+   key (see [Master key](#master-key)), and starts `PasswordListActivity`. It
+   stays below the list, so a logout returns to it.
 
 Back handling: back on the login screen exits the app. It sets
 `Session.setExitMain(true)` so that `MainActivity` finishes itself instead of
@@ -172,25 +180,65 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 - A login clears a timer left from before it, so the login isn't undone
   right away.
 
+### Background work
+
+`Utils.runWithProgress()` runs slow work (key derivation, an import with a
+password) in a plain thread behind a non-cancelable progress dialog, and the
+completion on the UI thread, unless the activity has been destroyed. Screens
+guard against starting the same work twice with a flag.
+
 ## Master key
 
-The key is derived from the master password without a salt or iterations:
+### Current format
+
+`MasterKey` derives a 256 bit key with **PBKDF2-HMAC-SHA256**, 600,000
+iterations and a random 16 byte salt. The `system` table stores the record
+
+```
+pbkdf2-sha256$<iterations>$<base64 salt>$<base64 verifier>
+```
+
+with `verifier = SHA-256("passdroid-key-verifier" || key)`. A password is
+checked by deriving the key with the stored salt and iteration count and
+comparing the verifier in constant time (`MessageDigest.isEqual`).
+
+- `deriveKey()` uses the platform's `PBKDF2WithHmacSHA256`. On Android 7.0
+  and 7.1, which don't have it, and for an empty password, which the platform
+  rejects, it falls back on a pure Java implementation of RFC 8018
+  (`pbkdf2HmacSha256()`), tested against the RFC 7914 test vectors. Both
+  encode the password as UTF-8.
+- Iteration counts read from files are capped at `MAX_ITERATIONS`
+  (10,000,000).
+
+### Legacy format
+
+The original Passdroid derives the key without a salt or iterations:
 
 - The key is `HMAC-SHA256(key = "notverysecretiv", password)`
   (`Crypto.hmacFromPassword()`).
-- The `system` table stores a record: the base64 of 32 bytes that, XORed
-  with that HMAC, give 28 random bytes followed by their CRC32
-  (`Utils.generateKey()`, checked by `Crypto.verifyPassword()`). So a guess
-  costs one HMAC and a CRC, and someone with a copy of the database can try
-  passwords very fast.
-- The random bytes come from `java.util.Random`.
+- The record is the base64 of 32 bytes that, XORed with that HMAC, give 28
+  random bytes followed by their CRC32 (`Crypto.verifyPassword()`). So a
+  guess costs one HMAC and a CRC.
+- `MasterKey.isLegacy()` recognizes it by the missing `pbkdf2-sha256$`
+  prefix.
+
+At a successful login with a legacy record, `LoginActivity` also creates a
+new PBKDF2 key from the password and calls `DbMigration.changeKey()`, which
+re-encrypts all entries and stores the new record in one transaction. If
+that fails, the legacy key stays in use and the upgrade is tried again at
+the next login.
 
 ### Changing the master password
 
-`ChangePasswordActivity` checks the old password and calls
-`DbMigration.changePassword()`, which decrypts every entry with the old key,
-encrypts it with the new one and stores the new record, all in one SQLite
-transaction. It runs on the UI thread. The session key is then replaced.
+`ChangePasswordActivity` derives the key from the old password (which
+verifies it) and a new key from the new password in a background thread,
+then calls `DbMigration.changeKey()`. On success the session key is
+replaced.
+
+`DbMigration.changeKey()` decrypts every entry with the old key and only
+continues if every field decrypted. It then re-encrypts all entries and
+updates the `key` record, all in one SQLite transaction. It runs on the UI
+thread.
 
 ## Database
 
@@ -238,6 +286,9 @@ There are two kinds of migration:
   entries would destroy them. No database of the Passdroid++ application id
   has an app version before 2.3, so in practice no conversion runs.
 
+  The PBKDF2 upgrade of a legacy key is not one of these; it is decided by
+  the record format.
+
 ## Entry encryption
 
 Each field is encrypted separately (`PasswordEntry.encrypt()`):
@@ -247,15 +298,17 @@ base64( IV (16 random bytes) || AES-256-CBC-PKCS7(key, IV, UTF-8 value) )
 ```
 
 - `"AES/CBC/PKCS7Padding"` from Android's built-in BouncyCastle provider,
-  asked for by name (`"BC"`). The IV comes from `java.util.Random`.
+  asked for by name (`"BC"`).
 - `NULL` (a field the entry never had) and an empty string are different:
   `null` stays `null`, `""` is encrypted.
 - Not authenticated: someone who can write the database could swap or
-  corrupt values.
+  corrupt values. See [Decisions](#decisions).
 - Legacy formats, only read for the migrations above: AES-ECB, and CBC with
   a zero IV; both with 2 random bytes in front of the value.
 
 `decrypt()` returns `null` when a value can't be decrypted.
+`DbMigration.changeKey()` uses that to refuse re-encrypting a database with
+the wrong key.
 
 ## Loading entries
 
@@ -347,11 +400,32 @@ UTF-8 encoded:
   (`createInputStream()`). The version is read with a regular expression
   before parsing, since those files aren't well-formed.
 
-### Encrypted export ("sqt")
+### Encrypted export ("sq2")
+
+```
+offset  size  content
+0       3     "sq2"
+3       4     PBKDF2 iteration count, big endian
+7       1     salt length n
+8       n     PBKDF2 salt
+8+n     12    AES-GCM nonce (random)
+20+n    ...   AES-256-GCM(XML), followed by the 16 byte tag
+```
+
+- The key is the database key, so the salt and iteration count of the
+  master key record are written into the header. The header, the bytes
+  before the nonce, is the GCM additional data, so it can't be changed
+  without the import failing.
+- An export is therefore tied to the master password that was current when
+  it was made. After a password change, older exports still need the old
+  password.
+
+### Legacy encrypted export ("sqt")
 
 `"sqt"` followed by AES-256-CBC with a zero IV over 2 random bytes and the
-XML, with the key of the master password, see [Master key](#master-key). It
-is not authenticated. This is also the format of the original Passdroid.
+XML, with the legacy key. The original Passdroid writes these. Passdroid++
+only writes one for a database whose legacy key couldn't be upgraded, and
+always reads them.
 
 ### Exporting
 
@@ -367,10 +441,15 @@ reported, since some document providers only store the data then.
 
 1. picks a file with `ACTION_OPEN_DOCUMENT` and reads it into memory, at
    most 10 MB;
-2. detects the format by the first bytes (`sqt`, else XML);
-3. **encrypted**: tries the current session key first. If that fails, for
-   whatever reason, `ImportPasswordActivity` asks for the password the file
-   was made with, and the key is derived from it;
+2. detects the format by the first bytes (`sq2`, `sqt`, else XML);
+3. **encrypted**: tries the current session key first. If the key is
+   wrong, `ImportPasswordActivity` asks for the password, and
+   `parseEncryptedWithPassword()` derives the key: PBKDF2 with the salt and
+   iterations from the header for `sq2`, the legacy HMAC for `sqt`.
+   `FileImporterException.isWrongKey()` tells whether another password could
+   help. An `sq2` file that decrypts is authenticated, so a later error,
+   such as a newer format, is an error of the file and is shown as such.
+   `sqt` is not authenticated, so all its errors count as a wrong key;
 4. **cleartext**: parsed directly; afterwards the app offers to delete the
    file (`DocumentsContract.deleteDocument()`);
 5. stores the entries with `PasswordModel.setPasswords()`, which **replaces
@@ -406,6 +485,7 @@ Behavior that depends on the Android version, and where it is handled:
 
 | Android | What | Where |
 |---|---|---|
+| 7.0–7.1 | No platform PBKDF2-HMAC-SHA256 | `MasterKey.deriveKey()` fallback |
 | 9 | `clearPrimaryClip()` | `ScreenOffListener` |
 | 10 | No clipboard reads in the background | `ScreenOffListener` |
 | 12 | Immutable `PendingIntent`s, exported launcher activity | `Session`, manifest |
@@ -417,13 +497,154 @@ Behavior that depends on the Android version, and where it is handled:
 Only `MainActivity` is exported. The timeout receivers are registered at
 runtime as not exported.
 
+## Security
+
+How Passdroid++ protects its data, the trade-offs that were made on purpose,
+and what is still open. The sections above describe how each part works.
+
+### Threat model
+
+Passdroid++ protects passwords **at rest**:
+
+- a lost or stolen phone,
+- a copy of the app's database,
+- a backup or an export file that ends up somewhere else.
+
+It has **no network access** (no `INTERNET` permission), so nothing it holds
+can be sent anywhere by the app itself.
+
+Out of scope, as for any app on Android:
+
+- someone who has the phone while Passdroid++ is unlocked,
+- malware with root or a kernel exploit, which can read the app's memory or
+  record the master password as it is typed.
+
+Everything rests on the **master password**: anyone with a copy of the data
+can try passwords offline, as fast as their hardware allows.
+
+### Design
+
+#### Master key
+
+- Derived from the master password with **PBKDF2-HMAC-SHA256, 600,000
+  iterations** (the OWASP recommendation for PBKDF2) and a random 16 byte
+  salt.
+- The database stores the record
+  `pbkdf2-sha256$<iterations>$<salt>$<verifier>`, where the verifier is a
+  SHA-256 hash of the derived key. It is compared in constant time.
+- The platform PBKDF2 is used where available, with a pure Java fallback for
+  Android 7.0–7.1 and empty passwords.
+- Iteration counts read from files are capped at 10,000,000, so a crafted
+  file can't make the derivation run (almost) forever.
+
+Rough strength: one high-end GPU tries in the order of 10,000–20,000 master
+passwords per second against this derivation. 8 random lowercase letters
+last months, a common word or a leaked password minutes, and a random 5 word
+passphrase is out of reach.
+
+#### Database
+
+- Each field of each entry is encrypted separately with **AES-256-CBC** and a
+  random IV.
+- The fields are encrypted but **not authenticated**, see
+  [Decisions](#decisions).
+- The ciphertext length shows the rough length of each value to someone with
+  a copy of the database.
+- The conversions of old entries are chosen by a data version stored in the
+  database, never by the app version, so a version number can't make the
+  app convert current entries again and destroy them.
+
+#### Exports and imports
+
+- Encrypted exports ("sq2"): **AES-256-GCM** with a random 12 byte nonce, the
+  master key salt and iteration count in a header that is authenticated as
+  additional data. They are encrypted with the database key, so they need
+  the master password that was current at export time, and a modified file
+  is not imported.
+- Unencrypted exports are possible, with a warning. After importing one, the
+  app offers to delete it.
+- Exports have a file format version. A newer format is refused, so an older
+  app doesn't import a file and leave out what it doesn't know.
+- Exports truncate an existing file and leave out characters XML doesn't
+  allow, so a backup can always be imported again.
+- Imports read at most 10 MB.
+- A very deeply nested file can still crash the app. It can only be a file
+  the user picks, and nothing is lost.
+
+#### Legacy formats
+
+- The original Passdroid derives the key with a **single HMAC-SHA256 with a
+  fixed key**, no salt and no iterations, so a copy of its database or of an
+  export can be attacked very fast. A database with such a key is
+  re-encrypted with a PBKDF2 key at the first login, in one transaction that
+  is only committed if every entry decrypts.
+- Its "sqt" exports (AES-CBC, zero IV, no authentication) and the even older
+  ECB and zero IV entry formats can still be read, so old data can be
+  imported. An "sqt" export is only written for a database that still has a
+  legacy key because its upgrade failed; the old entry formats are never
+  written.
+
+#### Release signing
+
+- The release APK is signed with a key that the maintainer creates locally
+  and keeps backed up. It is never created in CI or in shared storage. The
+  Publish workflow signs with it from GitHub secrets and fails without them,
+  since Android can't install an unsigned APK.
+- The job that has the signing secrets can only read the repository.
+  Tagging and creating the release run in a separate job, the only one with
+  write access, on the commit that was built.
+- Each release publishes the SHA-256 checksum of the APK. It only shows that
+  the download is complete; the signature is what Android checks on updates.
+- The actions of the workflows are pinned by commit hash. The release is
+  created with the `gh` CLI of the runner instead of a third-party action.
+
+### Decisions
+
+Trade-offs that were made on purpose:
+
+- **The key stays in the app's memory while the user is logged in**, instead
+  of in the Android Keystore: every decryption would go through the
+  Keystore, a much larger change.
+- **Database fields are not authenticated.** Someone who can write the
+  database could swap or alter values, but that needs root-level access to
+  the app's storage. Part of the "vault format v2" in
+  [Open items](#open-items).
+- **PBKDF2 instead of Argon2id.** Argon2id is memory-hard and today's first
+  choice, but needs a library and an amount of memory that fits old phones.
+  Also part of the "vault format v2".
+
+### Open items
+
+Not done, in rough order of value:
+
+1. **"Vault format v2"**: AES-GCM for the database fields with the entry id
+   and field name as associated data, and Argon2id instead of PBKDF2, in one
+   migration at login. The riskiest kind of change, since it rewrites the
+   whole vault. Only with device testing and a fresh export at hand.
+
+Limitations that are not about security are listed in
+[Known limitations](#known-limitations).
+
+### Recommendations
+
+- **Delete old exports and backups of the original Passdroid** wherever they
+  are (cloud, email). They use the weak legacy key. If one may have leaked,
+  **change the master password**, since cracking an old copy reveals it.
+
+### Sources
+
+- **PBKDF2 iterations**: OWASP recommends 600,000 iterations for
+  PBKDF2-HMAC-SHA256.
+  - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+
 ## Tests
 
 Local JVM unit tests (`./gradlew testDebugUnitTest`):
 
 | Class | Covers |
 |---|---|
-| `FileExportImportTest` | Cleartext and `sqt` round trips with awkward values (`]]>`, Unicode); invalid characters; wrong key; format versions of older files, files of each older format, newer and invalid versions |
+| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, Unicode); invalid characters; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
+| `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency: the app asks for
@@ -457,16 +678,17 @@ release:
 1. `PasswordEntry`: the `enc`/`dec` fields with getters and setters,
    `decryptAll()`, `encryptAll()`.
 2. `PasswordData.onCreate()`, and the column lists in `PasswordModel` and
-   `DbMigration.changePassword()`.
+   `DbMigration.changeKey()`.
 3. `Constants.DBVERSION` + 1, and an `ALTER TABLE` step in
    `DbMigration.handleDatabaseUpgrade()`.
-4. `FileExporter.createXmlTree()` and `FileImporter`'s `parseSystemNode()`.
+4. `DbMigration.isDecrypted()`, so a password change checks the field too.
+5. `FileExporter.createXmlTree()` and `FileImporter`'s `parseSystemNode()`.
    Old files must still import without it. Increase
    `FileExporter.FORMAT_VERSION`, so earlier versions refuse the files
    instead of leaving the field out.
-5. The add, edit and show layouts and activities, and the intent extras
+6. The add, edit and show layouts and activities, and the intent extras
    between them.
-6. Tests in `FileExportImportTest`.
+7. Tests in `FileExportImportTest`.
 
 ### Adding a setting
 
@@ -570,7 +792,12 @@ Limitations:
 - The four `Timeout*Activity` base classes are copies of each other, and
   each screen that starts an external activity repeats the timeout check in
   `onActivityResult()`.
-- Re-encrypting all entries for a password change runs on the UI thread.
+- Re-encrypting all entries (password change, legacy upgrade) runs on the UI
+  thread.
+- The pure Java PBKDF2 of Android 7.0–7.1 hashes the HMAC pads again in
+  every iteration, which makes it about twice as slow as needed.
+- A progress dialog that is open while the screen rotates is lost with its
+  result; the user has to repeat the action.
 - A very deeply nested import file can crash the app (`StackOverflowError`
   is not caught). Only a file the user picks; nothing is lost.
 - A carriage return in a value comes back as a line feed after export and

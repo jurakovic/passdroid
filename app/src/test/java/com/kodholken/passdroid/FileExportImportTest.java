@@ -17,6 +17,8 @@ import org.junit.Test;
  */
 public class FileExportImportTest {
     private static final String APP_VERSION = "3.0.0";
+    // Low iteration count to keep the tests fast
+    private static final int ITERATIONS = 1000;
 
     @BeforeClass
     public static void addBouncyCastle() {
@@ -93,33 +95,152 @@ public class FileExportImportTest {
         }, importer.getPasswordEntries());
     }
 
+    private static byte [] exportEncrypted(MasterKey masterKey,
+                                           PasswordEntry [] entries) throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        new FileExporter(output, APP_VERSION).exportEncrypted(
+                masterKey.getKey(),
+                MasterKey.getSalt(masterKey.getRecord()),
+                MasterKey.getIterations(masterKey.getRecord()),
+                entries);
+        return output.toByteArray();
+    }
+
+    private static FileImporterException assertDecryptionFails(byte [] file, byte [] key) {
+        try {
+            new FileImporter(file).parseEncrypted(key);
+            fail("Expected FileImporterException");
+            return null;
+        } catch (FileImporterException ex) {
+            return ex;
+        }
+    }
+
+    private static FileImporterException assertDecryptionFails(byte [] file, String password) {
+        try {
+            new FileImporter(file).parseEncryptedWithPassword(password);
+            fail("Expected FileImporterException");
+            return null;
+        } catch (FileImporterException ex) {
+            return ex;
+        }
+    }
+
     @Test
     public void encryptedRoundTrip() throws Exception {
         PasswordEntry [] entries = createEntries();
-        byte [] key = Crypto.hmacFromPassword("master password");
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        MasterKey masterKey = MasterKey.create("master password", ITERATIONS);
+        byte [] file = exportEncrypted(masterKey, entries);
 
-        new FileExporter(output, APP_VERSION).exportEncrypted(key, entries);
+        assertEquals('s', file[0]);
+        assertEquals('q', file[1]);
+        assertEquals('2', file[2]);
 
-        FileImporter importer = new FileImporter(output.toByteArray());
+        FileImporter importer = new FileImporter(file);
         assertTrue(importer.isEncrypted());
-        importer.parseEncrypted(key);
+        importer.parseEncrypted(masterKey.getKey());
+        assertEntriesEqual(entries, importer.getPasswordEntries());
+
+        importer = new FileImporter(file);
+        importer.parseEncryptedWithPassword("master password");
         assertEntriesEqual(entries, importer.getPasswordEntries());
     }
 
     @Test
     public void encryptedWithWrongKeyFails() throws Exception {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        new FileExporter(output, APP_VERSION).exportEncrypted(
-                Crypto.hmacFromPassword("master password"), createEntries());
+        byte [] file = exportEncrypted(
+                MasterKey.create("master password", ITERATIONS), createEntries());
 
-        FileImporter importer = new FileImporter(output.toByteArray());
-        try {
-            importer.parseEncrypted(Crypto.hmacFromPassword("wrong password"));
-            fail("Expected FileImporterException");
-        } catch (FileImporterException ex) {
-            // Expected
-        }
+        assertTrue(assertDecryptionFails(file,
+                MasterKey.create("master password", ITERATIONS).getKey()).isWrongKey());
+        assertTrue(assertDecryptionFails(file, "wrong password").isWrongKey());
+    }
+
+    @Test
+    public void encryptedFileOfNewerFormatIsNotAWrongKey() throws Exception {
+        MasterKey masterKey = MasterKey.create("master password", ITERATIONS);
+        byte [] file = encrypt(masterKey,
+                createFile(String.valueOf(FileExporter.FORMAT_VERSION + 1), "Mail"));
+
+        // Another password would not help
+        assertFalse(assertDecryptionFails(file, masterKey.getKey()).isWrongKey());
+        assertFalse(assertDecryptionFails(file, "master password").isWrongKey());
+        assertTrue(assertDecryptionFails(file, "wrong password").isWrongKey());
+    }
+
+    /**
+     * @return an encrypted export of any XML, see FileExporter.exportEncrypted().
+     */
+    private static byte [] encrypt(MasterKey masterKey, byte [] xml) throws Exception {
+        byte [] salt = MasterKey.getSalt(masterKey.getRecord());
+        ByteArrayOutputStream header = new ByteArrayOutputStream();
+        header.write(FileExporter.ENCRYPTED_SIGNATURE);
+        header.write(java.nio.ByteBuffer.allocate(4)
+                .putInt(MasterKey.getIterations(masterKey.getRecord())).array());
+        header.write(salt.length);
+        header.write(salt);
+
+        byte [] nonce = new byte[Crypto.GCM_NONCE_LENGTH];
+        ByteArrayOutputStream file = new ByteArrayOutputStream();
+        file.write(header.toByteArray());
+        file.write(nonce);
+        file.write(Crypto.encryptAesGcm(masterKey.getKey(), nonce, xml,
+                                        header.toByteArray()));
+        return file.toByteArray();
+    }
+
+    @Test
+    public void modifiedEncryptedFileIsRejected() throws Exception {
+        byte [] file = exportEncrypted(
+                MasterKey.create("master password", ITERATIONS), createEntries());
+
+        // Modified data, which can not be told from a wrong key
+        byte [] modified = file.clone();
+        modified[modified.length - 20] ^= 1;
+        assertTrue(assertDecryptionFails(modified, "master password").isWrongKey());
+
+        // Modified salt, which is authenticated as well
+        modified = file.clone();
+        modified[10] ^= 1;
+        assertTrue(assertDecryptionFails(modified, "master password").isWrongKey());
+
+        // Truncated file
+        assertFalse(assertDecryptionFails(java.util.Arrays.copyOf(file, 20),
+                                          "master password").isWrongKey());
+    }
+
+    @Test
+    public void unreasonableIterationCountIsRejected() throws Exception {
+        byte [] file = exportEncrypted(
+                MasterKey.create("master password", ITERATIONS), createEntries());
+
+        file[3] = 0x7f;
+        file[4] = (byte) 0xff;
+        file[5] = (byte) 0xff;
+        file[6] = (byte) 0xff;
+        assertDecryptionFails(file, "master password");
+    }
+
+    @Test
+    public void legacyEncryptedRoundTrip() throws Exception {
+        PasswordEntry [] entries = createEntries();
+        byte [] key = Crypto.hmacFromPassword("master password");
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        new FileExporter(output, APP_VERSION).exportEncryptedLegacy(key, entries);
+        byte [] file = output.toByteArray();
+        assertEquals('t', file[2]);
+
+        FileImporter importer = new FileImporter(file);
+        assertTrue(importer.isEncrypted());
+        importer.parseEncrypted(key);
+        assertEntriesEqual(entries, importer.getPasswordEntries());
+
+        importer = new FileImporter(file);
+        importer.parseEncryptedWithPassword("master password");
+        assertEntriesEqual(entries, importer.getPasswordEntries());
+
+        assertTrue(assertDecryptionFails(file, "wrong password").isWrongKey());
     }
 
     @Test

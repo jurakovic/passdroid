@@ -22,6 +22,8 @@ package com.kodholken.passdroid;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import com.kodholken.passdroid.db.SystemData;
+
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
@@ -122,9 +124,21 @@ public class FileExportActivity extends SherlockTimeoutActivity {
             FileExporter exporter = new FileExporter(output,
                                                      Utils.getVersion(this));
             if (encryptFileCheckbox.isChecked()) {
-                exporter.exportEncrypted(
-                                Session.getInstance().getKey(),
-                                PasswordModel.getInstance(this).getPasswords());
+                // The file is encrypted with the database key, so the salt
+                // and iteration count it was derived with are stored in the
+                // file as well.
+                String record = new SystemData(this).getKey();
+                if (MasterKey.isLegacy(record)) {
+                    exporter.exportEncryptedLegacy(
+                            Session.getInstance().getKey(),
+                            PasswordModel.getInstance(this).getPasswords());
+                } else {
+                    exporter.exportEncrypted(
+                            Session.getInstance().getKey(),
+                            MasterKey.getSalt(record),
+                            MasterKey.getIterations(record),
+                            PasswordModel.getInstance(this).getPasswords());
+                }
             } else {
                 exporter.exportCleartext(
                         PasswordModel.getInstance(this).getPasswords());

@@ -145,9 +145,14 @@ public class FileImportActivity extends SherlockTimeoutActivity {
             showDialog(getString(R.string.success), fileImporter.getPasswordEntries().length + " entries imported.");
         } catch (FileImporterException ex) {
             ex.printStackTrace();
-            // Something failed when decrypting the file, try with a user supplied password even though
-            // the reason might have been something other that an invalid key.
+            if (!ex.isWrongKey()) {
+                // E.g. a newer file format, which another password does not
+                // change
+                showReadError(ex);
+                return;
+            }
 
+            // The file was probably exported with another master password
             Intent i = new Intent(this, ImportPasswordActivity.class);
             startActivityForResult(i, IMPORT_PASSWORD_RESULT_ID);
         }
@@ -165,16 +170,12 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         }
 
         if (requestCode == IMPORT_PASSWORD_RESULT_ID && resultCode == RESULT_OK && data.getExtras() != null) {
-            String password = data.getExtras().getString("password");
-
-            try {
-                fileImporter.parseEncrypted(Crypto.hmacFromPassword(password));
-                PasswordModel model = PasswordModel.getInstance(this);
-                model.setPasswords(fileImporter.getPasswordEntries());
-                showDialog(getString(R.string.success), fileImporter.getPasswordEntries().length + " entries imported from encrypted file.");
-            } catch (FileImporterException ex) {
-                showDialog(getString(R.string.failure), "Failed to decrypt the file. Please make sure you entered the correct password.");
+            if (fileImporter == null) {
+                // The activity was recreated while the password was entered
+                prepareImport();
             }
+
+            importWithPassword(data.getExtras().getString("password"));
         } else if (requestCode == SELECT_FILE_RESULT_ID) {
             selectingFile = false;
 
@@ -190,6 +191,45 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         }
     }
 
+    /**
+     * Import an encrypted file using a user supplied password. Deriving the
+     * key from the password is slow so it is done in the background.
+     */
+    private void importWithPassword(final String password) {
+        if (fileImporter == null) {
+            return;
+        }
+
+        final boolean [] decrypted = new boolean[1];
+        final FileImporterException [] error = new FileImporterException[1];
+
+        Utils.runWithProgress(this, "Decrypting…", new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    fileImporter.parseEncryptedWithPassword(password);
+                    decrypted[0] = true;
+                } catch (FileImporterException ex) {
+                    ex.printStackTrace();
+                    error[0] = ex;
+                }
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                if (decrypted[0]) {
+                    PasswordModel model = PasswordModel.getInstance(FileImportActivity.this);
+                    model.setPasswords(fileImporter.getPasswordEntries());
+                    showDialog(getString(R.string.success), fileImporter.getPasswordEntries().length + " entries imported from encrypted file.");
+                } else if (error[0] != null && !error[0].isWrongKey()) {
+                    showReadError(error[0]);
+                } else {
+                    showDialog(getString(R.string.failure), "Failed to decrypt the file. Please make sure you entered the correct password.");
+                }
+            }
+        });
+    }
+
     private void importUnencrypted() {
         PasswordModel model = PasswordModel.getInstance(this);
         if (model.setPasswords(fileImporter.getPasswordEntries())) {
@@ -199,6 +239,17 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         } else {
             showDialog(getString(R.string.failure), "Import failed.");
         }
+    }
+
+    /**
+     * Report a file that can not be imported, as for a cleartext file in
+     * prepareImport().
+     */
+    private void showReadError(FileImporterException ex) {
+        showDialog(getString(R.string.failure),
+                   formatString(getString(R.string.import_description_failure),
+                                Utils.getDisplayName(this, importUri), 0,
+                                String.valueOf(ex.getMessage())));
     }
 
     private void showDialog(String title, String message) {

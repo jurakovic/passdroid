@@ -19,12 +19,10 @@
 
 package com.kodholken.passdroid;
 
-import java.util.Random;
-import java.util.zip.CRC32;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -170,29 +168,39 @@ public class Utils {
         }
     }
 
-    public static String generateKey(String masterPassword) {
-        Random rnd = new Random();
-        byte[] key = new byte[32];
-        rnd.nextBytes(key);
+    /**
+     * Run a slow operation, such as deriving a key from a password, in a
+     * background thread while a progress dialog is shown. When the operation
+     * has finished done is run on the UI thread, unless the activity has been
+     * destroyed in the meantime.
+     */
+    public static void runWithProgress(final Activity activity, String message,
+                                       final Runnable operation,
+                                       final Runnable done) {
+        final ProgressDialog dialog =
+            ProgressDialog.show(activity, null, message, true, false);
 
-        CRC32 crc = new CRC32();
-        crc.update(key, 0, 28);
-        long crcValue = crc.getValue();
-        key[28] = (byte) ((crcValue >> 24) & 0xff);
-        key[29] = (byte) ((crcValue >> 16) & 0xff);
-        key[30] = (byte) ((crcValue >> 8) & 0xff);
-        key[31] = (byte) (crcValue & 0xff);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    operation.run();
+                } catch (RuntimeException ex) {
+                    ex.printStackTrace();
+                }
 
-        byte[] pwdHmac = Crypto.hmacFromPassword(masterPassword);
-
-        assert (key.length != pwdHmac.length);
-
-        byte[] xor = new byte[key.length];
-        for (int i = 0; i < key.length; i++) {
-            xor[i] = (byte) (key[i] ^ pwdHmac[i]);
-        }
-
-        return Base64.encode(xor);
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (activity.isDestroyed()) {
+                            return;
+                        }
+                        dialog.dismiss();
+                        done.run();
+                    }
+                });
+            }
+        }).start();
     }
 
     public static String escapeXMLChars(String s) {

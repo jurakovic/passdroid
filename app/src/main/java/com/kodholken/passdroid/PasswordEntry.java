@@ -19,7 +19,7 @@
 
 package com.kodholken.passdroid;
 
-import java.util.Random;
+import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -114,7 +114,7 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
 
         SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
         try {
-            Random rnd = new Random();
+            SecureRandom rnd = new SecureRandom();
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
 
             byte [] iv = new byte[16];

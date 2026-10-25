@@ -19,6 +19,8 @@
 
 package com.kodholken.passdroid;
 
+import java.util.Arrays;
+
 import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.DbMigration;
 import com.kodholken.passdroid.db.SystemData;
@@ -43,6 +45,7 @@ import android.window.OnBackInvokedDispatcher;
 public class LoginActivity extends Activity {
     private Button loginButton;
     private EditText passwordView;
+    private boolean loggingIn = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,25 +140,64 @@ public class LoginActivity extends Activity {
      * 
      */
     private void handleLogin() {
-        EditText t = (EditText) this.findViewById(R.id.login_password);
-        if (t != null) {
-            String password = t.getText().toString();
-            if (verifyPassword(password)) {
-                Session.getInstance().setKey(Crypto.hmacFromPassword(password));
-                Session.getInstance().setLoggedIn();
+        if (loggingIn) {
+            return;
+        }
 
-                DbMigration.postLoginMigration(this);
-                Utils.startPasswordActivity(this);
-            } else {
-                Utils.alertDialog(this, "Login Failure",
-                "The supplied password was incorrect.");
-                ((EditText) findViewById(R.id.login_password)).selectAll();
+        final String password = passwordView.getText().toString();
+        final String record = new SystemData(this).getKey();
+        final MasterKey [] keys = new MasterKey[2];
+
+        loggingIn = true;
+        Utils.runWithProgress(this, "Logging in…", new Runnable() {
+            @Override
+            public void run() {
+                keys[0] = MasterKey.unlock(password, record);
+
+                // Databases from Passdroid 2.3 and earlier are upgraded to the
+                // current key derivation, which requires the password.
+                if (keys[0] != null && MasterKey.isLegacy(record)) {
+                    keys[1] = MasterKey.create(password);
+                }
             }
-        }	
+        }, new Runnable() {
+            @Override
+            public void run() {
+                loggingIn = false;
+                loginDone(keys[0], keys[1]);
+            }
+        });
     }
 
-    private boolean verifyPassword(String password) {
-        SystemData systemData = new SystemData(this);
-        return Crypto.verifyPassword(password, systemData.getKey());
+    /**
+     * @param masterKey   key derived from the entered password. null if the
+     *                    password was incorrect.
+     * @param upgradedKey new key to re-encrypt a legacy database with, or null.
+     */
+    private void loginDone(MasterKey masterKey, MasterKey upgradedKey) {
+        if (masterKey == null) {
+            Utils.alertDialog(this, "Login Failure",
+            "The supplied password was incorrect.");
+            passwordView.selectAll();
+            return;
+        }
+
+        Session.getInstance().setKey(masterKey.getKey());
+        Session.getInstance().setLoggedIn();
+
+        DbMigration.postLoginMigration(this);
+
+        if (upgradedKey != null) {
+            if (DbMigration.changeKey(this, masterKey.getKey(), upgradedKey)) {
+                Session.getInstance().setKey(upgradedKey.getKey());
+                Session.getInstance().setNeedReload(true);
+                Arrays.fill(masterKey.getKey(), (byte) 0);
+            } else {
+                // We keep using the legacy key and try again at next login
+                Utils.error("Failed to upgrade the master key");
+            }
+        }
+
+        Utils.startPasswordActivity(this);
     }
 }

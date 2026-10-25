@@ -19,7 +19,7 @@
 
 package com.kodholken.passdroid.db;
 
-import com.kodholken.passdroid.Crypto;
+import com.kodholken.passdroid.MasterKey;
 import com.kodholken.passdroid.PasswordEntry;
 import com.kodholken.passdroid.Session;
 import com.kodholken.passdroid.Utils;
@@ -216,12 +216,21 @@ public class DbMigration {
         return result;
     }
 
-    public static boolean changePassword(Context context, String oldPassword, String newPassword) {
+    /**
+     * Re-encrypt all password entries with a new key and store the new master
+     * key record. This is used both when the master password is changed and
+     * when a database using the legacy key derivation is upgraded. Nothing is
+     * changed unless all entries could be decrypted with the old key.
+     *
+     * @param oldKey    key the entries are currently encrypted with.
+     * @param masterKey new key and the record to store in the database.
+     * @return true on success.
+     */
+    public static boolean changeKey(Context context, byte [] oldKey, MasterKey masterKey) {
         SQLiteDatabase db = null;
         boolean result = false;
 
-        byte [] oldKey = Crypto.hmacFromPassword(oldPassword);
-        byte [] newKey = Crypto.hmacFromPassword(newPassword);
+        byte [] newKey = masterKey.getKey();
 
         try {
             final String [] columns = { "id", "system", "username", "password", "note", "url" };
@@ -243,6 +252,11 @@ public class DbMigration {
                 passwords[i].setEncUrl(cur.getString(5));
 
                 passwords[i].decryptAll(oldKey);
+                if (!isDecrypted(passwords[i])) {
+                    Utils.error("Failed to decrypt entry " + passwords[i].getId());
+                    cur.close();
+                    return false;
+                }
 
                 i++;
             }
@@ -259,9 +273,8 @@ public class DbMigration {
                 db.update("data", values, "id=" + passwords[i].getId(), null);
             }
 
-            String dbKey = Utils.generateKey(newPassword);
             values.clear();
-            values.put("value", dbKey);
+            values.put("value", masterKey.getRecord());
             String [] attrs = { "key" };
             db.update("system", values, "attribute=?", attrs);
 
@@ -270,10 +283,27 @@ public class DbMigration {
         } catch (SQLiteException ex) {
             ex.printStackTrace();
         } finally {
-            db.endTransaction();
-            db.close();
+            if (db != null) {
+                db.endTransaction();
+                db.close();
+            }
         }
 
         return result;
+    }
+
+    /**
+     * @return false if any field of the entry failed to decrypt.
+     */
+    private static boolean isDecrypted(PasswordEntry entry) {
+        return isDecrypted(entry.getEncSystem(), entry.getDecSystem()) &&
+               isDecrypted(entry.getEncUsername(), entry.getDecUsername()) &&
+               isDecrypted(entry.getEncPassword(), entry.getDecPassword()) &&
+               isDecrypted(entry.getEncNote(), entry.getDecNote()) &&
+               isDecrypted(entry.getEncUrl(), entry.getDecUrl());
+    }
+
+    private static boolean isDecrypted(String encrypted, String decrypted) {
+        return encrypted == null || decrypted != null;
     }
 }
