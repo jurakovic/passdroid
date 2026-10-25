@@ -171,8 +171,9 @@ public class Utils {
     /**
      * Run a slow operation, such as deriving a key from a password, in a
      * background thread while a progress dialog is shown. When the operation
-     * has finished done is run on the UI thread, unless the activity has been
-     * destroyed in the meantime.
+     * has finished done is run on the UI thread, unless the activity is
+     * finishing or has been destroyed in the meantime, e.g. because the user
+     * has been logged out.
      */
     public static void runWithProgress(final Activity activity, String message,
                                        final Runnable operation,
@@ -196,7 +197,9 @@ public class Utils {
                             return;
                         }
                         dialog.dismiss();
-                        done.run();
+                        if (!activity.isFinishing()) {
+                            done.run();
+                        }
                     }
                 });
             }

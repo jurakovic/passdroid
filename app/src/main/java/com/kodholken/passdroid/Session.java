@@ -19,6 +19,8 @@
 
 package com.kodholken.passdroid;
 
+import java.util.Arrays;
+
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -100,6 +102,14 @@ public class Session {
             // Make sure a timer left from before the login does not log out
             // the user.
             timeoutStart = 0;
+        } else {
+            // Forget the key and the decrypted entries, whatever the reason
+            // for the logout
+            if (key != null) {
+                Arrays.fill(key, (byte) 0);
+                key = null;
+            }
+            PasswordModel.clear();
         }
     }
 
@@ -112,11 +122,6 @@ public class Session {
             return ;
         }
 
-        for (int i = 0; i < key.length; i++) {
-            key[i] = 0;
-        }
-
-        key = null;
         setLoggedIn(false);
     }
 

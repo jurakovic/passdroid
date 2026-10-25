@@ -41,6 +41,7 @@ Each entry has a **system** (the name of the service, required),
   "Log out on close" is off.
 - While the system file picker is open for Passdroid++, you get at least 2
   minutes.
+- Logging out forgets the key and everything that was decrypted.
 
 ### Clipboard
 
@@ -126,6 +127,8 @@ of Passdroid++.
   `java.util.Random`, which is not secure.
 - Master passwords need at least 12 characters. 2.3 accepted any, even an
   empty one.
+- Every logout, also the automatic ones, wipes the key and the decrypted
+  entries; 2.3 only did that for a logout from the menu.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 

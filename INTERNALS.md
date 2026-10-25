@@ -141,11 +141,9 @@ when the process dies, the user is logged out.
 
 ### Logging out
 
-`Session.logout()`, the menu item and back on the list, zeroes the key array
-and drops the reference. The other logouts, by the timeout or found when an
-activity resumes, only call `Session.setLoggedIn(false)`, which marks the
-user as logged out: the key stays in memory until the next login. Neither
-drops the decrypted entries of `PasswordModel`.
+`Session.setLoggedIn(false)` is the single place where a logout happens,
+whatever the reason. It zeroes the key array, drops the reference, and calls
+`PasswordModel.clear()` to drop the decrypted entries.
 
 Activities that show data extend one of four base classes:
 `TimeoutActivity`, `TimeoutListActivity`, `TimeoutPreferenceActivity` and
@@ -184,8 +182,8 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 
 `Utils.runWithProgress()` runs slow work (key derivation, an import with a
 password) in a plain thread behind a non-cancelable progress dialog, and the
-completion on the UI thread, unless the activity has been destroyed. Screens
-guard against starting the same work twice with a flag.
+completion on the UI thread, unless the activity has been destroyed or is
+finishing. Screens guard against starting the same work twice with a flag.
 
 ## Master key
 
@@ -325,7 +323,9 @@ the wrong key.
 - `getPasswords()` loads all rows on first use and decrypts **all fields**.
   The entries are sorted by system (case-insensitive), then username.
 - `setPasswords()` replaces **all** rows in one transaction, for an import.
-  It encrypts the entries with the session key.
+  It encrypts the entries with the session key, and fails if the user has
+  been logged out.
+- `clear()` drops everything; `Session` calls it at every logout.
 - Listeners (`PasswordModelListener`, i.e. the list screen) are notified
   when the entries change.
 
@@ -600,6 +600,15 @@ passphrase is out of reach.
   legacy key because its upgrade failed; the old entry formats are never
   written.
 
+#### Session and logout
+
+- Default: log out **5 seconds** after the app goes to the background, or
+  never.
+- **Every logout wipes the master key** and drops the decrypted entries,
+  whatever its reason.
+- A login clears a logout timer left from before it, so it isn't undone
+  right away.
+
 #### Release signing
 
 - The release APK is signed with a key that the maintainer creates locally
@@ -686,6 +695,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, Unicode); invalid characters; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
+| `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the

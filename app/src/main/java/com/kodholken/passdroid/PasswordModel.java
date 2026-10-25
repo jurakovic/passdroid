@@ -54,6 +54,17 @@ public class PasswordModel {
         return singleton;
     }
 
+    /**
+     * Forget the decrypted entries when the user is logged out. They are
+     * loaded again after the next login.
+     */
+    public static void clear() {
+        if (singleton != null) {
+            singleton.passwords = null;
+            singleton.loaded = false;
+        }
+    }
+
     public PasswordEntry[] getPasswords() {
         load();
         return passwords;
@@ -65,6 +76,12 @@ public class PasswordModel {
     }
 
     public boolean setPasswords(PasswordEntry [] passwords) {
+        // The user has been logged out
+        byte [] key = Session.getInstance().getKey();
+        if (key == null) {
+            return false;
+        }
+
         boolean res = false;
         SQLiteDatabase db = passwordData.getWritableDatabase();
 
@@ -75,7 +92,7 @@ public class PasswordModel {
             for (PasswordEntry entry : passwords) {
                 ContentValues values = new ContentValues();
 
-                entry.encryptAll(Session.getInstance().getKey());
+                entry.encryptAll(key);
                 values.put("system",   entry.getEncSystem());
                 values.put("username", entry.getEncUsername());
                 values.put("password", entry.getEncPassword());
@@ -113,6 +130,13 @@ public class PasswordModel {
     }
 
     private final void load() {
+        // Nothing can be decrypted after a logout
+        if (Session.getInstance().getKey() == null) {
+            passwords = new PasswordEntry[0];
+            loaded = false;
+            return;
+        }
+
         if (!loaded || Session.getInstance().needReload()) {
             Session.getInstance().setNeedReload(false);
             loadPasswords();
