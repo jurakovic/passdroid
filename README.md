@@ -59,7 +59,7 @@ Each entry has a **system** (the name of the service, required),
   password.
 - Letters and digits, letters only, digits only, or letters, digits and
   symbols, up to 99 characters. The length and the characters are
-  remembered. The default is 10 letters and digits.
+  remembered. The default is 16 letters and digits.
 - A bar shows the strength.
 
 ### Import and export
@@ -154,6 +154,7 @@ of Passdroid++.
   amounts of text.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
+- Generated passwords are 16 characters long by default instead of 10.
 
 ### Bugs fixed from 2.3
 

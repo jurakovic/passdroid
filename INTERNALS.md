@@ -490,7 +490,7 @@ inside the elements may contain the same text.
 - `GeneratePasswordActivity` picks every character uniformly with
   `SecureRandom` from one of four character sets: letters and digits (62),
   letters (52), digits (10), or letters, digits and `!#@%&/()?+-_:;*=$`
-  (79). The length is 1 to 99, 10 by default. The length and the set are
+  (79). The length is 1 to 99, 16 by default. The length and the set are
   stored in the preferences `passwordLength` and `passwordCharset` when a
   password is generated.
 - **Strength**: a bar for length × log₂(set size) bits, full at 80 bits.
@@ -507,7 +507,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `close_logout` | `true` | `Session.setTimeoutTimer()` |
 | `display_username` | `true` | the password list |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
-| `passwordLength`, `passwordCharset` | 10, 0 | the generator |
+| `passwordLength`, `passwordCharset` | 16, 0 | the generator |
 
 ## Android platform details
 
@@ -682,6 +682,12 @@ passphrase is out of reach.
 - On Android 14 and later the password and generated password views are
   only visible to accessibility services that are accessibility tools, such
   as screen readers.
+
+#### Password generator
+
+- `SecureRandom`, every character chosen uniformly.
+- Default **16 characters** of letters and digits, about 95 bits. The length
+  and the characters chosen last are remembered.
 
 #### Android integration
 

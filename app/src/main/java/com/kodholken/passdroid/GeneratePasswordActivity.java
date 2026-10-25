@@ -59,7 +59,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
     private boolean displayPassword;
 
     private static final int MAX_PASSWORD_LENGTH = 99;
-    private static final int DEFAULT_PASSWORD_LENGTH = 10;
+    private static final int DEFAULT_PASSWORD_LENGTH = 16;
 
     // We save the generated password here for the caller to retrieve when we
     // have finished. 
