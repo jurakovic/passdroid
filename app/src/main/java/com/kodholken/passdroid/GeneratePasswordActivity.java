@@ -20,6 +20,7 @@
 package com.kodholken.passdroid;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Random;
 
 import android.content.Context;
@@ -282,23 +283,20 @@ public class GeneratePasswordActivity extends TimeoutActivity {
     private void setupGenerateButton() {
         Button generateButton = (Button) findViewById(R.id.generate_button);
 
-        final Intent ri = this.getIntent();
         final Context context = this;
         generateButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent result = new Intent(
                 "com.kodholken.passdroid.PASSWORD_RESULT_ACTION");
-                ri.putExtra("password", "new value");
-                result.putExtra("password", generatedPassword);
                 generatePassword();
                 if (displayPassword) {
                     Intent generateIntent = new Intent(context,
                             DisplayPasswordActivity.class);
-                    generateIntent.putExtra("password",
-                            GeneratePasswordActivity.getGeneratedPassword());
+                    generateIntent.putExtra("password", takeGeneratedPassword());
                     startActivity(generateIntent);
                 } else {
+                    // The activity that started this takes the password
                     setResult(1, result);
                 }
                 finish();
@@ -333,23 +331,31 @@ public class GeneratePasswordActivity extends TimeoutActivity {
     }
 
     private void generatePassword() {
-        generatedPassword = "";
         Random random = new SecureRandom();
 
         String charset = getCharset(spinner.getSelectedItemPosition());
 
+        // One string, not one for each added character
         int length = Integer.parseInt(lengthField.getText().toString());
-        int i = 0;
-        while (i++ < length) {
-            generatedPassword += charset.charAt(random.nextInt(charset.length()));
+        char [] chars = new char[length];
+        for (int i = 0; i < length; i++) {
+            chars[i] = charset.charAt(random.nextInt(charset.length()));
         }
+        generatedPassword = new String(chars);
+        Arrays.fill(chars, '\0');
 
         storePasswordLength(length);
         storeCharset(spinner.getSelectedItemPosition());
     }
 
-    public static String getGeneratedPassword() {
-        return generatedPassword;
+    /**
+     * @return the generated password, which is then forgotten here so that it
+     *         does not stay in memory.
+     */
+    public static String takeGeneratedPassword() {
+        String password = generatedPassword;
+        generatedPassword = null;
+        return password;
     }
 
     private int getStoredPasswordLength() {

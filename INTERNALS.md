@@ -495,8 +495,9 @@ inside the elements may contain the same text.
   password is generated.
 - **Strength**: a bar for length × log₂(set size) bits, full at 80 bits.
 - Opened from the add or edit screen, the result is handed back through the
-  static `getGeneratedPassword()`. Opened from the list, it is shown on
-  `DisplayPasswordActivity`, where a tap asks whether to copy it.
+  static `takeGeneratedPassword()`, which returns the password once and
+  forgets it. Opened from the list, it is shown on `DisplayPasswordActivity`,
+  where a tap asks whether to copy it.
 
 ## Settings
 
@@ -653,6 +654,7 @@ passphrase is out of reach.
 
 - All fields of all entries are decrypted when the entries are loaded, and
   kept until the logout.
+- The last generated password is forgotten once it has been used.
 - Closed password list screens are released, so their decrypted entries
   don't stay in memory after a logout.
 - Limits: the key is in memory while the user is logged in, and decrypted

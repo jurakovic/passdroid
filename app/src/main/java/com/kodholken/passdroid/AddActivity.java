@@ -158,7 +158,7 @@ public class AddActivity extends SherlockTimeoutActivity {
             Intent data) {
         if (resultCode == 1) {
             this.password.setText(GeneratePasswordActivity.
-                    getGeneratedPassword());
+                    takeGeneratedPassword());
         }
     }
 }

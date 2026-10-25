@@ -149,7 +149,7 @@ public class EditActivity extends SherlockTimeoutActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         //super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == 1) {
-            this.password.setText(GeneratePasswordActivity.getGeneratedPassword());
+            this.password.setText(GeneratePasswordActivity.takeGeneratedPassword());
         }
     }
 
