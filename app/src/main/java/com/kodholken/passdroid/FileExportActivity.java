@@ -112,7 +112,9 @@ public class FileExportActivity extends SherlockTimeoutActivity {
         OutputStream output = null;
 
         try {
-            output = getContentResolver().openOutputStream(uri);
+            // "w" alone does not always truncate an existing file, which
+            // would leave the end of a longer file after the export.
+            output = getContentResolver().openOutputStream(uri, "wt");
             if (output == null) {
                 throw new IOException("Unable to open " + filename);
             }
