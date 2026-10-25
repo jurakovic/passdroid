@@ -75,6 +75,8 @@ Each entry has a **system** (the name of the service, required),
 ### Privacy
 
 - **No internet permission.** Passdroid++ asks for no permissions at all.
+- **Android backup is off**, so the database is not copied to the cloud.
+  Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens
   that show your data.
 
@@ -110,6 +112,13 @@ passwords extremely fast. Delete old copies wherever they are (cloud storage,
 email), and if one may have leaked, don't reuse that master password. See
 [INTERNALS.md](INTERNALS.md#legacy-formats).
 
+## Backups
+
+Android backup is off, so make an encrypted export now and then and keep it
+somewhere safe, e.g. on your computer. An export opens with the master
+password that was current when it was made, so make a new one after
+changing the master password.
+
 ## Changes from Passdroid 2.3
 
 Passdroid 2.3, the last release of the original Passdroid, is the baseline
@@ -129,6 +138,7 @@ of Passdroid++.
   empty one.
 - Every logout, also the automatic ones, wipes the key and the decrypted
   entries; 2.3 only did that for a logout from the menu.
+- Android backup is off.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 

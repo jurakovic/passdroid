@@ -503,8 +503,13 @@ Behavior that depends on the Android version, and where it is handled:
 | 15 | Edge-to-edge windows | `Utils.applySystemBarInsets()` |
 | 16 | No `onBackPressed()` for apps that target it | `OnBackInvokedCallback` |
 
-Only `MainActivity` is exported. The timeout receivers are registered at
-runtime as not exported.
+Other settings:
+
+- `android:allowBackup="false"`: no cloud backup. For apps that target
+  Android 12 or later it doesn't stop a device-to-device transfer, so on
+  some devices moving to a new phone can still copy the encrypted database.
+- Only `MainActivity` is exported. The timeout receivers are registered at
+  runtime as not exported.
 
 ## Security
 
@@ -621,6 +626,15 @@ passphrase is out of reach.
 - Limits: the key is in memory while the user is logged in, and decrypted
   Java strings can't be wiped.
 
+#### Android integration
+
+- No permissions, so **no `INTERNET`**.
+- Only the launcher activity is exported. The receivers are not exported,
+  and the timeout alarm is an immutable intent for the app itself.
+- **Android backup is off** (`allowBackup="false"`). Encrypted exports are
+  the backup. On some devices a direct transfer to a new device can still
+  copy the (encrypted) data.
+
 #### Release signing
 
 - The release APK is signed with a key that the maintainer creates locally
@@ -647,7 +661,7 @@ Trade-offs that were made on purpose:
   Keystore, a much larger change.
 - **Database fields are not authenticated.** Someone who can write the
   database could swap or alter values, but that needs root-level access to
-  the app's storage. Part of the "vault format v2" in
+  the app's storage, and backup is off. Part of the "vault format v2" in
   [Open items](#open-items).
 - **PBKDF2 instead of Argon2id.** Argon2id is memory-hard and today's first
   choice, but needs a library and an amount of memory that fits old phones.
@@ -679,6 +693,7 @@ Limitations that are not about security are listed in
   **change the master password**, since cracking an old copy reveals it.
 - If your master password is shorter than 12 characters, change it. The app
   reminds you after each login with it.
+- Keep encrypted exports as the backup, since Android backup is off.
 
 ### Sources
 
@@ -689,6 +704,10 @@ Limitations that are not about security are listed in
   name (`"BC"`), and Android 12 removed many of its algorithms.
   - [Cryptography Changes in Android P](https://android-developers.googleblog.com/2018/03/cryptography-changes-in-android-p.html)
   - [Android 12 behavior changes: BouncyCastle implementation removed](https://developer.android.com/about/versions/12/behavior-changes-all)
+- **`allowBackup="false"`** turns off cloud backup also for apps targeting
+  Android 12 and later; on some devices device-to-device transfer can't be
+  turned off.
+  - [`<application>` manifest element](https://developer.android.com/guide/topics/manifest/application-element)
 - **NIST SP 800-63B-4** (August 2025): at least 15 characters for a password
   that is the only factor, at least 8 with another factor, no composition
   rules, a check against leaked and common passwords, at least 64 characters
