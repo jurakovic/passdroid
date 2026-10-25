@@ -28,6 +28,10 @@ Each entry has a **system** (the name of the service, required),
 - The master password is turned into the encryption key with
   PBKDF2-HMAC-SHA256 and 600,000 iterations, which makes every guess slow for
   someone who has a copy of the data. Each field is encrypted with AES-256.
+- A new master password needs at least 12 characters. The setup and change
+  screens show how many are still missing. If an existing master password is
+  shorter, a reminder with a "Change" button appears after each login with
+  it.
 - The master password can be changed in Settings. If it is forgotten, the
   data can't be recovered.
 
@@ -92,9 +96,10 @@ Each entry has a **system** (the name of the service, required),
 1. In the original app, go to Settings → Import / Export → Export to file,
    check "Encrypt the exported file" and export. It writes
    `passdroid_db.xml` to the phone's storage.
-2. In Passdroid++, set up a new master password. Then go to Settings →
-   Import / Export → Import from file, pick the file, and enter the master
-   password of the original app when you are asked for it.
+2. In Passdroid++, set up a new master password of at least 12 characters.
+   Then go to Settings → Import / Export → Import from file, pick the file,
+   and enter the master password of the original app when you are asked for
+   it.
 3. Check that all entries are there. Then delete the export file and
    uninstall the original app.
 
@@ -119,6 +124,8 @@ of Passdroid++.
   2.3 used AES-CBC with a fixed IV and no authentication.
 - Random values (IVs and salts) come from `SecureRandom` instead of
   `java.util.Random`, which is not secure.
+- Master passwords need at least 12 characters. 2.3 accepted any, even an
+  empty one.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 

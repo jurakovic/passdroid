@@ -55,6 +55,10 @@ import android.window.OnBackInvokedDispatcher;
 public class PasswordListActivity extends TimeoutListActivity
 implements IdleLogoutCallback,
 PasswordModelListener {
+    // True if the user logged in with a master password that is shorter than
+    // is required for new ones, see MasterKey.MIN_PASSWORD_LENGTH
+    public static final String EXTRA_SHORT_PASSWORD = "short_password";
+
     private static final int OPTION_MENU_ADD      = 1;
     private static final int OPTION_MENU_SETTINGS = 3;
     private static final int OPTION_MENU_ABOUT    = 4;
@@ -106,6 +110,12 @@ PasswordModelListener {
         loadSettingsOnResume = true;
         // Make sure the password entries is loaded from the database
         Session.getInstance().setNeedReload(true);
+
+        // Once after the login, not when the activity is created again
+        if (savedInstanceState == null &&
+            getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false)) {
+            showShortPasswordReminder();
+        }
 
         emptyListHelp = (TextView) findViewById(R.id.empty_list_help);
         
@@ -397,6 +407,25 @@ PasswordModelListener {
                 return true;
             }
         });
+    }
+
+    /**
+     * Suggest changing a master password that is too short to be set now.
+     */
+    private void showShortPasswordReminder() {
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.master_password_short_title)
+            .setMessage(getString(R.string.master_password_short_reminder,
+                                  MasterKey.MIN_PASSWORD_LENGTH))
+            .setPositiveButton(R.string.change, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    startActivity(new Intent(PasswordListActivity.this,
+                                             ChangePasswordActivity.class));
+                }
+            })
+            .setNegativeButton(R.string.later, null)
+            .show();
     }
 
     private void confirmLogout() {

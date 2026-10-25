@@ -88,7 +88,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 
 | Area | Classes |
 |---|---|
-| Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `LoginActivity` |
+| Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `PasswordLengthHint`, `LoginActivity` |
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
@@ -119,8 +119,8 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
      `DbMigration.preLoginMigration()`, which stores the data version if
      there is none (see [Database](#database)), and starts `LoginActivity`
      if a master key record exists, else `InitializeActivity`.
-3. `InitializeActivity` creates the master key from the new password, stores
-   the record and logs in.
+3. `InitializeActivity` creates the master key from the new password (at
+   least 12 characters), stores the record and logs in.
 4. `LoginActivity` derives the key in a background thread, runs the data
    migrations (`DbMigration.postLoginMigration()`), upgrades a legacy master
    key (see [Master key](#master-key)), and starts `PasswordListActivity`. It
@@ -209,6 +209,13 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
   encode the password as UTF-8.
 - Iteration counts read from files are capped at `MAX_ITERATIONS`
   (10,000,000).
+- `MIN_PASSWORD_LENGTH` (12) is counted in code points. It only applies to
+  new master passwords; a login with a shorter one passes
+  `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder. On the setup
+  and change screens `PasswordLengthHint` shows the minimum below the field
+  and counts the missing characters while typing. There is no strength
+  meter: the generator's assumes random characters, and a typed password
+  like `Password1234!` would look strong.
 
 ### Legacy format
 
@@ -537,6 +544,13 @@ can try passwords offline, as fast as their hardware allows.
   Android 7.0–7.1 and empty passwords.
 - Iteration counts read from files are capped at 10,000,000, so a crafted
   file can't make the derivation run (almost) forever.
+- **New master passwords need at least 12 characters.** An existing shorter
+  password still works, but logging in with it shows a reminder with a
+  "Change" button. The setup and change screens show the minimum below the
+  field and count the missing characters.
+- There is no strength meter for the master password, since the
+  generator's estimate assumes random characters and would make a typed
+  password like `Password1234!` look strong.
 
 Rough strength: one high-end GPU tries in the order of 10,000–20,000 master
 passwords per second against this derivation. 8 random lowercase letters
@@ -604,6 +618,9 @@ passphrase is out of reach.
 
 Trade-offs that were made on purpose:
 
+- **Shorter existing master passwords still work**, with a reminder after
+  each login, so nobody is locked out. Only new master passwords need 12
+  characters.
 - **The key stays in the app's memory while the user is logged in**, instead
   of in the Android Keystore: every decryption would go through the
   Keystore, a much larger change.
@@ -613,13 +630,20 @@ Trade-offs that were made on purpose:
   [Open items](#open-items).
 - **PBKDF2 instead of Argon2id.** Argon2id is memory-hard and today's first
   choice, but needs a library and an amount of memory that fits old phones.
-  Also part of the "vault format v2".
+  With the 12 character minimum, PBKDF2 is adequate. Also part of the
+  "vault format v2".
 
 ### Open items
 
 Not done, in rough order of value:
 
-1. **"Vault format v2"**: AES-GCM for the database fields with the entry id
+1. **Master password minimum 15** instead of 12, to match NIST SP 800-63B-4
+   for a password that is the only factor. A one-line change; existing
+   shorter passwords would only get the reminder.
+2. **zxcvbn strength meter for the master password**, which knows common
+   words, patterns and leaked passwords. Needs a library with word lists of
+   about 1–2 MB.
+3. **"Vault format v2"**: AES-GCM for the database fields with the entry id
    and field name as associated data, and Argon2id instead of PBKDF2, in one
    migration at login. The riskiest kind of change, since it rewrites the
    whole vault. Only with device testing and a fresh export at hand.
@@ -632,6 +656,8 @@ Limitations that are not about security are listed in
 - **Delete old exports and backups of the original Passdroid** wherever they
   are (cloud, email). They use the weak legacy key. If one may have leaked,
   **change the master password**, since cracking an old copy reveals it.
+- If your master password is shorter than 12 characters, change it. The app
+  reminds you after each login with it.
 
 ### Sources
 
@@ -642,6 +668,14 @@ Limitations that are not about security are listed in
   name (`"BC"`), and Android 12 removed many of its algorithms.
   - [Cryptography Changes in Android P](https://android-developers.googleblog.com/2018/03/cryptography-changes-in-android-p.html)
   - [Android 12 behavior changes: BouncyCastle implementation removed](https://developer.android.com/about/versions/12/behavior-changes-all)
+- **NIST SP 800-63B-4** (August 2025): at least 15 characters for a password
+  that is the only factor, at least 8 with another factor, no composition
+  rules, a check against leaked and common passwords, at least 64 characters
+  allowed, no forced periodic changes. From secondary sources; the final
+  text was not checked directly.
+  - [NIST SP 800-63B-4: Deciphering the New Password Security Standard](https://www.sakimura.org/en/2025/10/7710/)
+  - [NIST SP 800-63B Rev 4 (Enzoic)](https://www.enzoic.com/blog/nist-sp-800-63b-rev4/)
+  - [NIST Recommends Some Common-Sense Password Rules (Schneier)](https://www.schneier.com/blog/archives/2024/09/nist-recommends-some-common-sense-password-rules.html)
 
 ## Tests
 
@@ -650,7 +684,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | Class | Covers |
 |---|---|
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, Unicode); invalid characters; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
-| `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records |
+| `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
@@ -671,6 +705,9 @@ release:
   a password with a long press in the list, also while searching.
 - Open the search: the field fills the action bar.
 - Edit an entry, clear the system name and save: it is refused.
+- Set up or change the master password with fewer than 12 characters: the
+  note below the field counts the missing characters, and the password is
+  refused. Log in with an existing short one: the reminder appears.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the bar follows.
 - Install the new APK over the previous release: the entries are there

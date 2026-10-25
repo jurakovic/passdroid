@@ -27,6 +27,7 @@ import com.kodholken.passdroid.db.SystemData;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -164,7 +165,7 @@ public class LoginActivity extends Activity {
             @Override
             public void run() {
                 loggingIn = false;
-                loginDone(keys[0], keys[1]);
+                loginDone(keys[0], keys[1], MasterKey.isTooShort(password));
             }
         });
     }
@@ -173,8 +174,11 @@ public class LoginActivity extends Activity {
      * @param masterKey   key derived from the entered password. null if the
      *                    password was incorrect.
      * @param upgradedKey new key to re-encrypt a legacy database with, or null.
+     * @param shortPassword true if the master password is shorter than is
+     *                      required for new master passwords.
      */
-    private void loginDone(MasterKey masterKey, MasterKey upgradedKey) {
+    private void loginDone(MasterKey masterKey, MasterKey upgradedKey,
+                           boolean shortPassword) {
         if (masterKey == null) {
             Utils.alertDialog(this, "Login Failure",
             "The supplied password was incorrect.");
@@ -198,6 +202,8 @@ public class LoginActivity extends Activity {
             }
         }
 
-        Utils.startPasswordActivity(this);
+        Intent intent = new Intent(this, PasswordListActivity.class);
+        intent.putExtra(PasswordListActivity.EXTRA_SHORT_PASSWORD, shortPassword);
+        startActivity(intent);
     }
 }

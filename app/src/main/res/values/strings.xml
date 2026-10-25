@@ -40,6 +40,27 @@ the passwords stored are not recoverable.</string>
 <string name="repeat_password">Enter the password again:</string>
 <string name="initialize_mismatch_title">Mismatch</string>
 <string name="initialize_mismatch_text">"The passwords you entered did not match. Please try again."</string>
+<string name="master_password_too_short_title">Too short</string>
+<string name="master_password_too_short">The master password must have at least %d \
+characters. A few random words are easy to remember and hard to guess.</string>
+<plurals name="master_password_hint">
+    <item quantity="one">At least %1$d character.</item>
+    <item quantity="other">At least %1$d characters.</item>
+</plurals>
+<plurals name="master_password_hint_missing">
+    <item quantity="one">At least %1$d character, %2$d more needed.</item>
+    <item quantity="other">At least %1$d characters, %2$d more needed.</item>
+</plurals>
+<plurals name="master_password_hint_done">
+    <item quantity="one">At least %1$d character \u2713</item>
+    <item quantity="other">At least %1$d characters \u2713</item>
+</plurals>
+<string name="master_password_short_title">Short master password</string>
+<string name="master_password_short_reminder">Your master password has fewer than %d \
+characters. Someone with a copy of your passwords, such as an export, could guess it. A \
+longer password made of a few random words is easy to remember and hard to guess.</string>
+<string name="change">Change</string>
+<string name="later">Later</string>
 
 <!-- Change master password -->
 <string name="change_password_title">Change master password</string>

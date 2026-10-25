@@ -25,6 +25,11 @@ public class MasterKey {
     // malicious file can not make the key derivation run (almost) forever.
     public static final int MAX_ITERATIONS = 10000000;
 
+    // New master passwords must be at least this long. The key derivation
+    // slows down guessing, but a short password can still be found by
+    // someone who has a copy of the database or an export.
+    public static final int MIN_PASSWORD_LENGTH = 12;
+
     private static final String RECORD_PREFIX = "pbkdf2-sha256";
     private static final int SALT_LENGTH = 16;
     private static final int KEY_LENGTH = 32;
@@ -51,6 +56,13 @@ public class MasterKey {
      */
     public byte [] getKey() {
         return key;
+    }
+
+    /**
+     * @return true if a password is too short to be a new master password.
+     */
+    public static boolean isTooShort(String password) {
+        return password.codePointCount(0, password.length()) < MIN_PASSWORD_LENGTH;
     }
 
     /**

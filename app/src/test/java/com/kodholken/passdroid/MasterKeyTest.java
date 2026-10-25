@@ -139,4 +139,16 @@ public class MasterKeyTest {
         assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$"));
         assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$x$y$z"));
     }
+
+    @Test
+    public void minimumPasswordLength() {
+        assertTrue(MasterKey.isTooShort(""));
+        assertTrue(MasterKey.isTooShort("12345678901"));
+        assertFalse(MasterKey.isTooShort("123456789012"));
+        assertFalse(MasterKey.isTooShort("correct horse battery staple"));
+
+        // Characters, not UTF-16 units: 11 emoji are too short
+        assertTrue(MasterKey.isTooShort(new String(new char[11]).replace("\0", "\uD83D\uDE00")));
+        assertFalse(MasterKey.isTooShort("åäöåäöåäöåäö"));
+    }
 }

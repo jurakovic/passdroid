@@ -30,6 +30,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 public class ChangePasswordActivity extends TimeoutActivity {
     private boolean changing = false;
@@ -39,6 +40,9 @@ public class ChangePasswordActivity extends TimeoutActivity {
         super.onCreate(savedInstanceState);
 
         this.setContentView(R.layout.change_password);
+
+        new PasswordLengthHint((EditText) findViewById(R.id.master_password_1),
+                               (TextView) findViewById(R.id.master_password_hint));
 
         Button okButton = (Button) this.findViewById(R.id.ok_button);
         okButton.setOnClickListener(new OnClickListener() {
@@ -79,6 +83,15 @@ public class ChangePasswordActivity extends TimeoutActivity {
         if (!newPassword1.equals(newPassword2)) {
             Utils.alertDialog(this, "Passwords mismatch",
             "The new passwords you entered does not match.");
+            newPassword1View.requestFocus();
+            newPassword1View.selectAll();
+            return;
+        }
+
+        if (MasterKey.isTooShort(newPassword1)) {
+            Utils.alertDialog(this, getString(R.string.master_password_too_short_title),
+                              getString(R.string.master_password_too_short,
+                                        MasterKey.MIN_PASSWORD_LENGTH));
             newPassword1View.requestFocus();
             newPassword1View.selectAll();
             return;

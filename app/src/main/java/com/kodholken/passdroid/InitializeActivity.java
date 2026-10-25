@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 public class InitializeActivity extends Activity {
     Button okButton;
@@ -38,6 +39,9 @@ public class InitializeActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.initialize);
+
+        new PasswordLengthHint((EditText) findViewById(R.id.master_password_1),
+                               (TextView) findViewById(R.id.master_password_hint));
 
         okButton = (Button) this.findViewById(R.id.ok_button);
         okButton.setOnClickListener(new OnClickListener() {
@@ -58,10 +62,14 @@ public class InitializeActivity extends Activity {
         p1 = ((EditText) findViewById(R.id.master_password_1)).getText().toString();
         p2 = (EditText) findViewById(R.id.master_password_2);
 
-        if (p1.equals(p2.getText().toString())) {
-            initialize(p1);
-        } else {
+        if (!p1.equals(p2.getText().toString())) {
             Utils.alertDialog(this, getString(R.string.initialize_mismatch_title), getString(R.string.initialize_mismatch_text));
+        } else if (MasterKey.isTooShort(p1)) {
+            Utils.alertDialog(this, getString(R.string.master_password_too_short_title),
+                              getString(R.string.master_password_too_short,
+                                        MasterKey.MIN_PASSWORD_LENGTH));
+        } else {
+            initialize(p1);
         }
     }
 
