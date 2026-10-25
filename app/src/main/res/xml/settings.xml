@@ -18,7 +18,16 @@
   android:key="close_logout"
   android:title="Log out on close"
   android:defaultValue="true"
-  android:summary="Automatic logout when the application has been in the background for 5 seconds." />
+  android:summary="Automatic logout when the application has been in the background for longer than the logout delay." />
+
+<ListPreference
+  android:key="logout_delay"
+  android:dependency="close_logout"
+  android:title="@string/logout_delay_title"
+  android:summary="@string/logout_delay_summary"
+  android:entries="@array/logout_delay_entries"
+  android:entryValues="@array/logout_delay_values"
+  android:defaultValue="5"/>
 
 <CheckBoxPreference
   android:key="display_username"

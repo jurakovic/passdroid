@@ -166,15 +166,16 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 ### The timeout
 
 - `setTimeoutTimer()`, if "Log out on close" is on, sets an inexact
-  `ELAPSED_REALTIME` alarm for 5 seconds. The alarm sends the timeout
-  broadcast, as an immutable `PendingIntent` limited to the app's package.
+  `ELAPSED_REALTIME` alarm for the logout delay (5 s by default,
+  `logout_delay` setting). The alarm sends the timeout broadcast, as an
+  immutable `PendingIntent` limited to the app's package.
 - `clearTimeoutTimer()` cancels the alarm and logs out **if the deadline has
   passed**. The alarm is inexact, and since Android 14 broadcasts are held
   back while the app is cached, so the check on return is what actually
   enforces the timeout.
 - While the system file picker is open for the app,
-  `setExtendedTimeout(true)` makes the delay 2 minutes. The activity that
-  started the picker calls `clearTimeoutTimer()` itself in
+  `setExtendedTimeout(true)` makes the delay at least 2 minutes. The
+  activity that started the picker calls `clearTimeoutTimer()` itself in
   `onActivityResult()`, which runs before `onResume()`, and finishes if the
   session ended.
 - A login clears a timer left from before it, so the login isn't undone
@@ -508,6 +509,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | Key | Default | Used by |
 |---|---|---|
 | `close_logout` | `true` | `Session.setTimeoutTimer()` |
+| `logout_delay` | `5` (seconds: 5, 30, 60, 300) | `Session.getTimeout()` |
 | `display_username` | `true` | the password list |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
@@ -655,8 +657,8 @@ passphrase is out of reach.
 
 #### Session and logout
 
-- Default: log out **5 seconds** after the app goes to the background, or
-  never.
+- Default: log out **5 seconds** after the app goes to the background (5,
+  30, 60 or 300 s, or never).
 - **Every logout wipes the master key** and drops the decrypted entries,
   whatever its reason.
 - A master password change wipes the old key, which would still decrypt the

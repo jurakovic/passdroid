@@ -37,11 +37,11 @@ import android.preference.PreferenceManager;
 public class Session {
     public static final String TIMEOUT_ACTION = "com.kodholken.passdroid.TIMEOUT";
 
-    // Time the application may be in the background before the user is
-    // logged out.
-    private static final long TIMEOUT = 5000;
-    // Timeout used while an activity from another application, such as the
-    // system file picker, is in the foreground on our behalf.
+    // Time in seconds the application may be in the background before the
+    // user is logged out, if it is not set with the logout_delay setting.
+    private static final String DEFAULT_LOGOUT_DELAY = "5";
+    // Minimum timeout while an activity from another application, such as
+    // the system file picker, is in the foreground on our behalf.
     private static final long EXTENDED_TIMEOUT = 2 * 60 * 1000;
 
     private byte [] key;         // Key derived from the master password. It is
@@ -59,8 +59,8 @@ public class Session {
     
     private PendingIntent timeoutIntent;
 
-    private long timeoutStart;  // elapsedRealtime() when the timeout timer was
-    // set. 0 if no timer is running.
+    private long timeoutEnd;  // elapsedRealtime() when the user is logged
+    // out. 0 if no timer is running.
 
     private boolean extendedTimeout;
 
@@ -101,7 +101,7 @@ public class Session {
         if (isLoggedIn) {
             // Make sure a timer left from before the login does not log out
             // the user.
-            timeoutStart = 0;
+            timeoutEnd = 0;
         } else {
             // Forget the key and the decrypted entries, whatever the reason
             // for the logout
@@ -178,9 +178,9 @@ public class Session {
 
         session.timeoutIntent = PendingIntent.getBroadcast(context, 0, intent,
                 PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
-        session.timeoutStart = SystemClock.elapsedRealtime();
-        am.set(AlarmManager.ELAPSED_REALTIME,
-               session.timeoutStart + session.getTimeout(),
+        session.timeoutEnd = SystemClock.elapsedRealtime() +
+                             session.getTimeout(context);
+        am.set(AlarmManager.ELAPSED_REALTIME, session.timeoutEnd,
                session.timeoutIntent);
     }
 
@@ -198,12 +198,12 @@ public class Session {
             session.timeoutIntent = null;
         }
 
-        if (session.timeoutStart != 0 &&
-            SystemClock.elapsedRealtime() - session.timeoutStart >= session.getTimeout()) {
+        if (session.timeoutEnd != 0 &&
+            SystemClock.elapsedRealtime() >= session.timeoutEnd) {
             session.setLoggedIn(false);
         }
 
-        session.timeoutStart = 0;
+        session.timeoutEnd = 0;
         session.extendedTimeout = false;
     }
 
@@ -216,8 +216,17 @@ public class Session {
         this.extendedTimeout = extendedTimeout;
     }
 
-    private long getTimeout() {
-        return extendedTimeout ? EXTENDED_TIMEOUT : TIMEOUT;
+    private long getTimeout(Context context) {
+        String delay = PreferenceManager.getDefaultSharedPreferences(context).
+                                         getString("logout_delay", DEFAULT_LOGOUT_DELAY);
+        long timeout;
+        try {
+            timeout = Long.parseLong(delay) * 1000;
+        } catch (NumberFormatException e) {
+            timeout = Long.parseLong(DEFAULT_LOGOUT_DELAY) * 1000;
+        }
+
+        return extendedTimeout ? Math.max(timeout, EXTENDED_TIMEOUT) : timeout;
     }
 
     /**
