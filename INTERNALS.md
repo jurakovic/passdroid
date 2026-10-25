@@ -99,9 +99,9 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
 
-Resources worth knowing: `res/layout-land/` (landscape layouts of the About
-screen and the generator), `res/values/arrays.xml` (generator character
-sets).
+Resources worth knowing: `res/values-night/` (dark theme colors),
+`res/layout-land/` (landscape layouts of the About screen and the
+generator), `res/values/arrays.xml` (generator character sets).
 
 Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 [Tests](#tests).

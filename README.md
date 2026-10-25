@@ -75,6 +75,11 @@ Each entry has a **system** (the name of the service, required),
 - **Importing replaces all entries** with those in the file.
 - After importing an unencrypted file, Passdroid++ offers to delete it.
 
+### Appearance
+
+- A dark theme when the system's dark theme is on.
+- Text follows the system font size.
+
 ### Privacy
 
 - **No internet permission.** Passdroid++ asks for no permissions at all.
@@ -155,6 +160,10 @@ of Passdroid++.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 - Generated passwords are 16 characters long by default instead of 10.
+
+### New features
+
+- Dark theme.
 
 ### Bugs fixed from 2.3
 

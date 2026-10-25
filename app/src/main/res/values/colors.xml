@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Content panels drawn on top of the striped background. The dark theme
+         versions are in values-night/colors.xml. -->
+    <color name="panel_background">#ffffff</color>
+    <color name="panel_text">#000000</color>
+    <color name="panel_text_secondary">#999999</color>
+    <color name="button_bar_background">#cccccc</color>
+    <color name="list_divider">#ffbbbbbb</color>
+</resources>

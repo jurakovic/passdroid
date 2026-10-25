@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault">
+    </style>
+
+    <!-- The old Theme.Dialog has light buttons, which would be unreadable with
+         light text. -->
+    <style name="PassdroidDialog" parent="@android:style/Theme.DeviceDefault.Dialog">
+        <item name="android:textColor">@color/panel_text</item>
+    </style>
+</resources>

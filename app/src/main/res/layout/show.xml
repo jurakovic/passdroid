@@ -13,12 +13,12 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="10dip"
-    android:background="#FFFFFF">
+    android:background="@color/panel_background">
 
     <TextView
       android:id="@+id/username_title"
       android:text="@string/username"
-      android:textColor="#999999"
+      android:textColor="@color/panel_text_secondary"
       android:textSize="13sp"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
@@ -34,7 +34,7 @@
     <TextView
       android:text="@string/password"
       android:textSize="13sp"
-      android:textColor="#999999"
+      android:textColor="@color/panel_text_secondary"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
     
@@ -51,7 +51,7 @@
       android:id="@+id/note_title"
       android:visibility="gone"
       android:paddingTop="10dip"
-      android:textColor="#999999"
+      android:textColor="@color/panel_text_secondary"
       android:text="@string/note"
       android:textSize="13sp"
       android:layout_width="fill_parent"
@@ -68,7 +68,7 @@
       android:id="@+id/url_title"
       android:visibility="gone"
       android:paddingTop="10dip"
-      android:textColor="#999999"
+      android:textColor="@color/panel_text_secondary"
       android:text="@string/url"
       android:textSize="13sp"
       android:layout_width="fill_parent"

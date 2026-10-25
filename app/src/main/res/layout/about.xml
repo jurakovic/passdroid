@@ -42,14 +42,14 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:padding="10dip"
-        android:background="#ffffff" >
+        android:background="@color/panel_background" >
 
         <TextView
             android:id="@+id/about_content"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="@string/about_text"
-            android:textColor="#000000"/>
+            android:textColor="@color/panel_text"/>
     </ScrollView>
 
 </LinearLayout>
