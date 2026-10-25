@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.kodholken.passdroid.FullWidthLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:importantForAutofill="noExcludeDescendants"
+    tools:targetApi="o"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal"
@@ -9,6 +12,7 @@
     android:focusableInTouchMode="true">
 
     <EditText
+        android:imeOptions="flagNoPersonalizedLearning"
         android:id="@+id/search_field"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"

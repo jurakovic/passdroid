@@ -79,6 +79,8 @@ Each entry has a **system** (the name of the service, required),
   Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens
   that show your data.
+- On the screens where you type secrets, the keyboard is asked not to learn
+  from what you type, and autofill services are kept out.
 
 ## Installing
 
@@ -138,7 +140,8 @@ of Passdroid++.
   empty one.
 - Every logout, also the automatic ones, wipes the key and the decrypted
   entries; 2.3 only did that for a logout from the menu.
-- Android backup is off.
+- Android backup is off, and the keyboard and autofill are kept out of what
+  you type.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 

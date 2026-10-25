@@ -1,4 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:importantForAutofill="noExcludeDescendants"
+    tools:targetApi="o"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:background="@drawable/safe"
@@ -15,6 +18,7 @@
         android:textSize="14dip" />
 
     <EditText
+        android:imeOptions="flagNoPersonalizedLearning"
         android:id="@+id/login_password"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"

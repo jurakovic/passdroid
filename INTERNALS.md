@@ -508,6 +508,10 @@ Other settings:
 - `android:allowBackup="false"`: no cloud backup. For apps that target
   Android 12 or later it doesn't stop a device-to-device transfer, so on
   some devices moving to a new phone can still copy the encrypted database.
+- The text fields of the add and edit screen (`add.xml`), login, setup,
+  password change and import password screens and the search field have
+  `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
+  `importantForAutofill="noExcludeDescendants"`.
 - Only `MainActivity` is exported. The timeout receivers are registered at
   runtime as not exported.
 
@@ -625,6 +629,15 @@ passphrase is out of reach.
   don't stay in memory after a logout.
 - Limits: the key is in memory while the user is logged in, and decrypted
   Java strings can't be wiped.
+
+#### Screens and input
+
+- All screens that show secrets set `FLAG_SECURE`: no screenshots and no
+  content in the recent apps.
+- On the entry, login, setup, password change, import password and search
+  screens the keyboard is asked not to learn from the text fields
+  (`flagNoPersonalizedLearning`), and these screens are excluded from
+  autofill.
 
 #### Android integration
 
@@ -751,6 +764,8 @@ release:
   refused. Log in with an existing short one: the reminder appears.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the bar follows.
+- The keyboard offers no suggestions learned from notes, and no autofill
+  service offers to save the master password.
 - Install the new APK over the previous release: the entries are there
   after the login. Import an export of the original Passdroid and one of
   the previous release.
