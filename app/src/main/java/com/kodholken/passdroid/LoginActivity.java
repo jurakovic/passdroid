@@ -199,6 +199,7 @@ public class LoginActivity extends Activity {
             } else {
                 // We keep using the legacy key and try again at next login
                 Utils.error("Failed to upgrade the master key");
+                Arrays.fill(upgradedKey.getKey(), (byte) 0);
             }
         }
 

@@ -19,6 +19,8 @@
 
 package com.kodholken.passdroid;
 
+import java.util.Arrays;
+
 import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.DbMigration;
 import com.kodholken.passdroid.db.SystemData;
@@ -127,7 +129,18 @@ public class ChangePasswordActivity extends TimeoutActivity {
     }
 
     private void changeKey(MasterKey oldKey, MasterKey newKey) {
-        if (newKey != null && DbMigration.changeKey(this, oldKey.getKey(), newKey)) {
+        boolean changed = newKey != null &&
+                          DbMigration.changeKey(this, oldKey.getKey(), newKey);
+
+        // The old key was derived again to check the old password
+        Arrays.fill(oldKey.getKey(), (byte) 0);
+
+        if (changed) {
+            // The old key still decrypts the exports made before the change
+            byte [] sessionKey = Session.getInstance().getKey();
+            if (sessionKey != null) {
+                Arrays.fill(sessionKey, (byte) 0);
+            }
             Session.getInstance().setKey(newKey.getKey());
             Session.getInstance().setNeedReload(true);
 
@@ -143,6 +156,9 @@ public class ChangePasswordActivity extends TimeoutActivity {
                 } }); 
             alertDialog.show();
         } else {
+            if (newKey != null) {
+                Arrays.fill(newKey.getKey(), (byte) 0);
+            }
             Utils.alertDialog(this, "Password change failed",
             "There was a failure when changing the password.");
         }

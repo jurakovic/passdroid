@@ -237,8 +237,8 @@ the next login.
 
 `ChangePasswordActivity` derives the key from the old password (which
 verifies it) and a new key from the new password in a background thread,
-then calls `DbMigration.changeKey()`. On success the session key is
-replaced.
+then calls `DbMigration.changeKey()`. On success the old session key is
+zeroed and replaced.
 
 `DbMigration.changeKey()` decrypts every entry with the old key and only
 continues if every field decrypted. It then re-encrypts all entries and
@@ -606,6 +606,8 @@ passphrase is out of reach.
   never.
 - **Every logout wipes the master key** and drops the decrypted entries,
   whatever its reason.
+- A master password change wipes the old key, which would still decrypt the
+  exports made before the change.
 - A login clears a logout timer left from before it, so it isn't undone
   right away.
 
