@@ -30,6 +30,6 @@
   android:key="clear_clipboard"
   android:title="Auto clear clipboard"
   android:defaultValue="true"
-  android:summary="Automatically remove passwords from the clipboard when the screen is turned off."/>
+  android:summary="Remove a copied password from the clipboard within a minute, and when the screen is turned off."/>
   
 </PreferenceScreen>

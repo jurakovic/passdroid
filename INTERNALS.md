@@ -93,7 +93,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
 | Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity` |
-| Clipboard | `Utils.copyPasswordToClipboard()`, `ScreenOffListener` |
+| Clipboard | `Utils.copyPasswordToClipboard()`, `ClipboardClearReceiver` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ChangePasswordActivity` |
@@ -353,16 +353,30 @@ Screens pass the decrypted values of an entry in intent extras.
 
 ## Clipboard
 
-- Passwords go through `Utils.copyPasswordToClipboard()`: the clip gets the
-  label `"password"` and the `android.content.extra.IS_SENSITIVE` extra,
-  which hides it in the clipboard preview of Android 13 and later, and
-  `Session.setPasswordInClipboard(true)` is set.
+- **Passwords** go through `Utils.copyPasswordToClipboard()`:
+  - the clip gets the label `"password"` (`ClipboardClearReceiver.LABEL`)
+    and the `android.content.extra.IS_SENSITIVE` extra, which hides it in
+    the clipboard preview of Android 13 and later;
+  - `Session.setPasswordInClipboard(true)` is set;
+  - `ClipboardClearReceiver.schedule()` sets an inexact 45 second
+    `ELAPSED_REALTIME` alarm with an immutable `PendingIntent` to the
+    manifest receiver (not exported), so it fires even if the process was
+    frozen or killed.
 - `ScreenOffListener` receives `SCREEN_OFF`. It is registered once per
   process on the application context (a manifest receiver can't get this
-  broadcast). If a password was copied and "Auto clear clipboard" is on, it
-  clears the clipboard with `clearPrimaryClip()` (Android 9 and later) or an
-  empty clip. It doesn't check what the clipboard holds, since Android 10
-  doesn't let apps read it in the background.
+  broadcast), and calls `ClipboardClearReceiver.clear()` if a password was
+  copied.
+- `ClipboardClearReceiver.clear()` runs from the alarm and from the screen
+  off listener:
+  1. cancels the alarm and resets the flag;
+  2. stops if "Auto clear clipboard" is off;
+  3. reads the clip description. If it can be read and its label isn't
+     `"password"`, the clipboard now holds something else (the standard copy
+     of other apps has no label), and it is left alone. Since Android 10 the
+     description can't be read in the background; it is then `null` and the
+     clipboard is cleared anyway;
+  4. clears with `clearPrimaryClip()` (Android 9 and later) or an empty
+     clip.
 
 ## Export and import
 
@@ -485,7 +499,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 |---|---|---|
 | `close_logout` | `true` | `Session.setTimeoutTimer()` |
 | `display_username` | `true` | the password list |
-| `clear_clipboard` | `true` | `ScreenOffListener` |
+| `clear_clipboard` | `true` | `ClipboardClearReceiver` |
 | `passwordLength`, `passwordCharset` | 10, 0 | the generator |
 
 ## Android platform details
@@ -495,9 +509,9 @@ Behavior that depends on the Android version, and where it is handled:
 | Android | What | Where |
 |---|---|---|
 | 7.0–7.1 | No platform PBKDF2-HMAC-SHA256 | `MasterKey.deriveKey()` fallback |
-| 9 | `clearPrimaryClip()` | `ScreenOffListener` |
-| 10 | No clipboard reads in the background | `ScreenOffListener` |
-| 12 | Immutable `PendingIntent`s, exported launcher activity | `Session`, manifest |
+| 9 | `clearPrimaryClip()` | `ClipboardClearReceiver` |
+| 10 | No clipboard reads in the background | `ClipboardClearReceiver` |
+| 12 | Immutable `PendingIntent`s, exported launcher activity | `Session`, `ClipboardClearReceiver`, manifest |
 | 13 | `RECEIVER_NOT_EXPORTED`, sensitive clips, back callbacks | `Utils.registerNotExportedReceiver()`, `Utils`, activities |
 | 14 | Held-back broadcasts for cached apps, `accessibilityDataSensitive` | `Session.clearTimeoutTimer()`, layouts |
 | 15 | Edge-to-edge windows | `Utils.applySystemBarInsets()` |
@@ -515,7 +529,8 @@ Other settings:
 - The password and generated password views have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
 - Only `MainActivity` is exported. The timeout receivers are registered at
-  runtime as not exported.
+  runtime as not exported, the clipboard receiver is declared with
+  `exported="false"`.
 
 ## Security
 
@@ -631,6 +646,19 @@ passphrase is out of reach.
   don't stay in memory after a logout.
 - Limits: the key is in memory while the user is logged in, and decrypted
   Java strings can't be wiped.
+
+#### Clipboard
+
+- Copied passwords are marked as sensitive, so Android 13 and later hide
+  them in clipboard previews.
+- They are **cleared after 45 seconds** (an inexact alarm, so within about a
+  minute) and when the screen turns off, if "Auto clear clipboard" is on,
+  which is the default. The alarm goes to a receiver declared in the
+  manifest, so it also works while the app is frozen or killed.
+- Where the app can read the clipboard (in the foreground, or before Android
+  10) it only clears its own copy, recognized by its label, never something
+  copied in another app. The standard copy of selected text has no label,
+  and is kept as well.
 
 #### Screens and input
 
@@ -760,6 +788,9 @@ What the unit tests don't cover, worth checking on a device before a
 release:
 
 - Export over an existing, longer export file and import it again.
+- Copy a password, wait about a minute: the clipboard is empty. Copy a
+  password, copy text in another app and come back within the minute: the
+  text is kept.
 - Open an entry: copy the password. Edit it, view it again, delete it. Copy
   a password with a long press in the list, also while searching.
 - Open the search: the field fills the action bar.

@@ -111,7 +111,7 @@ public class Utils {
         ClipboardManager clipboard =
             (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
 
-        ClipData clip = ClipData.newPlainText("password", password);
+        ClipData clip = ClipData.newPlainText(ClipboardClearReceiver.LABEL, password);
         PersistableBundle extras = new PersistableBundle();
         // ClipDescription.EXTRA_IS_SENSITIVE, which is only defined in API 33+
         extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
@@ -119,6 +119,7 @@ public class Utils {
 
         clipboard.setPrimaryClip(clip);
         Session.getInstance().setPasswordInClipboard(true);
+        ClipboardClearReceiver.schedule(context);
     }
 
     /**

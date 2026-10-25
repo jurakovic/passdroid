@@ -47,8 +47,11 @@ Each entry has a **system** (the name of the service, required),
 
 - Copied passwords are marked as sensitive, so Android 13 and later don't
   show them in the clipboard preview.
-- With "Auto clear clipboard" (on by default) they are removed when the
-  screen turns off.
+- With "Auto clear clipboard" (on by default) they are removed after about 45
+  seconds, at the latest within a minute, and when the screen turns off.
+- Where Android lets Passdroid++ read the clipboard, which since Android 10 is
+  only while it is open, something you copied in another app in the meantime
+  is left alone.
 
 ### Password generator
 
@@ -142,6 +145,9 @@ of Passdroid++.
   empty one.
 - Every logout, also the automatic ones, wipes the key and the decrypted
   entries; 2.3 only did that for a logout from the menu.
+- Copied passwords are removed from the clipboard after 45 seconds and are
+  hidden in the clipboard preview. 2.3 only cleared the clipboard when the
+  screen turned off.
 - Android backup is off, the keyboard and autofill are kept out of what you
   type, and passwords are hidden from accessibility services.
 - Uses the standard crypto provider instead of Android's deprecated

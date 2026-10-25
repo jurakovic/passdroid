@@ -75,6 +75,9 @@
 
         <activity android:label="@string/import_password_title"
                   android:name=".ImportPasswordActivity"/>
+
+        <receiver android:name=".ClipboardClearReceiver"
+                  android:exported="false"/>
     </application>
 
 </manifest>
