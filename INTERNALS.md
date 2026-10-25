@@ -499,7 +499,7 @@ Behavior that depends on the Android version, and where it is handled:
 | 10 | No clipboard reads in the background | `ScreenOffListener` |
 | 12 | Immutable `PendingIntent`s, exported launcher activity | `Session`, manifest |
 | 13 | `RECEIVER_NOT_EXPORTED`, sensitive clips, back callbacks | `Utils.registerNotExportedReceiver()`, `Utils`, activities |
-| 14 | Held-back broadcasts for cached apps | `Session.clearTimeoutTimer()` |
+| 14 | Held-back broadcasts for cached apps, `accessibilityDataSensitive` | `Session.clearTimeoutTimer()`, layouts |
 | 15 | Edge-to-edge windows | `Utils.applySystemBarInsets()` |
 | 16 | No `onBackPressed()` for apps that target it | `OnBackInvokedCallback` |
 
@@ -512,6 +512,8 @@ Other settings:
   password change and import password screens and the search field have
   `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
   `importantForAutofill="noExcludeDescendants"`.
+- The password and generated password views have
+  `accessibilityDataSensitive="yes"` (ignored before Android 14).
 - Only `MainActivity` is exported. The timeout receivers are registered at
   runtime as not exported.
 
@@ -638,6 +640,9 @@ passphrase is out of reach.
   screens the keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
   autofill.
+- On Android 14 and later the password and generated password views are
+  only visible to accessibility services that are accessibility tools, such
+  as screen readers.
 
 #### Android integration
 

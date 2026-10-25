@@ -52,6 +52,8 @@
     <EditText
       android:imeOptions="flagNoPersonalizedLearning"
       android:id="@+id/password"
+      android:accessibilityDataSensitive="yes"
+      tools:targetApi="34"
       android:singleLine="true"
       android:inputType="textVisiblePassword"
       android:layout_width="fill_parent"

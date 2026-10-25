@@ -81,6 +81,8 @@ Each entry has a **system** (the name of the service, required),
   that show your data.
 - On the screens where you type secrets, the keyboard is asked not to learn
   from what you type, and autofill services are kept out.
+- On Android 14 and later, passwords are hidden from accessibility services,
+  except tools such as screen readers.
 
 ## Installing
 
@@ -140,8 +142,8 @@ of Passdroid++.
   empty one.
 - Every logout, also the automatic ones, wipes the key and the decrypted
   entries; 2.3 only did that for a logout from the menu.
-- Android backup is off, and the keyboard and autofill are kept out of what
-  you type.
+- Android backup is off, the keyboard and autofill are kept out of what you
+  type, and passwords are hidden from accessibility services.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 
