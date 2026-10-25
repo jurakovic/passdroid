@@ -40,6 +40,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class FileImportActivity extends SherlockTimeoutActivity {
+    // Larger files are not read, e.g. a video picked by mistake would not
+    // fit in memory. An export with thousands of entries is far smaller.
+    private static final int MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 	private LinearLayout importLayout;
     private Button cancelButton;
     private Button importButton;
@@ -269,6 +273,9 @@ public class FileImportActivity extends SherlockTimeoutActivity {
             byte [] buffer = new byte[4096];
             int nread;
             while ((nread = input.read(buffer)) != -1) {
+                if (output.size() + nread > MAX_FILE_SIZE) {
+                    throw new IOException("The file is too large");
+                }
                 output.write(buffer, 0, nread);
             }
 
