@@ -21,10 +21,13 @@ package com.kodholken.passdroid;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -38,6 +41,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import android.util.Log;
@@ -66,8 +70,24 @@ public class FileImporter {
     public void parse(InputStream input) throws FileImporterException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         try {
+            // Exports are always UTF-8. Decoding the file here, instead of
+            // letting the parser pick the encoding, makes the check below see
+            // the same characters as the parser.
+            String xml = new String(readAll(input), StandardCharsets.UTF_8);
+            if (xml.startsWith("\uFEFF")) {
+                xml = xml.substring(1);
+            }
+
+            // Exports never have a document type declaration. It could declare
+            // entities that expand to a lot of text when the file is read,
+            // e.g. to use up the memory. Android's parser does not support
+            // the feature that turns them off.
+            if (hasDoctype(xml)) {
+                throw new FileImporterException("Document type declarations are not supported");
+            }
+
             DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(input);
+            Document doc = builder.parse(new InputSource(new StringReader(xml)));
             Element root = doc.getDocumentElement();
             if (root == null || !root.getTagName().equals("passdroid")) {
                 throw new FileImporterException("Invalid file format: " + (root == null ? "<empty>" : root.getTagName()));
@@ -87,6 +107,50 @@ public class FileImporter {
         } catch (SAXException ex) {
             throw new FileImporterException(ex);
         }
+    }
+
+    /**
+     * @return true if the XML has a document type declaration. It can only
+     *         come before the root element, where the rest is whitespace, the
+     *         XML declaration, comments and processing instructions. Values
+     *         in the elements can contain the same text.
+     */
+    static boolean hasDoctype(String xml) {
+        int i = 0;
+        while (true) {
+            while (i < xml.length() && Character.isWhitespace(xml.charAt(i))) {
+                i++;
+            }
+
+            String end;
+            if (xml.startsWith("<?", i)) {
+                i += 2;
+                end = "?>";
+            } else if (xml.startsWith("<!--", i)) {
+                i += 4;
+                end = "-->";
+            } else {
+                // Only a document type declaration starts with "<!" here
+                return xml.startsWith("<!", i);
+            }
+
+            i = xml.indexOf(end, i);
+            if (i == -1) {
+                // The parser does not accept the file
+                return false;
+            }
+            i += end.length();
+        }
+    }
+
+    private static byte [] readAll(InputStream input) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte [] buffer = new byte[4096];
+        int nread;
+        while ((nread = input.read(buffer)) != -1) {
+            output.write(buffer, 0, nread);
+        }
+        return output.toByteArray();
     }
 
     public boolean isEncrypted() throws FileImporterException {

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 import org.junit.Test;
@@ -36,7 +37,10 @@ public class FileExportImportTest {
                         "line 1\nline 2", "https://example.com/?a=1&b=2"),
             createEntry("CDATA", "]]>", "]]]]>>", "x]]>y]]>", "]]"),
             createEntry("Unicode åäö", "ü", "€ß",
-                        "", "")
+                        "", ""),
+            // Only a document type declaration before the root is rejected
+            createEntry("<!DOCTYPE x>", "<!DOCTYPE", "<!DOCTYPE html>",
+                        "<!-- x -->\n<!DOCTYPE html>", "")
         };
     }
 
@@ -84,6 +88,38 @@ public class FileExportImportTest {
             createEntry("System", "user", "password",
                         "tab\tnew\nline \uD83D\uDE00 ", "https://example.com/")
         }, importer.getPasswordEntries());
+    }
+
+    @Test
+    public void fileWithDoctypeIsRejected() throws Exception {
+        // An entity, e.g. one that expands to a lot of text, needs a
+        // document type declaration
+        String xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<!DOCTYPE passdroid [<!ENTITY x \"expanded\">]>\n" +
+            "<passdroid version=\"2.3\">\n" +
+            "  <system name=\"Mail\">\n" +
+            "    <username><![CDATA[alice]]></username>\n" +
+            "    <password>&x;</password>\n" +
+            "  </system>\n" +
+            "</passdroid>\n";
+
+        assertRejected(xml.getBytes("UTF-8"));
+        assertRejected(("\uFEFF<!-- comment -->" + xml).getBytes("UTF-8"));
+
+        // The file is read as UTF-8, whatever encoding it declares, so the
+        // declaration can not be hidden in another encoding
+        assertRejected(xml.replace("UTF-8", "UTF-16").getBytes("UTF-16"));
+    }
+
+    private static void assertRejected(byte [] file) throws Exception {
+        FileImporter importer = new FileImporter(file);
+        try {
+            importer.parse(new ByteArrayInputStream(file));
+            fail("A document type declaration was accepted");
+        } catch (FileImporterException ex) {
+            // Expected
+        }
     }
 
     private static byte [] exportEncrypted(MasterKey masterKey,

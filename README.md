@@ -150,6 +150,8 @@ of Passdroid++.
   screen turned off.
 - Android backup is off, the keyboard and autofill are kept out of what you
   type, and passwords are hidden from accessibility services.
+- Imports read at most 10 MB and reject XML that could expand to huge
+  amounts of text.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
 

@@ -478,6 +478,13 @@ reported, since some document providers only store the data then.
 5. stores the entries with `PasswordModel.setPasswords()`, which **replaces
    all entries**.
 
+`FileImporter.parse()` decodes the bytes as UTF-8 itself (dropping a byte
+order mark) and hands the parser a `StringReader`, so the parser can't pick
+another encoding. It then rejects a document type declaration before the root
+element (`hasDoctype()`): Android's parser doesn't support turning off entity
+expansion, and a DTD could define entities that expand to gigabytes. Values
+inside the elements may contain the same text.
+
 ## Password generator
 
 - `GeneratePasswordActivity` picks every character uniformly with
@@ -610,7 +617,11 @@ passphrase is out of reach.
   app doesn't import a file and leave out what it doesn't know.
 - Exports truncate an existing file and leave out characters XML doesn't
   allow, so a backup can always be imported again.
-- Imports read at most 10 MB.
+- Imports read at most 10 MB and reject files with a document type
+  declaration, which could declare entities that expand to a lot of text.
+  Only the part before the root element is checked, so values can contain
+  the same text, and the file is always read as UTF-8, so the declaration
+  can't be hidden in another encoding.
 - A very deeply nested file can still crash the app. It can only be a file
   the user picks, and nothing is lost.
 
@@ -769,7 +780,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 
 | Class | Covers |
 |---|---|
-| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, Unicode); invalid characters; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
+| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
 | `SessionTest` | Both kinds of logout wipe the key |
@@ -795,6 +806,8 @@ release:
   a password with a long press in the list, also while searching.
 - Open the search: the field fills the action bar.
 - Edit an entry, clear the system name and save: it is refused.
+- Export an entry whose note contains `<!DOCTYPE html>`, then import the
+  file again.
 - Set up or change the master password with fewer than 12 characters: the
   note below the field counts the missing characters, and the password is
   refused. Log in with an existing short one: the reminder appears.
@@ -934,6 +947,8 @@ Limitations:
   every iteration, which makes it about twice as slow as needed.
 - A progress dialog that is open while the screen rotates is lost with its
   result; the user has to repeat the action.
+- Two loops read a whole stream, `FileImporter.readAll()` and
+  `FileImportActivity.readFile()`; only the second has the size limit.
 - A very deeply nested import file can crash the app (`StackOverflowError`
   is not caught). Only a file the user picks; nothing is lost.
 - A carriage return in a value comes back as a line feed after export and
