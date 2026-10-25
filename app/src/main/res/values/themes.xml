@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The dark theme versions are in values-night/themes.xml and are used
-         when the system dark theme is turned on. -->
-    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.Light.DarkActionBar">
+    <!-- The themes are based on the Material themes instead of DeviceDefault,
+         which device makers restyle, sometimes only the dark version, so that
+         the light and the dark theme look alike on all devices.
+
+         The dark theme versions are in values-night/themes.xml. They are used
+         when the system dark theme is turned on or the dark theme is chosen
+         in the settings, see ThemeSetting. -->
+    <style name="LightAppTheme" parent="@android:style/Theme.Material.Light.DarkActionBar">
+        <!-- The status bar has the color of the action bar -->
+        <item name="android:colorPrimary">@color/action_bar</item>
+        <item name="android:colorPrimaryDark">@color/action_bar</item>
+        <item name="android:colorBackground">@color/window_background</item>
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <!-- Extended in values-v27/themes.xml -->
+    <style name="AppTheme" parent="LightAppTheme">
     </style>
 
     <style name="PassdroidDialog" parent="@android:style/Theme.Dialog">

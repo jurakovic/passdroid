@@ -20,7 +20,7 @@ releasing.
 - [Clipboard](#clipboard)
 - [Export and import](#export-and-import)
 - [Password generator](#password-generator)
-- [Settings](#settings)
+- [Settings and theme](#settings-and-theme)
 - [Android platform details](#android-platform-details)
 - [Security](#security)
   - [Threat model](#threat-model)
@@ -96,12 +96,13 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Clipboard | `Utils.copyPasswordToClipboard()`, `ClipboardClearReceiver` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
-| Settings | `SettingsActivity`, `res/xml/settings.xml`, `ChangePasswordActivity` |
+| Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
-generator), `res/values/arrays.xml` (generator character sets).
+generator), `res/values/arrays.xml` (setting values, generator character
+sets).
 
 Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 [Tests](#tests).
@@ -154,6 +155,7 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 - sets `FLAG_SECURE` on its window,
 - registers a not exported receiver for the timeout broadcast, which logs
   out and finishes the activity,
+- applies the theme and recreates itself when the theme setting changed,
 - keeps its content clear of the system bars (`Utils.applySystemBarInsets()`),
 - counts resumes and pauses in the session. When the count drops to 0, the
   app has gone to the background (or to another app's activity) and
@@ -499,7 +501,7 @@ inside the elements may contain the same text.
   forgets it. Opened from the list, it is shown on `DisplayPasswordActivity`,
   where a tap asks whether to copy it.
 
-## Settings
+## Settings and theme
 
 Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 
@@ -508,7 +510,19 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `close_logout` | `true` | `Session.setTimeoutTimer()` |
 | `display_username` | `true` | the password list |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
+| `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
 | `passwordLength`, `passwordCharset` | 16, 0 | the generator |
+
+- **Theme**: `ThemeSetting.apply()` runs in `attachBaseContext()` of every
+  activity that shows something. For "light" or "dark" it overrides the
+  night mode of the activity's configuration with
+  `applyOverrideConfiguration()`, so the `values-night` resources are
+  selected as with the system dark theme. The override leaves `fontScale`
+  undefined (0), because before Android 8 the `Configuration` constructor
+  sets it to 1, which would replace the user's font size. Activities
+  remember the theme they were created with and recreate themselves when it
+  changed. The themes are based on `Theme.Material`, because device makers
+  restyle `DeviceDefault`.
 
 ## Android platform details
 

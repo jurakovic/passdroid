@@ -5,4 +5,8 @@
     <color name="panel_text_secondary">#9aa0a6</color>
     <color name="button_bar_background">#303134</color>
     <color name="list_divider">#ff3c4043</color>
+    <!-- The background of the screens without the striped background, e.g.
+         the add and edit screens. The same gray as the panels, a near black
+         background made these screens too dark. -->
+    <color name="window_background">#202124</color>
 </resources>

@@ -24,6 +24,7 @@ import com.kodholken.passdroid.db.SystemData;
 
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -34,6 +35,12 @@ import android.widget.TextView;
 public class InitializeActivity extends Activity {
     Button okButton;
     private boolean initializing = false;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(newBase);
+        ThemeSetting.apply(this);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

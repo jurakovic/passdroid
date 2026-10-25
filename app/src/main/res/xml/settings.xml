@@ -32,4 +32,12 @@
   android:defaultValue="true"
   android:summary="Remove a copied password from the clipboard within a minute, and when the screen is turned off."/>
   
+<ListPreference
+  android:key="theme"
+  android:title="@string/theme_title"
+  android:summary="%s"
+  android:entries="@array/theme_entries"
+  android:entryValues="@array/theme_values"
+  android:defaultValue="system"/>
+
 </PreferenceScreen>

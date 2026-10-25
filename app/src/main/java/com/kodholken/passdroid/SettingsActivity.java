@@ -43,9 +43,19 @@ public class SettingsActivity extends TimeoutPreferenceActivity
     }
 
     @Override
+    protected void onDestroy() {
+        getPreferenceScreen().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
+        super.onDestroy();
+    }
+
+    @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         updateSummaries();
         Session.getInstance().setNeedReload(true);
+
+        if (ThemeSetting.PREFERENCE.equals(key)) {
+            recreate();
+        }
     }
 
     public void updateSummaries() {}

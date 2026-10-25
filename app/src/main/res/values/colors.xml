@@ -7,4 +7,8 @@
     <color name="panel_text_secondary">#999999</color>
     <color name="button_bar_background">#cccccc</color>
     <color name="list_divider">#ffbbbbbb</color>
+
+    <!-- The action bar has the same color in both themes -->
+    <color name="action_bar">#212121</color>
+    <color name="window_background">#fafafa</color>
 </resources>

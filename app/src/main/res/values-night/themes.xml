@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
-    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault">
+    <style name="AppTheme" parent="@android:style/Theme.Material">
+        <!-- The status bar has the color of the action bar -->
+        <item name="android:colorPrimary">@color/action_bar</item>
+        <item name="android:colorPrimaryDark">@color/action_bar</item>
+        <item name="android:colorBackground">@color/window_background</item>
+        <item name="android:windowBackground">@color/window_background</item>
     </style>
 
     <!-- The old Theme.Dialog has light buttons, which would be unreadable with
          light text. -->
-    <style name="PassdroidDialog" parent="@android:style/Theme.DeviceDefault.Dialog">
+    <style name="PassdroidDialog" parent="@android:style/Theme.Material.Dialog">
         <item name="android:textColor">@color/panel_text</item>
     </style>
 </resources>

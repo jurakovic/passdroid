@@ -77,7 +77,7 @@ Each entry has a **system** (the name of the service, required),
 
 ### Appearance
 
-- A dark theme when the system's dark theme is on.
+- Light or dark theme, or follow the system setting.
 - Text follows the system font size.
 
 ### Privacy
@@ -163,7 +163,7 @@ of Passdroid++.
 
 ### New features
 
-- Dark theme.
+- Dark theme and a theme setting.
 
 ### Bugs fixed from 2.3
 
@@ -188,6 +188,7 @@ of Passdroid++.
 - The logout also works with the delayed broadcasts of Android 14, and a
   screen that Android restores after closing the app in the background
   doesn't show anything without a login.
+- Material themes, so the app looks the same on all devices.
 - A new application id, so it installs next to the original.
 - Unit tests, a GitHub workflow that checks every change, and one that
   publishes signed releases.

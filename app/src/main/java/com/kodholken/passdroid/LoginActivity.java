@@ -27,6 +27,7 @@ import com.kodholken.passdroid.db.SystemData;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -47,6 +48,13 @@ public class LoginActivity extends Activity {
     private Button loginButton;
     private EditText passwordView;
     private boolean loggingIn = false;
+    private String theme;  // The theme setting the activity was created with
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(newBase);
+        theme = ThemeSetting.apply(this);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +119,13 @@ public class LoginActivity extends Activity {
         if (Session.getInstance().isLoggedIn()) {
             finish();
             return ;
+        }
+
+        // The theme was changed in the settings while the user was logged
+        // in, this activity stays below the password list
+        if (!theme.equals(ThemeSetting.get(this))) {
+            recreate();
+            return;
         }
 
         ((EditText) this.findViewById(R.id.login_password)).setText("");

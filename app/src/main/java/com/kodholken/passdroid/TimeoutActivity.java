@@ -9,6 +9,13 @@ import android.view.WindowManager.LayoutParams;
 
 public class TimeoutActivity extends Activity {
     private BroadcastReceiver receiver;
+    private String theme;  // The theme setting the activity was created with
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(newBase);
+        theme = ThemeSetting.apply(this);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +60,9 @@ public class TimeoutActivity extends Activity {
         // restarted while we were in the background.
         if (!Session.getInstance().isLoggedIn()) {
             finish();
+        } else if (!theme.equals(ThemeSetting.get(this))) {
+            // The theme was changed in the settings
+            recreate();
         }
     }
 
