@@ -123,6 +123,10 @@ public class PasswordModel {
         listeners.add(listener);
     }
 
+    public void removeListener(PasswordModelListener listener) {
+        listeners.remove(listener);
+    }
+
     private void notifyListeners() {
         for (int i = 0; i < listeners.size(); i++) {
             listeners.get(i).onPasswordModelChange(this);

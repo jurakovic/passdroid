@@ -181,6 +181,14 @@ PasswordModelListener {
     }
     
     @Override
+    protected void onDestroy() {
+        // The model outlives the screen, which would otherwise be kept with
+        // the decrypted entries of its list
+        PasswordModel.getInstance(this).removeListener(this);
+        super.onDestroy();
+    }
+
+    @Override
     public boolean onSearchRequested() {
         searchMenuItem.expandActionView();
         return true;

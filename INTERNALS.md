@@ -327,7 +327,8 @@ the wrong key.
   been logged out.
 - `clear()` drops everything; `Session` calls it at every logout.
 - Listeners (`PasswordModelListener`, i.e. the list screen) are notified
-  when the entries change.
+  when the entries change. The list removes itself in `onDestroy()`, since
+  the model outlives it.
 
 Screens that change entries write to the database directly and set
 `Session.setNeedReload(true)`, which makes the list reload in `onResume()`.
@@ -610,6 +611,15 @@ passphrase is out of reach.
   exports made before the change.
 - A login clears a logout timer left from before it, so it isn't undone
   right away.
+
+#### Data in memory
+
+- All fields of all entries are decrypted when the entries are loaded, and
+  kept until the logout.
+- Closed password list screens are released, so their decrypted entries
+  don't stay in memory after a logout.
+- Limits: the key is in memory while the user is logged in, and decrypted
+  Java strings can't be wiped.
 
 #### Release signing
 
