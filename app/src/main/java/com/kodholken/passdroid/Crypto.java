@@ -29,6 +29,9 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Crypto {
+    // PKCS5Padding is the PKCS #7 padding for AES, see PasswordEntry
+    private static final String CBC = "AES/CBC/PKCS5Padding";
+
     /**
      * Calculate SHA256 hash from a password string.
      * 
@@ -124,7 +127,7 @@ public class Crypto {
 
         try {
             SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
-            Cipher c = Cipher.getInstance("AES/CBC/NoPadding", "BC");
+            Cipher c = Cipher.getInstance("AES/CBC/NoPadding");
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             c.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
             byte[] res = c.doFinal(plain);
@@ -146,8 +149,7 @@ public class Crypto {
     }
     
     /**
-     * Encrypt a string using AES CBC mode from the Bouncy Castle crypto
-     * provider. The result is PKCS7 padded.
+     * Encrypt a string using AES in CBC mode. The result is PKCS7 padded.
      * 
      * @param key    AES key to use. 16, 24 or 32 bytes for 128, 192 or 256 bit
      *               encryption.
@@ -162,7 +164,7 @@ public class Crypto {
         SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
         try {
             SecureRandom rnd = new SecureRandom();
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
+            Cipher cipher = Cipher.getInstance(CBC);
             byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
@@ -207,7 +209,7 @@ public class Crypto {
 
         try {
             SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
+            Cipher cipher = Cipher.getInstance(CBC);
             byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);

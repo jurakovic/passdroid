@@ -297,8 +297,9 @@ Each field is encrypted separately (`PasswordEntry.encrypt()`):
 base64( IV (16 random bytes) || AES-256-CBC-PKCS7(key, IV, UTF-8 value) )
 ```
 
-- `"AES/CBC/PKCS7Padding"` from Android's built-in BouncyCastle provider,
-  asked for by name (`"BC"`).
+- `"AES/CBC/PKCS5Padding"` from the default provider. For AES this is the
+  same PKCS #7 padding as the BouncyCastle `"PKCS7Padding"` that wrote older
+  entries; the tests decrypt data written by BouncyCastle and vice versa.
 - `NULL` (a field the entry never had) and an empty string are different:
   `null` stays `null`, `""` is encrypted.
 - Not authenticated: someone who can write the database could swap or
@@ -545,7 +546,8 @@ passphrase is out of reach.
 #### Database
 
 - Each field of each entry is encrypted separately with **AES-256-CBC** and a
-  random IV.
+  random IV, with the default crypto provider. Android has deprecated asking
+  for its BouncyCastle provider by name, see [Sources](#sources).
 - The fields are encrypted but **not authenticated**, see
   [Decisions](#decisions).
 - The ciphertext length shows the rough length of each value to someone with
@@ -636,6 +638,10 @@ Limitations that are not about security are listed in
 - **PBKDF2 iterations**: OWASP recommends 600,000 iterations for
   PBKDF2-HMAC-SHA256.
   - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- **Android's BouncyCastle provider**: Android P deprecated asking for it by
+  name (`"BC"`), and Android 12 removed many of its algorithms.
+  - [Cryptography Changes in Android P](https://android-developers.googleblog.com/2018/03/cryptography-changes-in-android-p.html)
+  - [Android 12 behavior changes: BouncyCastle implementation removed](https://developer.android.com/about/versions/12/behavior-changes-all)
 
 ## Tests
 
@@ -645,12 +651,13 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 |---|---|
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, Unicode); invalid characters; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records |
+| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
-BouncyCastle (`bcprov-jdk18on`) is only a test dependency: the app asks for
-Android's built-in BouncyCastle provider (`"BC"`), which the JVM of the unit
-tests doesn't have. There are no instrumented tests; screens and the
-clipboard are only tested by hand, see [Manual tests](#manual-tests).
+BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the
+default provider reads and writes what the BouncyCastle provider wrote. There
+are no instrumented tests; screens and the clipboard are only tested by
+hand, see [Manual tests](#manual-tests).
 
 Lint runs in CI (`lintDebug`) and must have no errors.
 

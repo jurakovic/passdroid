@@ -65,7 +65,8 @@ android {
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
-    // The app uses the platform's Bouncy Castle provider ("BC"), which is not
-    // part of the JVM used for local unit tests.
+    // Earlier versions encrypted with the platform's Bouncy Castle provider
+    // ("BC"). The tests check that the default provider the app uses now
+    // reads and writes the same data.
     testImplementation 'org.bouncycastle:bcprov-jdk18on:1.86'
 }

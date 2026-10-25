@@ -26,6 +26,11 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class PasswordEntry implements Comparable<PasswordEntry> {
+    // PKCS5Padding is the PKCS #7 padding for AES, the same as PKCS7Padding
+    // of the Bouncy Castle provider that earlier versions asked for. Android
+    // has deprecated asking for that provider.
+    private static final String CBC = "AES/CBC/PKCS5Padding";
+
     private long id;
 
     private String encSystem;
@@ -115,7 +120,7 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
         SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
         try {
             SecureRandom rnd = new SecureRandom();
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
+            Cipher cipher = Cipher.getInstance(CBC);
 
             byte [] iv = new byte[16];
             rnd.nextBytes(iv);
@@ -143,7 +148,7 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
             byte [] encBytes = Base64.decode(encrypted);
 
             SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");  
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
+            Cipher cipher = Cipher.getInstance(CBC);
             
             byte [] iv = new byte[16];
             System.arraycopy(encBytes, 0, iv, 0, iv.length);
@@ -169,7 +174,7 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
 
             SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");  
 
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS7Padding", "BC");
+            Cipher cipher = Cipher.getInstance(CBC);
             byte [] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             
@@ -193,7 +198,7 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
 
             SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");  
             //Cipher cipher = Cipher.getInstance("AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS7Padding", "BC"); 
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, skeySpec);  
             decBytes = cipher.doFinal(encBytes);
             decrypted = new String(decBytes, 2, decBytes.length - 2, "UTF8");

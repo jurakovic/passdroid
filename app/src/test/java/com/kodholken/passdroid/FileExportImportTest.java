@@ -6,10 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
-import java.security.Security;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -19,12 +16,6 @@ public class FileExportImportTest {
     private static final String APP_VERSION = "3.0.0";
     // Low iteration count to keep the tests fast
     private static final int ITERATIONS = 1000;
-
-    @BeforeClass
-    public static void addBouncyCastle() {
-        // Crypto explicitly asks for the "BC" provider which Android has built in
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     private static PasswordEntry createEntry(String system, String username,
                                              String password, String note,

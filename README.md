@@ -119,6 +119,8 @@ of Passdroid++.
   2.3 used AES-CBC with a fixed IV and no authentication.
 - Random values (IVs and salts) come from `SecureRandom` instead of
   `java.util.Random`, which is not secure.
+- Uses the standard crypto provider instead of Android's deprecated
+  BouncyCastle one. The encryption is the same.
 
 ### Bugs fixed from 2.3
 
