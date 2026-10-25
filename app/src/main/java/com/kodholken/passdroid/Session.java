@@ -62,6 +62,9 @@ public class Session {
     private long timeoutEnd;  // elapsedRealtime() when the user is logged
     // out. 0 if no timer is running.
 
+    private long sleepTimeAtPause = -1;  // getSleepTime() when the application
+    // went to the background. -1 if it is in the foreground.
+
     private boolean extendedTimeout;
 
     private int resumes = 0;
@@ -99,9 +102,11 @@ public class Session {
         this.isLoggedIn = isLoggedIn;
 
         if (isLoggedIn) {
-            // Make sure a timer left from before the login does not log out
-            // the user.
+            // Make sure a timer or a pause left from before the login does
+            // not log out the user. The login screen does not clear them,
+            // see clearTimeoutTimer().
             timeoutEnd = 0;
+            sleepTimeAtPause = -1;
         } else {
             // Forget the key and the decrypted entries, whatever the reason
             // for the logout
@@ -166,6 +171,8 @@ public class Session {
             session.timeoutIntent = null;
         }
 
+        session.sleepTimeAtPause = getSleepTime();
+
         // Automatic logout can be turned off in the settings
         if (!PreferenceManager.getDefaultSharedPreferences(context).
                                getBoolean("close_logout", true)) {
@@ -203,8 +210,50 @@ public class Session {
             session.setLoggedIn(false);
         }
 
+        // The screen broadcasts may only be delivered after the application
+        // is in the foreground again, see ScreenOffListener. The device only
+        // sleeps while the screen is off, so if it has slept the screen has
+        // been off.
+        if (session.sleepTimeAtPause >= 0 &&
+            getSleepTime() - session.sleepTimeAtPause > 1000 &&
+            isScreenOffLogout(context)) {
+            session.setLoggedIn(false);
+        }
+
         session.timeoutEnd = 0;
+        session.sleepTimeAtPause = -1;
         session.extendedTimeout = false;
+    }
+
+    /**
+     * Log out because the screen has been turned off, if the user has chosen
+     * to be logged out then. Open activities finish themselves when they
+     * receive the timeout broadcast.
+     */
+    public static void screenOff(Context context) {
+        Session session = getInstance();
+        if (!session.isLoggedIn() || !isScreenOffLogout(context)) {
+            return;
+        }
+
+        session.setLoggedIn(false);
+
+        Intent intent = new Intent(TIMEOUT_ACTION);
+        intent.setPackage(context.getPackageName());
+        context.sendBroadcast(intent);
+    }
+
+    private static boolean isScreenOffLogout(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context).
+                                 getBoolean("screen_off_logout", true);
+    }
+
+    /**
+     * Get the time the device has been asleep since it was started. The
+     * uptime clock stops while the device is asleep.
+     */
+    private static long getSleepTime() {
+        return SystemClock.elapsedRealtime() - SystemClock.uptimeMillis();
     }
 
     /**

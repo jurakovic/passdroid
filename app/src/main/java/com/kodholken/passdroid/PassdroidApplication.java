@@ -12,7 +12,7 @@ public class PassdroidApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        // Clears the clipboard when the screen turns off
+        // Logs out and clears the clipboard when the screen turns off
         ScreenOffListener.register(this);
     }
 }

@@ -165,10 +165,11 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 
 ### The timeout
 
-- `setTimeoutTimer()`, if "Log out on close" is on, sets an inexact
-  `ELAPSED_REALTIME` alarm for the logout delay (5 s by default,
-  `logout_delay` setting). The alarm sends the timeout broadcast, as an
-  immutable `PendingIntent` limited to the app's package.
+- `setTimeoutTimer()` records the device sleep time and, if "Log out on
+  close" is on, sets an inexact `ELAPSED_REALTIME` alarm for the logout
+  delay (5 s by default, `logout_delay` setting). The alarm sends the
+  timeout broadcast, as an immutable `PendingIntent` limited to the app's
+  package.
 - `clearTimeoutTimer()` cancels the alarm and logs out **if the deadline has
   passed**. The alarm is inexact, and since Android 14 broadcasts are held
   back while the app is cached, so the check on return is what actually
@@ -178,8 +179,25 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
   activity that started the picker calls `clearTimeoutTimer()` itself in
   `onActivityResult()`, which runs before `onResume()`, and finishes if the
   session ended.
-- A login clears a timer left from before it, so the login isn't undone
-  right away.
+- A login clears a timer and a pause time left from before it, so the login
+  isn't undone right away.
+
+### Screen off
+
+- `ScreenOffListener` receives `SCREEN_OFF` and `SCREEN_ON`. It is
+  registered once per process on the application context (a manifest
+  receiver can't get these broadcasts). It calls `Session.screenOff()`,
+  which logs out and sends the timeout broadcast if "Log out when the screen
+  turns off" is on, and `ClipboardClearReceiver.clear()` if a password was
+  copied.
+- Since Android 14 these broadcasts are also held back for cached apps and
+  only the last one is delivered, which is then usually `SCREEN_ON`. That is
+  why `SCREEN_ON` is handled the same way.
+- As a backup for the held-back broadcasts, `clearTimeoutTimer()` compares
+  the device sleep time (`elapsedRealtime() - uptimeMillis()`, the uptime
+  clock stops while the device sleeps) with the value recorded when the app
+  went to the background. If the device slept for more than a second, the
+  screen was off, and the user is logged out.
 
 ### Background work
 
@@ -365,10 +383,6 @@ Screens pass the decrypted values of an entry in intent extras.
     `ELAPSED_REALTIME` alarm with an immutable `PendingIntent` to the
     manifest receiver (not exported), so it fires even if the process was
     frozen or killed.
-- `ScreenOffListener` receives `SCREEN_OFF`. It is registered once per
-  process on the application context (a manifest receiver can't get this
-  broadcast), and calls `ClipboardClearReceiver.clear()` if a password was
-  copied.
 - `ClipboardClearReceiver.clear()` runs from the alarm and from the screen
   off listener:
   1. cancels the alarm and resets the flag;
@@ -510,6 +524,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 |---|---|---|
 | `close_logout` | `true` | `Session.setTimeoutTimer()` |
 | `logout_delay` | `5` (seconds: 5, 30, 60, 300) | `Session.getTimeout()` |
+| `screen_off_logout` | `true` | `Session.screenOff()`, `clearTimeoutTimer()` |
 | `display_username` | `true` | the password list |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
@@ -657,14 +672,19 @@ passphrase is out of reach.
 
 #### Session and logout
 
-- Default: log out **5 seconds** after the app goes to the background (5,
-  30, 60 or 300 s, or never).
+- Defaults: log out **5 seconds** after the app goes to the background (5,
+  30, 60 or 300 s, or never), and **when the screen turns off**.
+- Since Android 14 the screen broadcasts are held back while the app is in
+  the background, so the app also logs out when it comes back to the
+  foreground after the device has slept.
 - **Every logout wipes the master key** and drops the decrypted entries,
   whatever its reason.
 - A master password change wipes the old key, which would still decrypt the
   exports made before the change.
-- A login clears a logout timer left from before it, so it isn't undone
-  right away.
+- A login clears a logout timer and a pause time left from before it, so it
+  isn't undone right away.
+- The screen off listener is registered whenever the process starts, also
+  after Android restored the app.
 
 #### Data in memory
 
@@ -822,6 +842,7 @@ Lint runs in CI (`lintDebug`) and must have no errors.
 What the unit tests don't cover, worth checking on a device before a
 release:
 
+- Log in, turn the screen off and on, log in again: no second logout.
 - Export over an existing, longer export file and import it again.
 - Copy a password, wait about a minute: the clipboard is empty. Copy a
   password, copy text in another app and come back within the minute: the

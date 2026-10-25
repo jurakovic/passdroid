@@ -39,6 +39,7 @@ Each entry has a **system** (the name of the service, required),
 
 - After Passdroid++ has been in the background for **5 seconds**. You can
   choose 5 or 30 seconds, 1 or 5 minutes, or turn "Log out on close" off.
+- **When the screen turns off** (a setting, on by default).
 - While the system file picker is open for Passdroid++, you get at least 2
   minutes.
 - Logging out forgets the key and everything that was decrypted.
@@ -164,7 +165,8 @@ of Passdroid++.
 ### New features
 
 - Dark theme and a theme setting.
-- A setting for the logout delay.
+- Settings for the logout delay and for logging out when the screen turns
+  off.
 
 ### Bugs fixed from 2.3
 

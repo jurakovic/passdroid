@@ -34,6 +34,8 @@ You should have received a copy of the GNU General Public License along with thi
 <string name="logout_delay_title">Logout delay</string>
 <!-- %s is replaced with the chosen delay, e.g. "30 seconds" -->
 <string name="logout_delay_summary">After %s in the background</string>
+<string name="screen_off_logout_title">Log out when the screen turns off</string>
+<string name="screen_off_logout_summary">Log out right away when the screen is turned off, regardless of the logout delay.</string>
 
 <!-- Initialize  -->
 <string name="initialize_title">Initialize</string>

@@ -14,7 +14,7 @@ public class SessionTest {
         session.setKey(key);
         session.setLoggedIn();
 
-        // As done by the timeout
+        // As done by the timeout and the screen off logout
         session.setLoggedIn(false);
 
         assertNull(session.getKey());
