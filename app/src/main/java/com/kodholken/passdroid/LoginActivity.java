@@ -46,8 +46,12 @@ import android.window.OnBackInvokedDispatcher;
  */
 public class LoginActivity extends Activity {
     private Button loginButton;
+    private Button fingerprintButton;
     private EditText passwordView;
     private boolean loggingIn = false;
+    // Used to show the fingerprint prompt automatically only once each time
+    // the login screen is shown.
+    private boolean biometricPromptShown = false;
     private String theme;  // The theme setting the activity was created with
 
     @Override
@@ -96,6 +100,14 @@ public class LoginActivity extends Activity {
             }
         });
 
+        fingerprintButton = (Button) findViewById(R.id.fingerprint_button);
+        fingerprintButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startBiometricUnlock();
+            }
+        });
+
         Utils.applySystemBarInsets(this);
 
         // From Android 13 back events are delivered through callbacks instead
@@ -129,6 +141,79 @@ public class LoginActivity extends Activity {
         }
 
         ((EditText) this.findViewById(R.id.login_password)).setText("");
+
+        // Show the fingerprint prompt automatically, unless the user just
+        // logged out
+        if (updateFingerprintButton() && !biometricPromptShown &&
+            !Session.getInstance().isLoggedOutByUser()) {
+            biometricPromptShown = true;
+            startBiometricUnlock();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        // Show the fingerprint prompt again when we come back, also after
+        // the user logged out
+        biometricPromptShown = false;
+        Session.getInstance().setLoggedOutByUser(false);
+    }
+
+    /**
+     * Show the fingerprint button if biometric unlock is turned on.
+     *
+     * @return true if the button is shown.
+     */
+    private boolean updateFingerprintButton() {
+        boolean show = BiometricUnlock.isEnabled(this) &&
+                       BiometricUnlock.isAvailable(this);
+        fingerprintButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        return show;
+    }
+
+    private void startBiometricUnlock() {
+        BiometricUnlock.unlock(this, new BiometricUnlock.Listener() {
+            @Override
+            public void onSuccess(byte [] key) {
+                if (!isFinishing() && !isDestroyed() &&
+                    !Session.getInstance().isLoggedIn()) {
+                    biometricLogin(key);
+                }
+            }
+
+            @Override
+            public void onFailure(String message) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+
+                // Biometric unlock may have been turned off
+                updateFingerprintButton();
+                if (message != null) {
+                    Utils.alertDialog(LoginActivity.this,
+                                      getString(R.string.failure), message);
+                }
+            }
+        });
+    }
+
+    private void biometricLogin(byte [] key) {
+        // The stored key should always match the current master key, since it
+        // is removed when the key is changed. Check it anyway rather than
+        // logging in with a key that can not decrypt the passwords.
+        String record = new SystemData(this).getKey();
+        if (MasterKey.isLegacy(record) || !MasterKey.verifyKey(key, record)) {
+            BiometricUnlock.disable(this);
+            updateFingerprintButton();
+            Utils.alertDialog(this, getString(R.string.failure),
+                              getString(R.string.biometric_unlock_failed) + " " +
+                              getString(R.string.biometric_turned_off));
+            return;
+        }
+
+        loginDone(key, null, false);
     }
 
     /**
@@ -180,37 +265,39 @@ public class LoginActivity extends Activity {
             @Override
             public void run() {
                 loggingIn = false;
-                loginDone(keys[0], keys[1], MasterKey.isTooShort(password));
+                loginDone(keys[0] != null ? keys[0].getKey() : null, keys[1],
+                          MasterKey.isTooShort(password));
             }
         });
     }
 
     /**
-     * @param masterKey   key derived from the entered password. null if the
-     *                    password was incorrect.
+     * @param key         master key, derived from the entered password or
+     *                    stored for biometric unlock. null if the password
+     *                    was incorrect.
      * @param upgradedKey new key to re-encrypt a legacy database with, or null.
      * @param shortPassword true if the master password is shorter than is
      *                      required for new master passwords.
      */
-    private void loginDone(MasterKey masterKey, MasterKey upgradedKey,
+    private void loginDone(byte [] key, MasterKey upgradedKey,
                            boolean shortPassword) {
-        if (masterKey == null) {
+        if (key == null) {
             Utils.alertDialog(this, "Login Failure",
             "The supplied password was incorrect.");
             passwordView.selectAll();
             return;
         }
 
-        Session.getInstance().setKey(masterKey.getKey());
+        Session.getInstance().setKey(key);
         Session.getInstance().setLoggedIn();
 
         DbMigration.postLoginMigration(this);
 
         if (upgradedKey != null) {
-            if (DbMigration.changeKey(this, masterKey.getKey(), upgradedKey)) {
+            if (DbMigration.changeKey(this, key, upgradedKey)) {
                 Session.getInstance().setKey(upgradedKey.getKey());
                 Session.getInstance().setNeedReload(true);
-                Arrays.fill(masterKey.getKey(), (byte) 0);
+                Arrays.fill(key, (byte) 0);
             } else {
                 // We keep using the legacy key and try again at next login
                 Utils.error("Failed to upgrade the master key");

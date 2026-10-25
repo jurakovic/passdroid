@@ -3,6 +3,7 @@ package com.kodholken.passdroid;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -19,6 +20,7 @@ public class SessionTest {
 
         assertNull(session.getKey());
         assertArrayEquals(new byte[4], key);
+        assertFalse(session.isLoggedOutByUser());
     }
 
     @Test
@@ -33,5 +35,6 @@ public class SessionTest {
         assertFalse(session.isLoggedIn());
         assertNull(session.getKey());
         assertArrayEquals(new byte[4], key);
+        assertTrue(session.isLoggedOutByUser());
     }
 }

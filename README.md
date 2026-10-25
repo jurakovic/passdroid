@@ -35,6 +35,19 @@ Each entry has a **system** (the name of the service, required),
 - The master password can be changed in Settings. If it is forgotten, the
   data can't be recovered.
 
+### Fingerprint unlock
+
+On Android 9 and later you can log in with a fingerprint, or another strong
+biometric, instead of the master password. It is off by default and is turned
+on in Settings.
+
+- The key is protected by the Android Keystore and can only be used right
+  after the biometric check.
+- The master password always works as well.
+- Fingerprint unlock turns itself off when fingerprints are added to the
+  phone and when the master password is changed. Turn it on again
+  afterwards.
+
 ### Automatic logout
 
 - After Passdroid++ has been in the background for **5 seconds**. You can
@@ -83,7 +96,8 @@ Each entry has a **system** (the name of the service, required),
 
 ### Privacy
 
-- **No internet permission.** Passdroid++ asks for no permissions at all.
+- **No internet permission.** The only permission is biometrics, for
+  fingerprint unlock.
 - **Android backup is off**, so the database is not copied to the cloud.
   Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens
@@ -95,7 +109,7 @@ Each entry has a **system** (the name of the service, required),
 
 ## Installing
 
-- Android 7.0 or later.
+- Android 7.0 or later. Fingerprint unlock needs Android 9 or later.
 - Passdroid++ is not on Google Play. Download `passdroid-<version>.apk` from
   the [releases](https://github.com/jurakovic/passdroid/releases) and open it
   on the phone. The first time, Android asks you to allow installing apps
@@ -164,6 +178,7 @@ of Passdroid++.
 
 ### New features
 
+- Fingerprint unlock.
 - Dark theme and a theme setting.
 - Settings for the logout delay and for logging out when the screen turns
   off.

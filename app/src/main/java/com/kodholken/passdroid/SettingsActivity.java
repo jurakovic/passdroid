@@ -1,6 +1,6 @@
-/*    
+/*
     This file is part of the Passdroid password management software.
-    
+
     Copyright (C) 2009-2012  Magnus Eriksson <eriksson.mag@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -20,14 +20,20 @@
 package com.kodholken.passdroid;
 
 import com.kodholken.passdroid.R;
+import com.kodholken.passdroid.db.SystemData;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
+import android.preference.CheckBoxPreference;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceChangeListener;
 
 public class SettingsActivity extends TimeoutPreferenceActivity
                               implements OnSharedPreferenceChangeListener {
+    private CheckBoxPreference biometricPreference;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,6 +46,64 @@ public class SettingsActivity extends TimeoutPreferenceActivity
                 new Intent(this, ChangePasswordActivity.class));
         findPreference("import_export").setIntent(
                 new Intent(this, ImportExportActivity.class));
+
+        biometricPreference = (CheckBoxPreference) findPreference("biometric_unlock");
+        biometricPreference.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                if ((Boolean) newValue) {
+                    // The preference is checked when the user has
+                    // authenticated, see enableBiometricUnlock().
+                    enableBiometricUnlock();
+                    return false;
+                }
+
+                BiometricUnlock.disable(SettingsActivity.this);
+                return true;
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Biometric unlock may have been turned off, e.g. after the
+        // master password was changed.
+        boolean enabled = BiometricUnlock.isEnabled(this);
+        boolean available = BiometricUnlock.isAvailable(this);
+
+        biometricPreference.setChecked(enabled);
+        biometricPreference.setEnabled(enabled || available);
+        biometricPreference.setSummary(enabled || available ?
+                                       R.string.biometric_setting_summary :
+                                       R.string.biometric_not_available);
+    }
+
+    private void enableBiometricUnlock() {
+        if (MasterKey.isLegacy(new SystemData(this).getKey())) {
+            Utils.alertDialog(this, getString(R.string.failure),
+                              getString(R.string.biometric_enable_upgrade_first));
+            return;
+        }
+
+        BiometricUnlock.enable(this, Session.getInstance().getKey(),
+                               new BiometricUnlock.Listener() {
+            @Override
+            public void onSuccess(byte [] key) {
+                if (!isFinishing() && !isDestroyed()) {
+                    biometricPreference.setChecked(true);
+                }
+            }
+
+            @Override
+            public void onFailure(String message) {
+                if (message != null && !isFinishing() && !isDestroyed()) {
+                    Utils.alertDialog(SettingsActivity.this,
+                                      getString(R.string.failure), message);
+                }
+            }
+        });
     }
 
     @Override

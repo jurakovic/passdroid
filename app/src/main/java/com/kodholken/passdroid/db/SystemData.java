@@ -135,6 +135,12 @@ public class SystemData extends SQLiteOpenHelper {
         db.close();		
     }
 
+    public void removeAttribute(String attr) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete("system", "attribute=?", new String[] { attr });
+        db.close();
+    }
+
     public void setKey(String value) {
         setAttribute("key", value);
     }

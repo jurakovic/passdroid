@@ -105,13 +105,26 @@ public class MasterKey {
             byte [] key = deriveKey(password, Base64.decode(parts[2]),
                                     Integer.parseInt(parts[1]));
 
-            if (!MessageDigest.isEqual(verifier(key), Base64.decode(parts[3]))) {
+            if (!verifyKey(key, record)) {
                 return null;
             }
             return new MasterKey(record, key);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
+        }
+    }
+
+    /**
+     * Check that a key, e.g. one stored for biometric unlock, belongs to a
+     * (non legacy) record.
+     */
+    public static boolean verifyKey(byte [] key, String record) {
+        try {
+            return MessageDigest.isEqual(verifier(key),
+                                         Base64.decode(record.split("\\$")[3]));
+        } catch (Exception ex) {
+            return false;
         }
     }
 

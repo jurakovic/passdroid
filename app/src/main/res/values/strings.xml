@@ -30,12 +30,25 @@ You should have received a copy of the GNU General Public License along with thi
 <string name="login_failure_title">Failure</string>
 <string name="login_failure">The supplied password was incorrect.</string>
 
+<!-- Biometric unlock -->
+<string name="biometric_setting_title">Unlock with fingerprint</string>
+<string name="biometric_setting_summary">Use your fingerprint instead of the master password to log in.</string>
+<string name="biometric_not_available">Not available on this device. It requires Android 9 or later and an enrolled fingerprint.</string>
+<string name="biometric_enable_title">Turn on fingerprint unlock</string>
+<string name="biometric_enable_failed">Fingerprint unlock could not be turned on.</string>
+<string name="biometric_enable_upgrade_first">Fingerprint unlock can be turned on after the password database has been upgraded. Log out and log in again with your master password.</string>
+<string name="biometric_unlock_title">Unlock Passdroid++</string>
+<string name="biometric_unlock_button">Unlock with fingerprint</string>
+<string name="biometric_use_password">Use password</string>
 <string name="theme_title">Theme</string>
 <string name="logout_delay_title">Logout delay</string>
 <!-- %s is replaced with the chosen delay, e.g. "30 seconds" -->
 <string name="logout_delay_summary">After %s in the background</string>
 <string name="screen_off_logout_title">Log out when the screen turns off</string>
 <string name="screen_off_logout_summary">Log out right away when the screen is turned off, regardless of the logout delay.</string>
+<string name="biometric_unlock_failed">Fingerprint unlock failed. Log in with your master password.</string>
+<string name="biometric_invalidated">Fingerprint unlock was turned off because the fingerprints on this device have changed. Log in with your master password and turn it on again in Settings.</string>
+<string name="biometric_turned_off">Fingerprint unlock has been turned off. You can turn it on again in Settings.</string>
 
 <!-- Initialize  -->
 <string name="initialize_title">Initialize</string>

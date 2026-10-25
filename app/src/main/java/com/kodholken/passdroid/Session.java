@@ -71,6 +71,8 @@ public class Session {
 
     private boolean passwordInClipboard;
 
+    private boolean loggedOutByUser;
+
     private Session() {
         needReload = false;
         isLoggedIn = false;
@@ -107,6 +109,7 @@ public class Session {
             // see clearTimeoutTimer().
             timeoutEnd = 0;
             sleepTimeAtPause = -1;
+            loggedOutByUser = false;
         } else {
             // Forget the key and the decrypted entries, whatever the reason
             // for the logout
@@ -116,6 +119,18 @@ public class Session {
             }
             PasswordModel.clear();
         }
+    }
+
+    /**
+     * @return true if the user logged out, as opposed to being logged out
+     *         automatically.
+     */
+    public boolean isLoggedOutByUser() {
+        return loggedOutByUser;
+    }
+
+    public void setLoggedOutByUser(boolean loggedOutByUser) {
+        this.loggedOutByUser = loggedOutByUser;
     }
 
     public void setLoggedIn() {
@@ -128,6 +143,7 @@ public class Session {
         }
 
         setLoggedIn(false);
+        loggedOutByUser = true;  // Cleared when the login screen is left
     }
 
     public void setNeedReload(boolean needReload) {

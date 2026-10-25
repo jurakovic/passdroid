@@ -33,4 +33,13 @@
         android:backgroundTint="@color/login_button"
         android:text="@string/login_button_text" />
 
+    <Button
+        android:id="@+id/fingerprint_button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dip"
+        android:backgroundTint="@color/login_button"
+        android:text="@string/biometric_unlock_button"
+        android:visibility="gone" />
+
 </LinearLayout>

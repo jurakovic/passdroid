@@ -113,6 +113,18 @@ public class MasterKeyTest {
     }
 
     @Test
+    public void verifyKey() {
+        MasterKey masterKey = MasterKey.create("secret", ITERATIONS);
+        String record = masterKey.getRecord();
+
+        assertTrue(MasterKey.verifyKey(masterKey.getKey(), record));
+        assertFalse(MasterKey.verifyKey(
+                MasterKey.create("secret", ITERATIONS).getKey(), record));
+        assertFalse(MasterKey.verifyKey(masterKey.getKey(),
+                                        createLegacyRecord("secret")));
+    }
+
+    @Test
     public void saltIsRandom() {
         MasterKey a = MasterKey.create("secret", ITERATIONS);
         MasterKey b = MasterKey.create("secret", ITERATIONS);

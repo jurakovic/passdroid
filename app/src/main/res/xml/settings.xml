@@ -9,6 +9,14 @@
   android:key="change_password"
   android:title="Change master password"/>
 
+<!-- Not persisted: the state is whether an encrypted key is stored, see
+     BiometricUnlock and SettingsActivity. -->
+<CheckBoxPreference
+  android:key="biometric_unlock"
+  android:persistent="false"
+  android:title="@string/biometric_setting_title"
+  android:summary="@string/biometric_setting_summary"/>
+
 <Preference
   android:key="import_export"
   android:title="Import / Export"

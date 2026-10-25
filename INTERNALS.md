@@ -18,6 +18,7 @@ releasing.
 - [Loading entries](#loading-entries)
 - [Screens and data flow](#screens-and-data-flow)
 - [Clipboard](#clipboard)
+- [Fingerprint unlock](#fingerprint-unlock)
 - [Export and import](#export-and-import)
 - [Password generator](#password-generator)
 - [Settings and theme](#settings-and-theme)
@@ -45,8 +46,8 @@ releasing.
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
   next to the original or published under it.
-- The app has no permissions. There is no `INTERNET` permission, so
-  everything stays on the device unless the user exports it.
+- The only permission is `USE_BIOMETRIC`. There is no `INTERNET`
+  permission. Everything stays on the device unless the user exports it.
 
 ## Building
 
@@ -94,6 +95,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
 | Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `ClipboardClearReceiver` |
+| Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `ChangePasswordActivity` |
@@ -144,7 +146,9 @@ when the process dies, the user is logged out.
 
 `Session.setLoggedIn(false)` is the single place where a logout happens,
 whatever the reason. It zeroes the key array, drops the reference, and calls
-`PasswordModel.clear()` to drop the decrypted entries.
+`PasswordModel.clear()` to drop the decrypted entries. `logout()` (the menu
+item and back on the list) also sets `loggedOutByUser`, so the login screen
+doesn't open the fingerprint prompt right away.
 
 Activities that show data extend one of four base classes:
 `TimeoutActivity`, `TimeoutListActivity`, `TimeoutPreferenceActivity` and
@@ -252,19 +256,20 @@ At a successful login with a legacy record, `LoginActivity` also creates a
 new PBKDF2 key from the password and calls `DbMigration.changeKey()`, which
 re-encrypts all entries and stores the new record in one transaction. If
 that fails, the legacy key stays in use and the upgrade is tried again at
-the next login.
+the next login. Fingerprint unlock can't be turned on before the upgrade.
 
 ### Changing the master password
 
 `ChangePasswordActivity` derives the key from the old password (which
 verifies it) and a new key from the new password in a background thread,
 then calls `DbMigration.changeKey()`. On success the old session key is
-zeroed and replaced.
+zeroed and replaced, and fingerprint unlock is turned off, since its stored
+key is the old one.
 
 `DbMigration.changeKey()` decrypts every entry with the old key and only
-continues if every field decrypted. It then re-encrypts all entries and
-updates the `key` record, all in one SQLite transaction. It runs on the UI
-thread.
+continues if every field decrypted. It then re-encrypts all entries, updates
+the `key` record and deletes the stored fingerprint key, all in one SQLite
+transaction. It runs on the UI thread.
 
 ## Database
 
@@ -288,6 +293,7 @@ Every value in `data` except `id` is encrypted, see
 | `key` | The master key record |
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
+| `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
 database. Either can trigger the upgrade, so both `onUpgrade()` methods only
@@ -394,6 +400,37 @@ Screens pass the decrypted values of an entry in intent extras.
      clipboard is cleared anyway;
   4. clears with `clearPrimaryClip()` (Android 9 and later) or an empty
      clip.
+
+## Fingerprint unlock
+
+`BiometricUnlock`, Android 9 and later.
+
+- **Keystore key**: AES-256-GCM, alias `passdroid_biometric_unlock`, in the
+  `AndroidKeyStore`, with `setUserAuthenticationRequired(true)` and
+  `setInvalidatedByBiometricEnrollment(true)`; on Android 11 and later
+  `setUserAuthenticationParameters(0, AUTH_BIOMETRIC_STRONG)`, i.e. every use
+  needs a strong biometric.
+- **Turning it on** (`SettingsActivity` → `enable()`): a new Keystore key, a
+  cipher in encrypt mode, and a `BiometricPrompt` with that cipher as
+  `CryptoObject`. After authentication the master key is encrypted and
+  stored as the `biometric_key` attribute:
+  `base64(GCM IV) + "$" + base64(ciphertext with tag)`. The prompt works on
+  a copy of the session key, so a logout while the prompt is open can't
+  store a zeroed key. The copy is wiped when the prompt ends.
+- **Unlocking** (`LoginActivity` → `unlock()`): the cipher is initialized
+  with the stored IV, the prompt authenticates it, and the decrypted key is
+  checked against the master key record (`MasterKey.verifyKey()`) before the
+  login. A legacy record is never used with fingerprint unlock.
+- **Invalidation**: when a fingerprint is added, the Keystore key becomes
+  unusable (`KeyPermanentlyInvalidatedException`); a missing key (e.g. the
+  data was copied to another device) is treated the same. Fingerprint unlock
+  is then turned off and the user is told to log in with the password.
+- **Availability**: Android 11 and later check
+  `canAuthenticate(BIOMETRIC_STRONG)`, Android 10 `canAuthenticate()`, and
+  Android 9 only whether the device has a fingerprint sensor (key generation
+  then fails if no fingerprint is enrolled).
+- The setting is a `CheckBoxPreference` that isn't persisted: the state is
+  whether `biometric_key` exists.
 
 ## Export and import
 
@@ -528,6 +565,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `display_username` | `true` | the password list |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
+| `biometric_unlock` | not persisted | `SettingsActivity` |
 | `passwordLength`, `passwordCharset` | 16, 0 | the generator |
 
 - **Theme**: `ThemeSetting.apply()` runs in `attachBaseContext()` of every
@@ -549,7 +587,9 @@ Behavior that depends on the Android version, and where it is handled:
 |---|---|---|
 | 7.0–7.1 | No platform PBKDF2-HMAC-SHA256 | `MasterKey.deriveKey()` fallback |
 | 9 | `clearPrimaryClip()` | `ClipboardClearReceiver` |
+| 9–10 | Biometric availability checks | `BiometricUnlock.isAvailable()` |
 | 10 | No clipboard reads in the background | `ClipboardClearReceiver` |
+| 11 | `BIOMETRIC_STRONG`, `setUserAuthenticationParameters()` | `BiometricUnlock` |
 | 12 | Immutable `PendingIntent`s, exported launcher activity | `Session`, `ClipboardClearReceiver`, manifest |
 | 13 | `RECEIVER_NOT_EXPORTED`, sensitive clips, back callbacks | `Utils.registerNotExportedReceiver()`, `Utils`, activities |
 | 14 | Held-back broadcasts for cached apps, `accessibilityDataSensitive` | `Session.clearTimeoutTimer()`, layouts |
@@ -670,6 +710,21 @@ passphrase is out of reach.
   legacy key because its upgrade failed; the old entry formats are never
   written.
 
+#### Fingerprint unlock
+
+Android 9 and later, off by default.
+
+- The master key is encrypted with an **AES-256-GCM key in the Android
+  Keystore** that needs strong biometric authentication for every use
+  (`BIOMETRIC_STRONG`, `CryptoObject`) and is invalidated when biometrics are
+  added.
+- A key unlocked this way is checked against the master key record before it
+  is used.
+- Changing the master password turns fingerprint unlock off.
+- Turning it on keeps its own copy of the key while the prompt is shown, so
+  a logout during the prompt can't store a wiped key. The copy is wiped when
+  the prompt ends, also when it is cancelled.
+
 #### Session and logout
 
 - Defaults: log out **5 seconds** after the app goes to the background (5,
@@ -729,7 +784,7 @@ passphrase is out of reach.
 
 #### Android integration
 
-- No permissions, so **no `INTERNET`**.
+- Permissions: `USE_BIOMETRIC`. **No `INTERNET`.**
 - Only the launcher activity is exported. The receivers are not exported,
   and the timeout alarm is an immutable intent for the app itself.
 - **Android backup is off** (`allowBackup="false"`). Encrypted exports are
@@ -832,8 +887,8 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the
 default provider reads and writes what the BouncyCastle provider wrote. There
-are no instrumented tests; screens and the clipboard are only tested by
-hand, see [Manual tests](#manual-tests).
+are no instrumented tests; screens, the Keystore and the clipboard are only
+tested by hand, see [Manual tests](#manual-tests).
 
 Lint runs in CI (`lintDebug`) and must have no errors.
 
@@ -856,6 +911,7 @@ release:
 - Set up or change the master password with fewer than 12 characters: the
   note below the field counts the missing characters, and the password is
   refused. Log in with an existing short one: the reminder appears.
+- Turn fingerprint unlock on and off, log in with it.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the bar follows.
 - The keyboard offers no suggestions learned from notes, and no autofill

@@ -19,6 +19,7 @@
 
 package com.kodholken.passdroid.db;
 
+import com.kodholken.passdroid.BiometricUnlock;
 import com.kodholken.passdroid.MasterKey;
 import com.kodholken.passdroid.PasswordEntry;
 import com.kodholken.passdroid.Session;
@@ -277,6 +278,10 @@ public class DbMigration {
             values.put("value", masterKey.getRecord());
             String [] attrs = { "key" };
             db.update("system", values, "attribute=?", attrs);
+
+            // The key stored for biometric unlock is the old key
+            String [] biometricAttrs = { BiometricUnlock.DB_ATTRIBUTE };
+            db.delete("system", "attribute=?", biometricAttrs);
 
             db.setTransactionSuccessful();
             result = true;

@@ -8,6 +8,8 @@
         android:smallScreens="true"
         android:anyDensity="true"/>
 
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
     <!-- No cloud backup of the database: it would be a copy outside the
          device that only the master password protects. Encrypted exports
          are the backup. -->

@@ -129,6 +129,7 @@ public class ChangePasswordActivity extends TimeoutActivity {
     }
 
     private void changeKey(MasterKey oldKey, MasterKey newKey) {
+        boolean biometricUnlock = BiometricUnlock.isEnabled(this);
         boolean changed = newKey != null &&
                           DbMigration.changeKey(this, oldKey.getKey(), newKey);
 
@@ -144,11 +145,19 @@ public class ChangePasswordActivity extends TimeoutActivity {
             Session.getInstance().setKey(newKey.getKey());
             Session.getInstance().setNeedReload(true);
 
+            String message = "The password was changed successfully.";
+            if (biometricUnlock) {
+                // The stored key is removed by changeKey(), this removes the
+                // Keystore key as well.
+                BiometricUnlock.disable(this);
+                message += " " + getString(R.string.biometric_turned_off);
+            }
+
             AlertDialog alertDialog;
 
             alertDialog = new AlertDialog.Builder(this).create();
             alertDialog.setTitle("Password changed");
-            alertDialog.setMessage("The password was changed successfully.");
+            alertDialog.setMessage(message);
             alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     finish();
