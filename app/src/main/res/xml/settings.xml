@@ -47,7 +47,7 @@
   android:key="display_username"
   android:title="Display username"
   android:defaultValue="true"
-  android:summary="Show the username in addition to the system in the list of passwords."/>
+  android:summary="Show the username in addition to the system in the list of passwords and of 2FA codes."/>
   
 <CheckBoxPreference
   android:key="clear_clipboard"

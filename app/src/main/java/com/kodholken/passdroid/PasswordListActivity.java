@@ -66,6 +66,7 @@ PasswordModelListener {
     private static final int OPTION_MENU_LOGOUT   = 6;
     private static final int OPTION_MENU_GENERATE = 7;
     private static final int OPTION_MENU_SEARCH   = 8;
+    private static final int OPTION_MENU_TOTP     = 9;
 
     // Used to keep the activity from reloading the settings on resumes where
     // the settings has not changed.
@@ -266,6 +267,10 @@ PasswordModelListener {
             }
         });
         
+        menu.add(Menu.NONE, OPTION_MENU_TOTP, Menu.NONE, getString(R.string.totp_list_title))
+        .setIcon(R.drawable.ic_menu_totp)
+        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+
         menu.add(Menu.NONE, OPTION_MENU_ADD, Menu.NONE, getString(R.string.options_add))
         .setIcon(R.drawable.ic_menu_add);
         
@@ -317,6 +322,10 @@ PasswordModelListener {
             passwordData.onUpgrade(db, 0, 0);
             db.close();
             break;
+        case OPTION_MENU_TOTP:
+            startActivity(new Intent(this, TotpListActivity.class));
+            listPosition = list.getFirstVisiblePosition();
+            break;
         case OPTION_MENU_GENERATE:
             Intent generateIntent = new Intent(this,
                     GeneratePasswordActivity.class);
@@ -340,16 +349,7 @@ PasswordModelListener {
         //PasswordModel model = PasswordModel.getInstance(this);
         PasswordEntry entry = (PasswordEntry) passwordAdapter.getItem(position);
 
-        Intent i = new Intent(this, ShowActivity.class);
-        i.putExtra("id",       entry.getId());
-        i.putExtra("system",   entry.getDecSystem());
-        i.putExtra("email",    entry.getDecEmail());
-        i.putExtra("username", entry.getDecUsername());
-        i.putExtra("password", entry.getDecPassword());
-        i.putExtra("totp",     entry.getDecTotp());
-        i.putExtra("note",     entry.getDecNote());
-        i.putExtra("url",      entry.getDecUrl());
-        i.putExtra("date",     entry.getDecDate());
+        Intent i = ShowActivity.createIntent(this, entry);
 
         listPosition = list.getFirstVisiblePosition();
 

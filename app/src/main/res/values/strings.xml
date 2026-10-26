@@ -168,6 +168,10 @@ The file %s is encrypted.</string>
 <string name="date">Date</string>
 <string name="date_not_set">Not set</string>
 <string name="clear_date">Clear date</string>
+
+<!-- 2FA codes screen -->
+<string name="totp_list_title">2FA codes</string>
+<string name="totp_list_empty">No entries have a 2FA secret yet. Add the 2FA secret of an entry when you edit it, and its code is shown here.</string>
 <string name="save">Save</string>
 <string name="cancel">Cancel</string>
 <string name="export">Export</string>

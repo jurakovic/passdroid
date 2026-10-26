@@ -77,6 +77,10 @@ on in Settings.
 - Store a 2FA secret in an entry: the key a service shows for manual setup,
   or an `otpauth://totp/` link. The entry shows the current code and how long
   it is valid. A tap copies it.
+- The **2FA codes screen** (the clock icon in the list) shows the codes of
+  all entries, with a bar that shows how long they are valid. A tap copies a
+  code, a long press opens the entry. Like the list, it shows the username
+  or email next to the system unless "Display username" is off.
 - SHA-1, SHA-256 and SHA-512, 6 to 8 digits and any period are supported.
   Counter-based codes (HOTP) are not.
 
@@ -193,7 +197,7 @@ of Passdroid++.
 
 - Fingerprint unlock.
 - Email, 2FA secret and date fields.
-- 2FA codes on the entry.
+- 2FA codes on the entry and on their own screen.
 - Search also matches the username and the email, not only the system.
 - Dark theme and a theme setting.
 - Copy values with a tap, and an eye button for the password and the 2FA

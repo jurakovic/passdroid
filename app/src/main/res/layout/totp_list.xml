@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  android:orientation="vertical"
+  android:background="@drawable/bg_striped">
+
+  <!-- How long the current codes are valid, see TotpListActivity -->
+  <ProgressBar
+    android:id="@+id/time_bar"
+    style="?android:attr/progressBarStyleHorizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="4dip"
+    android:minHeight="4dip"
+    android:maxHeight="4dip"
+    android:progressTint="@color/totp_code"
+    android:progressBackgroundTint="@android:color/transparent"/>
+
+  <FrameLayout
+    android:layout_width="fill_parent"
+    android:layout_height="0dip"
+    android:layout_weight="1">
+
+    <ListView
+      android:id="@+id/list"
+      android:layout_width="fill_parent"
+      android:layout_height="fill_parent"
+      android:paddingTop="6dip"
+      android:paddingBottom="6dip"
+      android:clipToPadding="false"
+      android:divider="@null"
+      android:dividerHeight="0dip"
+      android:listSelector="@android:color/transparent"/>
+
+    <TextView
+      android:id="@+id/empty"
+      android:visibility="gone"
+      android:layout_width="fill_parent"
+      android:layout_height="fill_parent"
+      android:gravity="center"
+      android:padding="20dip"
+      android:textColor="#ffffff"
+      android:text="@string/totp_list_empty"/>
+  </FrameLayout>
+</LinearLayout>

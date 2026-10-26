@@ -197,6 +197,21 @@ public class Totp {
     }
 
     /**
+     * Split a code in two groups for readability, e.g. "123 456".
+     */
+    public static String format(String code) {
+        int half = code.length() / 2;
+        return code.substring(0, half) + " " + code.substring(half);
+    }
+
+    /**
+     * @return seconds each code is valid.
+     */
+    public int getPeriod() {
+        return period;
+    }
+
+    /**
      * @param time milliseconds since the epoch.
      * @return seconds until the code changes, 1 to the period.
      */

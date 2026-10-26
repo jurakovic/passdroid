@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The padding of the parent spaces the cards, list items have no margins -->
+<FrameLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools"
+  tools:ignore="UselessParent"
+  android:layout_width="fill_parent"
+  android:layout_height="wrap_content"
+  android:paddingLeft="10dip"
+  android:paddingRight="10dip"
+  android:paddingTop="5dip"
+  android:paddingBottom="5dip">
+
+  <!-- Shows the press of the list item, which is this card's parent -->
+  <LinearLayout
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:duplicateParentState="true"
+    android:background="@drawable/totp_card_pressable"
+    android:paddingLeft="18dip"
+    android:paddingRight="18dip"
+    android:paddingTop="12dip"
+    android:paddingBottom="12dip">
+
+    <TextView
+      android:id="@+id/title"
+      android:singleLine="true"
+      android:ellipsize="end"
+      android:textColor="@color/panel_text"
+      android:textSize="15sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <LinearLayout
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+      <!-- Digits of equal width so the code does not move when it changes -->
+      <TextView
+        android:id="@+id/code"
+        android:accessibilityDataSensitive="yes"
+        tools:targetApi="34"
+        android:singleLine="true"
+        android:textStyle="bold"
+        android:fontFeatureSettings="tnum"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"/>
+
+      <!-- Only for codes with another period than the time bar -->
+      <TextView
+        android:id="@+id/seconds_left"
+        android:visibility="gone"
+        android:textColor="@color/panel_text_secondary"
+        android:textSize="13sp"
+        android:paddingStart="10dip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+    </LinearLayout>
+  </LinearLayout>
+</FrameLayout>

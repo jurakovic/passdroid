@@ -11,4 +11,7 @@
     <!-- The action bar has the same color in both themes -->
     <color name="action_bar">#212121</color>
     <color name="window_background">#fafafa</color>
+
+    <!-- The codes and the time bar on the 2FA codes screen -->
+    <color name="totp_code">#1565c0</color>
 </resources>

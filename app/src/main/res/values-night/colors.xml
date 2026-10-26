@@ -9,4 +9,5 @@
          the add and edit screens. The same gray as the panels, a near black
          background made these screens too dark. -->
     <color name="window_background">#202124</color>
+    <color name="totp_code">#8ab4f8</color>
 </resources>

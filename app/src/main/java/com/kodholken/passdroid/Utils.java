@@ -142,6 +142,18 @@ public class Utils {
     }
 
     /**
+     * Copy the current 2FA code to the clipboard, like a password.
+     */
+    public static void copyTotpCode(Context context, Totp totp) {
+        copyPasswordToClipboard(context, totp.getCode(System.currentTimeMillis()));
+
+        // Android 13 and later confirm copying to the clipboard themselves
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Toast.makeText(context, R.string.totp_code_copied, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
      * Get the name of a document to show to the user.
      */
     public static String getDisplayName(Context context, Uri uri) {

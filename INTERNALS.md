@@ -98,7 +98,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
-| 2FA | `Totp` |
+| 2FA | `Totp`, `TotpListActivity` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
@@ -576,6 +576,15 @@ inside the elements may contain the same text.
 `getCode(time)` implements RFC 6238 on top of the RFC 4226 dynamic
 truncation, and is tested against the RFC 6238 test vectors.
 
+### 2FA codes screen
+
+`TotpListActivity` lists the entries with a 2FA secret each time it is
+shown, with a `Totp` generator for each. A handler runs every 50 ms to move
+the bar for the 30 second period and rebinds the list once a second. Entries
+with another period show their own seconds left. A tap copies the code, a
+long press opens the entry. The title is the system, followed by the
+username (or the email) in parentheses if `display_username` is on.
+
 ## Password generator
 
 - `GeneratePasswordActivity` picks every character uniformly with
@@ -599,7 +608,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `close_logout` | `true` | `Session.setTimeoutTimer()` |
 | `logout_delay` | `5` (seconds: 5, 30, 60, 300) | `Session.getTimeout()` |
 | `screen_off_logout` | `true` | `Session.screenOff()`, `clearTimeoutTimer()` |
-| `display_username` | `true` | the password list |
+| `display_username` | `true` | the password list and the 2FA codes screen |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
 | `biometric_unlock` | not persisted | `SettingsActivity` |
@@ -969,6 +978,7 @@ release:
   view it again, delete it. Copy a password with a long press in the list,
   also while searching.
 - Open the search: the field fills the action bar.
+- Open the 2FA codes screen, with "Display username" on and off.
 - Edit an entry, clear the system name and save: it is refused.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
   file again.
@@ -1111,6 +1121,8 @@ Limitations:
   every iteration, which makes it about twice as slow as needed.
 - A progress dialog that is open while the screen rotates is lost with its
   result; the user has to repeat the action.
+- The 2FA codes screen redraws the bar 20 times a second and computes all
+  codes again every second.
 - Two loops read a whole stream, `FileImporter.readAll()` and
   `FileImportActivity.readFile()`; only the second has the size limit.
 - A very deeply nested import file can crash the app (`StackOverflowError`

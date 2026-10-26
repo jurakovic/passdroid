@@ -24,11 +24,11 @@ import com.kodholken.passdroid.db.PasswordData;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -38,7 +38,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 /**
  * Activity that displays a password entry and let the user choose to edit or
@@ -147,10 +146,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
         }
 
         long now = System.currentTimeMillis();
-        // Split in two groups for readability, e.g. "123 456"
-        String code = generator.getCode(now);
-        int half = code.length() / 2;
-        codeView.setText(code.substring(0, half) + " " + code.substring(half));
+        codeView.setText(Totp.format(generator.getCode(now)));
         secondsView.setText(getString(R.string.totp_seconds_left,
                                       generator.getSecondsLeft(now)));
         secondsView.setVisibility(View.VISIBLE);
@@ -278,17 +274,26 @@ public class ShowActivity extends SherlockTimeoutActivity {
 
     private void copyTotpCode() {
         Totp generator = Totp.parse(totp);
-        if (generator == null) {
-            return;
+        if (generator != null) {
+            Utils.copyTotpCode(this, generator);
         }
+    }
 
-        Utils.copyPasswordToClipboard(this,
-                generator.getCode(System.currentTimeMillis()));
-
-        // Android 13 and later confirm copying to the clipboard themselves
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            Toast.makeText(this, R.string.totp_code_copied, Toast.LENGTH_SHORT).show();
-        }
+    /**
+     * @return intent that shows an entry.
+     */
+    public static Intent createIntent(Context context, PasswordEntry entry) {
+        Intent i = new Intent(context, ShowActivity.class);
+        i.putExtra("id",       entry.getId());
+        i.putExtra("system",   entry.getDecSystem());
+        i.putExtra("email",    entry.getDecEmail());
+        i.putExtra("username", entry.getDecUsername());
+        i.putExtra("password", entry.getDecPassword());
+        i.putExtra("totp",     entry.getDecTotp());
+        i.putExtra("note",     entry.getDecNote());
+        i.putExtra("url",      entry.getDecUrl());
+        i.putExtra("date",     entry.getDecDate());
+        return i;
     }
 
     private void editPassword() {
