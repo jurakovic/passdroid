@@ -33,6 +33,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 /**
@@ -40,6 +41,8 @@ import android.widget.TextView;
  * delete the entry.
  */
 public class ShowActivity extends SherlockTimeoutActivity {	
+    private static final int REQUEST_EDIT = 1;
+
     private long passwordId;
     private String system;
     private String username;
@@ -54,41 +57,57 @@ public class ShowActivity extends SherlockTimeoutActivity {
         Bundle extras = getIntent().getExtras();
 
         passwordId = extras.getLong("id");
+        readEntry(extras);
+
+        this.setContentView(R.layout.show);
+
+        // The password is hidden until the user chooses to show it
+        new PasswordToggle((TextView) findViewById(R.id.password),
+                           (ImageButton) findViewById(R.id.password_toggle),
+                           false);
+
+        showEntry();
+        setupClipboardAction();
+    }
+
+    private void readEntry(Bundle extras) {
         system = extras.getString("system");
         username = extras.getString("username");
         password = extras.getString("password");
         note = extras.getString("note");
         url = extras.getString("url");
+    }
 
-        this.setContentView(R.layout.show);
-
-        TextView usernameView = (TextView) findViewById(R.id.username);
-        TextView usernameHeaderView = (TextView) findViewById(R.id.username_title);
-
-        // Do not show the username entry if it does not exist
-        if (username != null && username.length() > 0) {
-            usernameView.setText(username);
-        } else {
-            usernameView.setVisibility(View.GONE);
-            usernameHeaderView.setVisibility(View.GONE);
-        }
+    private void showEntry() {
+        showField(R.id.system_title, R.id.system, system);
+        showField(R.id.username_title, R.id.username, username);
         ((TextView) findViewById(R.id.password)).setText(password);
+        showField(R.id.note_title, R.id.note, note);
+        showField(R.id.url_title, R.id.url, url);
+    }
 
-        if (note != null && note.length() > 0) {
-            ((TextView) findViewById(R.id.note_title)).setVisibility(View.VISIBLE);
-            TextView text = (TextView) findViewById(R.id.note);
-            text.setText(note);
-            text.setVisibility(View.VISIBLE);
+    /**
+     * Show a field with its title, or hide them if the field is empty.
+     */
+    private void showField(int titleId, int valueId, String value) {
+        int visibility = value != null && value.length() > 0 ? View.VISIBLE :
+                                                               View.GONE;
+        TextView valueView = (TextView) findViewById(valueId);
+        valueView.setText(value);
+        valueView.setVisibility(visibility);
+        findViewById(titleId).setVisibility(visibility);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Show the saved changes
+        if (requestCode == REQUEST_EDIT && resultCode == RESULT_OK &&
+            data != null) {
+            readEntry(data.getExtras());
+            showEntry();
         }
-        
-        if (url != null && url.length() > 0) {
-            ((TextView) findViewById(R.id.url_title)).setVisibility(View.VISIBLE);
-            TextView text = (TextView) findViewById(R.id.url);
-            text.setText(url);
-            text.setVisibility(View.VISIBLE);
-        }
-        
-        setupClipboardAction();
     }
     
     @Override
@@ -139,8 +158,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
         alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                 new DialogInterface.OnClickListener() { 
             public void onClick(DialogInterface dialog, int which) {
-                String password = passwordView.getText().toString();
-
+                // Also works while the password is hidden
                 Utils.copyPasswordToClipboard(ShowActivity.this, password);
             }
         });
@@ -169,8 +187,8 @@ public class ShowActivity extends SherlockTimeoutActivity {
         i.putExtra("note", note);
         i.putExtra("url", url);
 
-        startActivity(i);
-        finish();
+        // Back returns here, saving returns here with the changes
+        startActivityForResult(i, REQUEST_EDIT);
     }
 
     private void confirmDelete() {

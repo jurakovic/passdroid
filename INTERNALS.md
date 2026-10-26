@@ -93,7 +93,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
-| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity` |
+| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
@@ -371,11 +371,13 @@ Screens pass the decrypted values of an entry in intent extras.
   offered. A long press asks whether to copy the password. The entry is
   taken from the adapter, not the model, so the right one is used while the
   list is filtered.
-- **`ShowActivity`**: shows the values it gets in the intent. A tap on the
-  password asks whether to copy it.
+- **`ShowActivity`**: shows the values it gets in the intent, and after an
+  edit the values the edit screen returns. The password is shown with
+  `PasswordToggle`: hidden as asterisks until the eye button is pressed. A
+  tap on the password asks whether to copy it, also while it is hidden.
 - **`EditActivity`**: gets the values in the intent, encrypts all fields on
-  save and updates the row. The system name is required, as on
-  `AddActivity`.
+  save, updates the row and returns the saved values. The system name is
+  required, as on `AddActivity`.
 - **`AddActivity`**: inserts a new row.
 
 ## Clipboard
@@ -902,8 +904,9 @@ release:
 - Copy a password, wait about a minute: the clipboard is empty. Copy a
   password, copy text in another app and come back within the minute: the
   text is kept.
-- Open an entry: copy the password. Edit it, view it again, delete it. Copy
-  a password with a long press in the list, also while searching.
+- Open an entry: show and copy the password. Edit it, view it again,
+  delete it. Copy a password with a long press in the list, also while
+  searching.
 - Open the search: the field fills the action bar.
 - Edit an entry, clear the system name and save: it is refused.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the

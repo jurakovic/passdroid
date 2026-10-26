@@ -33,6 +33,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 public class EditActivity extends SherlockTimeoutActivity {
@@ -59,6 +60,9 @@ public class EditActivity extends SherlockTimeoutActivity {
 
         password = (EditText) findViewById(R.id.password);
         password.setText(extras.getString("password"));
+        // The password is hidden until the user chooses to show it
+        new PasswordToggle(password, (ImageButton) findViewById(R.id.password_toggle),
+                           false);
         
         String value;
         
@@ -126,6 +130,15 @@ public class EditActivity extends SherlockTimeoutActivity {
             ex.printStackTrace();
         }
         db.close();
+
+        // ShowActivity shows the changes
+        Intent result = new Intent();
+        result.putExtra("system", system);
+        result.putExtra("username", username);
+        result.putExtra("password", password);
+        result.putExtra("note", note);
+        result.putExtra("url", url);
+        setResult(RESULT_OK, result);
 
         finish();
     }

@@ -20,8 +20,8 @@ Each entry has a **system** (the name of the service, required),
 - The list is sorted by system and shows the username, unless "Display
   username" is off. Search matches the system.
 - A long press on an entry in the list asks whether to copy its password.
-- On the entry screen a tap on the password asks before it is copied. The
-  URL opens in the browser.
+- On the entry screen the password is hidden behind an eye button and asks
+  before it is copied. The URL opens in the browser.
 
 ### Master password and encryption
 
@@ -180,6 +180,7 @@ of Passdroid++.
 
 - Fingerprint unlock.
 - Dark theme and a theme setting.
+- An eye button for the password.
 - Settings for the logout delay and for logging out when the screen turns
   off.
 

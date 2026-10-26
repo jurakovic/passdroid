@@ -33,6 +33,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 
 /**
  * Activity for adding new passwords.
@@ -49,6 +50,9 @@ public class AddActivity extends SherlockTimeoutActivity {
         setContentView(R.layout.add);
 
         password = (EditText) findViewById(R.id.password);
+        // A new password is visible while it is entered
+        new PasswordToggle(password, (ImageButton) findViewById(R.id.password_toggle),
+                           true);
 
         saveButton = (Button) this.findViewById(R.id.save_button);
 

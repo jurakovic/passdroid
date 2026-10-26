@@ -16,6 +16,22 @@
     android:background="@color/panel_background">
 
     <TextView
+      android:id="@+id/system_title"
+      android:text="@string/system"
+      android:textColor="@color/panel_text_secondary"
+      android:textSize="13sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <TextView
+      android:id="@+id/system"
+      android:singleLine="true"
+      android:textSize="18sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:paddingBottom="10dip"/>
+
+    <TextView
       android:id="@+id/username_title"
       android:text="@string/username"
       android:textColor="@color/panel_text_secondary"
@@ -38,14 +54,32 @@
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
     
-    <TextView
-      android:id="@+id/password"
-      android:accessibilityDataSensitive="yes"
-      tools:targetApi="34"
-      android:singleLine="true"
-      android:textSize="18sp"
+    <LinearLayout
       android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+      <TextView
+        android:id="@+id/password"
+        android:accessibilityDataSensitive="yes"
+        tools:targetApi="34"
+        android:singleLine="true"
+        android:textSize="18sp"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"/>
+
+      <!-- See PasswordToggle -->
+      <ImageButton
+        android:id="@+id/password_toggle"
+        android:layout_width="48dip"
+        android:layout_height="36dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_visibility"
+        android:contentDescription="@string/show_password"/>
+    </LinearLayout>
 
     <TextView
       android:id="@+id/note_title"

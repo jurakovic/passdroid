@@ -49,15 +49,33 @@
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
     
-    <EditText
-      android:imeOptions="flagNoPersonalizedLearning"
-      android:id="@+id/password"
-      android:accessibilityDataSensitive="yes"
-      tools:targetApi="34"
-      android:singleLine="true"
-      android:inputType="textVisiblePassword"
+    <LinearLayout
       android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+      <EditText
+        android:imeOptions="flagNoPersonalizedLearning"
+        android:id="@+id/password"
+        android:accessibilityDataSensitive="yes"
+        tools:targetApi="34"
+        android:singleLine="true"
+        android:inputType="textVisiblePassword"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"/>
+
+      <!-- See PasswordToggle -->
+      <ImageButton
+        android:id="@+id/password_toggle"
+        android:layout_width="48dip"
+        android:layout_height="48dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_visibility"
+        android:contentDescription="@string/show_password"/>
+    </LinearLayout>
  
     <Button
       android:id="@+id/generate_button"

@@ -41,6 +41,8 @@ You should have received a copy of the GNU General Public License along with thi
 <string name="biometric_unlock_button">Unlock with fingerprint</string>
 <string name="biometric_use_password">Use password</string>
 <string name="theme_title">Theme</string>
+<string name="show_password">Show password</string>
+<string name="hide_password">Hide password</string>
 <string name="logout_delay_title">Logout delay</string>
 <!-- %s is replaced with the chosen delay, e.g. "30 seconds" -->
 <string name="logout_delay_summary">After %s in the background</string>
