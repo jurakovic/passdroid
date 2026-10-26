@@ -156,6 +156,17 @@ The file %s is encrypted.</string>
 <string name="username">Username</string>
 <string name="note">Note</string>
 <string name="url">URL</string>
+<string name="email">Email</string>
+<string name="totp_secret">2FA secret</string>
+<string name="totp_code">2FA code</string>
+<string name="totp_invalid">Not a valid 2FA secret</string>
+<!-- Seconds until the 2FA code changes -->
+<string name="totp_seconds_left">%d s</string>
+<string name="totp_code_copied">2FA code copied</string>
+<string name="copy_totp_secret">Copy the 2FA secret to clipboard?</string>
+<string name="date">Date</string>
+<string name="date_not_set">Not set</string>
+<string name="clear_date">Clear date</string>
 <string name="save">Save</string>
 <string name="cancel">Cancel</string>
 <string name="export">Export</string>

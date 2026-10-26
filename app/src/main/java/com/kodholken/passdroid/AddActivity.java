@@ -22,7 +22,6 @@ package com.kodholken.passdroid;
 import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.PasswordData;
 
-import android.content.ContentValues;
 import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -42,7 +41,10 @@ public class AddActivity extends SherlockTimeoutActivity {
     private Button saveButton;
     private Button generateButton;
     private EditText password;
+    private DateField date;
     private Intent generateIntent;
+
+    private static final String STATE_DATE = "date";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +55,15 @@ public class AddActivity extends SherlockTimeoutActivity {
         // A new password is visible while it is entered
         new PasswordToggle(password, (ImageButton) findViewById(R.id.password_toggle),
                            true);
+        new PasswordToggle((EditText) findViewById(R.id.totp),
+                           (ImageButton) findViewById(R.id.totp_toggle), true);
+
+        // The date defaults to when the entry is added
+        date = new DateField((EditText) findViewById(R.id.date),
+                             findViewById(R.id.date_clear),
+                             savedInstanceState != null ?
+                                 savedInstanceState.getString(STATE_DATE) :
+                                 DateField.now());
 
         saveButton = (Button) this.findViewById(R.id.save_button);
 
@@ -66,6 +77,12 @@ public class AddActivity extends SherlockTimeoutActivity {
         setupGenerateButton();
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(STATE_DATE, date.getValue());
+    }
+
     private void addPassword() {
         long id = -1;
         EditText v;
@@ -76,7 +93,6 @@ public class AddActivity extends SherlockTimeoutActivity {
             return;
         }
 
-        ContentValues values = new ContentValues();
         PasswordEntry entry = new PasswordEntry();
 
         v = (EditText) this.findViewById(R.id.system);
@@ -88,29 +104,27 @@ public class AddActivity extends SherlockTimeoutActivity {
         }
 
         entry.setDecSystem(v.getText().toString());		
+        v = (EditText) this.findViewById(R.id.email);
+        entry.setDecEmail(v.getText().toString());
         v = (EditText) this.findViewById(R.id.username);
         entry.setDecUsername(v.getText().toString());
         v = (EditText) this.findViewById(R.id.password);
         entry.setDecPassword(v.getText().toString());
+        v = (EditText) this.findViewById(R.id.totp);
+        entry.setDecTotp(v.getText().toString());
         v = (EditText) this.findViewById(R.id.note);
         entry.setDecNote(v.getText().toString());
         v = (EditText) this.findViewById(R.id.url);
         entry.setDecUrl(v.getText().toString());
-
+        entry.setDecDate(date.getValue());
 
         entry.encryptAll(Session.getInstance().getKey());
-
-        values.put("system",   entry.getEncSystem());	
-        values.put("username", entry.getEncUsername());
-        values.put("password", entry.getEncPassword());
-        values.put("note",     entry.getEncNote());
-        values.put("url",      entry.getEncUrl());
 
         PasswordData passwordData = new PasswordData(this);
         SQLiteDatabase db = passwordData.getWritableDatabase();
 
         try {
-            id = db.insertOrThrow("data", null, values);
+            id = db.insertOrThrow("data", null, PasswordData.getValues(entry));
         } catch (SQLException ex) {
             ex.printStackTrace();
         }

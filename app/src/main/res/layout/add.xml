@@ -29,6 +29,21 @@
 
     <TextView
       android:paddingTop="10dip"
+      android:text="@string/email"
+      android:textSize="13sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <EditText
+      android:imeOptions="flagNoPersonalizedLearning"
+      android:id="@+id/email"
+      android:singleLine="true"
+      android:inputType="textEmailAddress"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <TextView
+      android:paddingTop="10dip"
       android:text="@string/username"
       android:textSize="13sp"
       android:layout_width="fill_parent"
@@ -86,6 +101,41 @@
 
     <TextView
       android:paddingTop="10dip"
+      android:text="@string/totp_secret"
+      android:textSize="13sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <LinearLayout
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+      <EditText
+        android:imeOptions="flagNoPersonalizedLearning"
+        android:id="@+id/totp"
+        android:accessibilityDataSensitive="yes"
+        tools:targetApi="34"
+        android:singleLine="true"
+        android:inputType="textVisiblePassword"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"/>
+
+      <!-- See PasswordToggle -->
+      <ImageButton
+        android:id="@+id/totp_toggle"
+        android:layout_width="48dip"
+        android:layout_height="48dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_visibility"
+        android:contentDescription="@string/show_password"/>
+    </LinearLayout>
+
+    <TextView
+      android:paddingTop="10dip"
       android:text="@string/note"
       android:textSize="13sp"
       android:layout_width="fill_parent"
@@ -112,6 +162,43 @@
       android:inputType="textUri"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
+
+    <TextView
+      android:paddingTop="10dip"
+      android:text="@string/date"
+      android:textSize="13sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <LinearLayout
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+      <!-- Not editable as text, a tap opens the date picker. See DateField -->
+      <EditText
+        android:imeOptions="flagNoPersonalizedLearning"
+        android:id="@+id/date"
+        android:singleLine="true"
+        android:inputType="none"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:longClickable="false"
+        android:hint="@string/date_not_set"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"/>
+
+      <ImageButton
+        android:id="@+id/date_clear"
+        android:layout_width="48dip"
+        android:layout_height="48dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_clear"
+        android:contentDescription="@string/clear_date"/>
+    </LinearLayout>
     
     <Button
       android:id="@+id/save_button"

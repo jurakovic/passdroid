@@ -21,12 +21,22 @@ public class FileExportImportTest {
     private static PasswordEntry createEntry(String system, String username,
                                              String password, String note,
                                              String url) {
+        return createEntry(system, "", username, password, "", note, url, "");
+    }
+
+    private static PasswordEntry createEntry(String system, String email,
+                                             String username, String password,
+                                             String totp, String note,
+                                             String url, String date) {
         PasswordEntry entry = new PasswordEntry();
         entry.setDecSystem(system);
+        entry.setDecEmail(email);
         entry.setDecUsername(username);
         entry.setDecPassword(password);
+        entry.setDecTotp(totp);
         entry.setDecNote(note);
         entry.setDecUrl(url);
+        entry.setDecDate(date);
         return entry;
     }
 
@@ -38,6 +48,12 @@ public class FileExportImportTest {
             createEntry("CDATA", "]]>", "]]]]>>", "x]]>y]]>", "]]"),
             createEntry("Unicode åäö", "ü", "€ß",
                         "", ""),
+            createEntry("All fields", "alice@example.com", "alice", "pw",
+                        "JBSW Y3DP EHPK 3PXP", "note", "https://example.com",
+                        "2026-10-25T14:30"),
+            createEntry("Special <&>", "a]]>b@example.com", "", "",
+                        "otpauth://totp/A:b?secret=JBSWY3DPEHPK3PXP&issuer=A",
+                        "", "", "2001-02-03T04:05"),
             // Only a document type declaration before the root is rejected
             createEntry("<!DOCTYPE x>", "<!DOCTYPE", "<!DOCTYPE html>",
                         "<!-- x -->\n<!DOCTYPE html>", "")
@@ -53,6 +69,9 @@ public class FileExportImportTest {
             assertEquals(expected[i].getDecPassword(), actual[i].getDecPassword());
             assertEquals(expected[i].getDecNote(), actual[i].getDecNote());
             assertEquals(expected[i].getDecUrl(), actual[i].getDecUrl());
+            assertEquals(expected[i].getDecEmail(), actual[i].getDecEmail());
+            assertEquals(expected[i].getDecTotp(), actual[i].getDecTotp());
+            assertEquals(expected[i].getDecDate(), actual[i].getDecDate());
         }
     }
 
@@ -74,9 +93,10 @@ public class FileExportImportTest {
         // Control characters, e.g. in a pasted note, are not allowed in XML.
         // Tabs, line breaks and characters outside the BMP are.
         PasswordEntry [] entries = {
-            createEntry("Sys\u0001tem", "user\u0000", "pass\uFFFEword",
+            createEntry("Sys\u0001tem", "a\u000Bb@example.com", "user\u0000",
+                        "pass\uFFFEword", "JBSW\u001FY3DP",
                         "tab\tnew\nline \uD83D\uDE00 \uD800",
-                        "https://example.com/\u0008")
+                        "https://example.com/\u0008", "2026-10-25T14:30")
         };
         ByteArrayOutputStream output = new ByteArrayOutputStream();
 
@@ -85,8 +105,9 @@ public class FileExportImportTest {
         FileImporter importer = new FileImporter(output.toByteArray());
         importer.parse();
         assertEntriesEqual(new PasswordEntry [] {
-            createEntry("System", "user", "password",
-                        "tab\tnew\nline \uD83D\uDE00 ", "https://example.com/")
+            createEntry("System", "ab@example.com", "user", "password",
+                        "JBSWY3DP", "tab\tnew\nline \uD83D\uDE00 ",
+                        "https://example.com/", "2026-10-25T14:30")
         }, importer.getPasswordEntries());
     }
 
@@ -120,6 +141,27 @@ public class FileExportImportTest {
         } catch (FileImporterException ex) {
             // Expected
         }
+    }
+
+    @Test
+    public void fileWithoutNewFieldsImportsThemEmpty() throws Exception {
+        // As exported before the email, 2FA secret and date were added
+        String xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<passdroid version=\"2.3\">\n" +
+            "  <system name=\"Mail\">\n" +
+            "    <username><![CDATA[alice]]></username>\n" +
+            "    <password><![CDATA[secret]]></password>\n" +
+            "    <note><![CDATA[note]]></note>\n" +
+            "    <url><![CDATA[https://example.com]]></url>\n" +
+            "  </system>\n" +
+            "</passdroid>\n";
+
+        FileImporter importer = new FileImporter(xml.getBytes("UTF-8"));
+        importer.parse();
+        assertEntriesEqual(new PasswordEntry [] {
+            createEntry("Mail", "alice", "secret", "note", "https://example.com")
+        }, importer.getPasswordEntries());
     }
 
     private static byte [] exportEncrypted(MasterKey masterKey,

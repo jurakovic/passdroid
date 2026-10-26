@@ -343,10 +343,13 @@ PasswordModelListener {
         Intent i = new Intent(this, ShowActivity.class);
         i.putExtra("id",       entry.getId());
         i.putExtra("system",   entry.getDecSystem());
+        i.putExtra("email",    entry.getDecEmail());
         i.putExtra("username", entry.getDecUsername());
         i.putExtra("password", entry.getDecPassword());
+        i.putExtra("totp",     entry.getDecTotp());
         i.putExtra("note",     entry.getDecNote());
         i.putExtra("url",      entry.getDecUrl());
+        i.putExtra("date",     entry.getDecDate());
 
         listPosition = list.getFirstVisiblePosition();
 

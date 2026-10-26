@@ -253,7 +253,8 @@ public class FileImporter {
      *
      *   1  Passdroid 1.6 and earlier, see createInputStream()
      *   2  Passdroid 1.7 to 2.3
-     *   3  Passdroid++: CDATA values. Its first builds were numbered 2.4.
+     *   3  Passdroid++: CDATA values, the email, 2FA secret and date fields.
+     *      Its first builds were numbered 2.4.
      *
      * @throws FileImporterException if the version is invalid.
      */
@@ -314,6 +315,10 @@ public class FileImporter {
             String password = "";
             String note = "";
             String url = "";
+            // Files exported before these fields existed do not have them
+            String email = "";
+            String totp = "";
+            String date = "";
 
             NodeList nodes = system.getChildNodes();
 
@@ -329,6 +334,12 @@ public class FileImporter {
                     note = node.getTextContent();
                 } else if (node.getNodeName().equals("url")) {
                     url = node.getTextContent();
+                } else if (node.getNodeName().equals("email")) {
+                    email = node.getTextContent();
+                } else if (node.getNodeName().equals("totp")) {
+                    totp = node.getTextContent();
+                } else if (node.getNodeName().equals("date")) {
+                    date = node.getTextContent();
                 }
             }
 
@@ -338,6 +349,9 @@ public class FileImporter {
             entry.setDecPassword(password);
             entry.setDecNote(note);
             entry.setDecUrl(url);
+            entry.setDecEmail(email);
+            entry.setDecTotp(totp);
+            entry.setDecDate(date);
 
             return entry;
         }

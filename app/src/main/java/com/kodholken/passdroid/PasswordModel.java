@@ -24,7 +24,6 @@ import java.util.Arrays;
 
 import com.kodholken.passdroid.db.PasswordData;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
@@ -90,16 +89,10 @@ public class PasswordModel {
             SQLiteStatement stmt = db.compileStatement("DELETE FROM data");
             stmt.execute();
             for (PasswordEntry entry : passwords) {
-                ContentValues values = new ContentValues();
-
                 entry.encryptAll(key);
-                values.put("system",   entry.getEncSystem());
-                values.put("username", entry.getEncUsername());
-                values.put("password", entry.getEncPassword());
-                values.put("note",     entry.getEncNote());
-                values.put("url",      entry.getEncUrl());
 
-                long id = db.insertOrThrow("data", null, values);
+                long id = db.insertOrThrow("data", null,
+                                           PasswordData.getValues(entry));
                 entry.setId(id);
             }
             db.setTransactionSuccessful();
@@ -150,20 +143,13 @@ public class PasswordModel {
     }
 
     private void loadPasswords() {
-        final String [] columns = { "id", "system", "username", "password", "note", "url" };
         SQLiteDatabase db = passwordData.getReadableDatabase();
-        Cursor cur = db.query("data", columns, null, null, null, null, "id DESC");
+        Cursor cur = db.query("data", PasswordData.COLUMNS, null, null, null, null, "id DESC");
 
         int i = 0;
         passwords = new PasswordEntry[cur.getCount()];
         while (cur.moveToNext()) {
-            passwords[i] = new PasswordEntry();
-            passwords[i].setId(cur.getInt(0));
-            passwords[i].setEncSystem(cur.getString(1));
-            passwords[i].setEncUsername(cur.getString(2));
-            passwords[i].setEncPassword(cur.getString(3));
-            passwords[i].setEncNote(cur.getString(4));
-            passwords[i].setEncUrl(cur.getString(5));
+            passwords[i] = PasswordData.readEntry(cur);
 
             passwords[i].decryptAll(Session.getInstance().getKey());
 

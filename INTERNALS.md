@@ -20,6 +20,7 @@ releasing.
 - [Clipboard](#clipboard)
 - [Fingerprint unlock](#fingerprint-unlock)
 - [Export and import](#export-and-import)
+- [2FA codes](#2fa-codes)
 - [Password generator](#password-generator)
 - [Settings and theme](#settings-and-theme)
 - [Android platform details](#android-platform-details)
@@ -93,10 +94,11 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
-| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle` |
+| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
+| 2FA | `Totp` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
@@ -274,12 +276,12 @@ transaction. It runs on the UI thread.
 ## Database
 
 One SQLite database, `password.db` (`Constants.DBNAME`), in the app's private
-storage. Schema version 2 (`Constants.DBVERSION`).
+storage. Schema version 3 (`Constants.DBVERSION`).
 
 ```sql
 CREATE TABLE data (id INTEGER PRIMARY KEY AUTOINCREMENT,
                    system TEXT NOT NULL, username TEXT, password TEXT,
-                   note TEXT, url TEXT);
+                   note TEXT, url TEXT, email TEXT, totp TEXT, date TEXT);
 
 CREATE TABLE system (id INTEGER PRIMARY KEY AUTOINCREMENT,
                      attribute TEXT NOT NULL, value TEXT);
@@ -303,7 +305,10 @@ by its helper's `verifyTable()`.
 There are two kinds of migration:
 
 - **Schema migrations** by database version, in
-  `DbMigration.handleDatabaseUpgrade()`: 1 → 2 adds `note` and `url`.
+  `DbMigration.handleDatabaseUpgrade()`:
+  - 1 → 2 adds `note` and `url`,
+  - 2 → 3 adds `email`, `totp` and `date` (only if the `data` table exists
+    yet). Old entries get `NULL` for the new columns.
 - **Data migrations** by data version, in
   `DbMigration.postLoginMigration()`, run after the login because they need
   the key. `data_version` is only updated when they succeed.
@@ -365,24 +370,31 @@ Screens that change entries write to the database directly and set
 Screens pass the decrypted values of an entry in intent extras.
 
 - **`PasswordListActivity`**: `PasswordAdapter` filters by a lowercase
-  substring of the system. The search field is an action view in the action
-  bar (`collapsable_search.xml`). The action bar measures action views as
-  `wrap_content`, so its root, `FullWidthLayout`, takes the whole width it is
-  offered. A long press asks whether to copy the password. The entry is
-  taken from the adapter, not the model, so the right one is used while the
-  list is filtered.
+  substring of the system, username or email. The search field is an action
+  view in the action bar (`collapsable_search.xml`). The action bar measures
+  action views as `wrap_content`, so its root, `FullWidthLayout`, takes the
+  whole width it is offered. A long press asks whether to copy the password.
+  The entry is taken from the adapter, not the model, so the right one is
+  used while the list is filtered.
 - **`ShowActivity`**: shows the values it gets in the intent, and after an
-  edit the values the edit screen returns. The password is shown with
-  `PasswordToggle`: hidden as asterisks until the eye button is pressed. A
-  tap on the password asks whether to copy it, also while it is hidden.
+  edit the values the edit screen returns. The password and the 2FA secret
+  are shown with `PasswordToggle`: hidden as asterisks until the eye button
+  is pressed. A tap on them asks whether to copy them, also while they are
+  hidden. A `Totp` generator shows the live code of the 2FA secret,
+  refreshed every second, and a tap copies the code.
 - **`EditActivity`**: gets the values in the intent, encrypts all fields on
   save, updates the row and returns the saved values. The system name is
   required, as on `AddActivity`.
-- **`AddActivity`**: inserts a new row.
+- **`AddActivity`**: inserts a new row. The date defaults to the current
+  time.
+- `DateField` stores dates as local time without a time zone,
+  `yyyy-MM-ddTHH:mm`, so they show the same time after the time zone changes,
+  and formats them in the device's format.
 
 ## Clipboard
 
-- **Passwords** go through `Utils.copyPasswordToClipboard()`:
+- **Secrets** (passwords, 2FA codes and secrets) go through
+  `Utils.copyPasswordToClipboard()`:
   - the clip gets the label `"password"` (`ClipboardClearReceiver.LABEL`)
     and the `android.content.extra.IS_SENSITIVE` extra, which hides it in
     the clipboard preview of Android 13 and later;
@@ -445,10 +457,13 @@ UTF-8 encoded:
 <?xml version="1.0" encoding="UTF-8"?>
 <passdroid version="3" app-version="0.0.0-dev">
   <system name="GitHub">
+    <email><![CDATA[alice@example.com]]></email>
     <username><![CDATA[alice]]></username>
     <password><![CDATA[s3cret]]></password>
+    <totp><![CDATA[JBSWY3DPEHPK3PXP]]></totp>
     <note><![CDATA[Recovery codes in the safe]]></note>
     <url><![CDATA[https://github.com]]></url>
+    <date><![CDATA[2026-10-25T14:30]]></date>
   </system>
 </passdroid>
 ```
@@ -471,7 +486,7 @@ UTF-8 encoded:
   |---|---|---|
   | 1 | `1.6` and earlier | Unescaped system names |
   | 2 | `1.7` to `2.3` | |
-  | 3 | `2.4`, or `3` | CDATA values |
+  | 3 | `2.4`, or `3` | CDATA values, `email`, `totp`, `date` |
 
   A newer format, or an app version after 2.4, is refused: an older app
   would leave out what it doesn't know. Files in format 1 go through a
@@ -541,6 +556,22 @@ element (`hasDoctype()`): Android's parser doesn't support turning off entity
 expansion, and a DTD could define entities that expand to gigabytes. Values
 inside the elements may contain the same text.
 
+## 2FA codes
+
+### Secrets
+
+`Totp.parse()` accepts:
+
+- a base32 key as services show it for manual setup. Spaces, dashes, `=`
+  padding and case are ignored. SHA-1, 6 digits, 30 seconds;
+- an `otpauth://totp/<label>?secret=...` URI with the optional `algorithm`
+  (SHA1, SHA256, SHA512), `digits` (6 to 8) and `period` parameters.
+
+`otpauth://hotp/` (counter-based) URIs are rejected.
+
+`getCode(time)` implements RFC 6238 on top of the RFC 4226 dynamic
+truncation, and is tested against the RFC 6238 test vectors.
+
 ## Password generator
 
 - `GeneratePasswordActivity` picks every character uniformly with
@@ -607,7 +638,7 @@ Other settings:
   password change and import password screens and the search field have
   `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
   `importantForAutofill="noExcludeDescendants"`.
-- The password and generated password views have
+- The password, 2FA secret, 2FA code and generated password views have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
 - Only `MainActivity` is exported. The timeout receivers are registered at
   runtime as not exported, the clipboard receiver is declared with
@@ -620,7 +651,7 @@ and what is still open. The sections above describe how each part works.
 
 ### Threat model
 
-Passdroid++ protects passwords **at rest**:
+Passdroid++ protects passwords and 2FA secrets **at rest**:
 
 - a lost or stolen phone,
 - a copy of the app's database,
@@ -755,8 +786,8 @@ Android 9 and later, off by default.
 
 #### Clipboard
 
-- Copied passwords are marked as sensitive, so Android 13 and later hide
-  them in clipboard previews.
+- Copied passwords and 2FA codes are marked as sensitive, so Android 13 and
+  later hide them in clipboard previews.
 - They are **cleared after 45 seconds** (an inexact alarm, so within about a
   minute) and when the screen turns off, if "Auto clear clipboard" is on,
   which is the default. The alarm goes to a receiver declared in the
@@ -774,9 +805,16 @@ Android 9 and later, off by default.
   screens the keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
   autofill.
-- On Android 14 and later the password and generated password views are
-  only visible to accessibility services that are accessibility tools, such
-  as screen readers.
+- On Android 14 and later the password, 2FA secret, 2FA code and generated
+  password views are only visible to accessibility services that are
+  accessibility tools, such as screen readers.
+
+#### 2FA
+
+- TOTP per RFC 6238 (SHA-1/256/512), secrets as base32 or `otpauth://totp/`
+  URIs, stored encrypted like the other fields.
+- 2FA secrets in the same vault as the passwords are a trade-off, see
+  [Decisions](#decisions).
 
 #### Password generator
 
@@ -814,6 +852,21 @@ Trade-offs that were made on purpose:
 - **Shorter existing master passwords still work**, with a reminder after
   each login, so nobody is locked out. Only new master passwords need 12
   characters.
+- **2FA secrets next to the passwords.** They still protect against the most
+  common attacks: a service's password database leaking, reused passwords,
+  password guessing. They don't protect when the vault itself is opened,
+  since then both factors are in it. So the advice is to split by
+  importance:
+  - Critical accounts get their 2FA in a separate authenticator app with its
+    own lock and encrypted backups, or better a passkey or a hardware key:
+    the main email (it can reset everything else), the Google or Apple
+    account of the phone, the bank, GitHub.
+  - Everything else may stay in Passdroid++.
+  - After moving a secret, delete it from the Passdroid++ entry.
+- **No separate 2FA vault inside Passdroid++.** It would need a second strong
+  password, its own key, lock and timeout, and changes to the export format
+  and a migration. That is about the protection a separate authenticator app
+  gives with no work and no risk to the vault.
 - **The key stays in the app's memory while the user is logged in**, instead
   of in the Android Keystore: every decryption would go through the
   Keystore, a much larger change.
@@ -851,6 +904,9 @@ Limitations that are not about security are listed in
   **change the master password**, since cracking an old copy reveals it.
 - If your master password is shorter than 12 characters, change it. The app
   reminds you after each login with it.
+- Move the 2FA secrets of critical accounts to a separate authenticator app
+  or replace them with passkeys or hardware keys, then delete them from
+  Passdroid++.
 - Keep encrypted exports as the backup, since Android backup is off.
 
 ### Sources
@@ -881,9 +937,10 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 
 | Class | Covers |
 |---|---|
-| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
+| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
+| `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
@@ -904,9 +961,9 @@ release:
 - Copy a password, wait about a minute: the clipboard is empty. Copy a
   password, copy text in another app and come back within the minute: the
   text is kept.
-- Open an entry: show and copy the password. Edit it, view it again,
-  delete it. Copy a password with a long press in the list, also while
-  searching.
+- Open an entry: show and copy the password and the 2FA secret. Edit it,
+  view it again, delete it. Copy a password with a long press in the list,
+  also while searching.
 - Open the search: the field fills the action bar.
 - Edit an entry, clear the system name and save: it is refused.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
@@ -930,8 +987,7 @@ release:
 
 1. `PasswordEntry`: the `enc`/`dec` fields with getters and setters,
    `decryptAll()`, `encryptAll()`.
-2. `PasswordData.onCreate()`, and the column lists in `PasswordModel` and
-   `DbMigration.changeKey()`.
+2. `PasswordData`: `COLUMNS`, `onCreate()`, `readEntry()`, `getValues()`.
 3. `Constants.DBVERSION` + 1, and an `ALTER TABLE` step in
    `DbMigration.handleDatabaseUpgrade()`.
 4. `DbMigration.isDecrypted()`, so a password change checks the field too.
@@ -941,7 +997,7 @@ release:
    instead of leaving the field out.
 6. The add, edit and show layouts and activities, and the intent extras
    between them.
-7. Tests in `FileExportImportTest`.
+7. Tests in `FileExportImportTest` and `PasswordEntryTest`.
 
 ### Adding a setting
 

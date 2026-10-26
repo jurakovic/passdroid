@@ -28,13 +28,17 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * Activity that displays a password entry and let the user choose to edit or
@@ -45,10 +49,24 @@ public class ShowActivity extends SherlockTimeoutActivity {
 
     private long passwordId;
     private String system;
+    private String email;
     private String username;
     private String password;
+    private String totp;
     private String note;
     private String url;
+    private String date;
+
+    // Updates the 2FA code while the activity is in the foreground
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable codeUpdater = new Runnable() {
+        @Override
+        public void run() {
+            showTotpCode();
+            // Right after the next full second
+            handler.postDelayed(this, 1000 - System.currentTimeMillis() % 1000);
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -65,25 +83,77 @@ public class ShowActivity extends SherlockTimeoutActivity {
         new PasswordToggle((TextView) findViewById(R.id.password),
                            (ImageButton) findViewById(R.id.password_toggle),
                            false);
+        new PasswordToggle((TextView) findViewById(R.id.totp),
+                           (ImageButton) findViewById(R.id.totp_toggle),
+                           false);
 
         showEntry();
-        setupClipboardAction();
+        setupClipboardActions();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // The activity finishes if the user has been logged out
+        if (!isFinishing() && totp != null && totp.length() > 0) {
+            handler.post(codeUpdater);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        handler.removeCallbacks(codeUpdater);
+        super.onPause();
     }
 
     private void readEntry(Bundle extras) {
         system = extras.getString("system");
+        email = extras.getString("email");
         username = extras.getString("username");
         password = extras.getString("password");
+        totp = extras.getString("totp");
         note = extras.getString("note");
         url = extras.getString("url");
+        date = extras.getString("date");
     }
 
     private void showEntry() {
         showField(R.id.system_title, R.id.system, system);
+        showField(R.id.email_title, R.id.email, email);
         showField(R.id.username_title, R.id.username, username);
         ((TextView) findViewById(R.id.password)).setText(password);
+        ((TextView) findViewById(R.id.totp)).setText(totp);
+        findViewById(R.id.totp_rows).setVisibility(
+                totp != null && totp.length() > 0 ? View.VISIBLE : View.GONE);
+        showTotpCode();
         showField(R.id.note_title, R.id.note, note);
         showField(R.id.url_title, R.id.url, url);
+        showField(R.id.date_title, R.id.date, DateField.format(this, date));
+    }
+
+    /**
+     * Show the current 2FA code and how long it is valid.
+     */
+    private void showTotpCode() {
+        TextView codeView = (TextView) findViewById(R.id.totp_code);
+        TextView secondsView = (TextView) findViewById(R.id.totp_seconds_left);
+
+        Totp generator = Totp.parse(totp);
+        if (generator == null) {
+            codeView.setText(R.string.totp_invalid);
+            secondsView.setVisibility(View.GONE);
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        // Split in two groups for readability, e.g. "123 456"
+        String code = generator.getCode(now);
+        int half = code.length() / 2;
+        codeView.setText(code.substring(0, half) + " " + code.substring(half));
+        secondsView.setText(getString(R.string.totp_seconds_left,
+                                      generator.getSecondsLeft(now)));
+        secondsView.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -146,20 +216,43 @@ public class ShowActivity extends SherlockTimeoutActivity {
     }
 
     /**
-     * Set up a clickable password. When clicked the user will be prompted to
-     * choose if the password should be copied to the clipboard.
+     * Set up a clickable password and 2FA secret. When clicked the user will
+     * be prompted to choose if the value should be copied to the clipboard.
+     * This also works while they are hidden. A click on the 2FA code copies
+     * it right away since it is only valid for a short time.
      */
-    private void setupClipboardAction() {
-        final TextView passwordView = (TextView) findViewById(R.id.password);
+    private void setupClipboardActions() {
+        findViewById(R.id.password).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                confirmCopy("Copy the password to clipboard?", password);
+            }
+        });
+
+        findViewById(R.id.totp).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                confirmCopy(getString(R.string.copy_totp_secret), totp);
+            }
+        });
+
+        findViewById(R.id.totp_code_row).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                copyTotpCode();
+            }
+        });
+    }
+
+    private void confirmCopy(String message, final String value) {
         final AlertDialog alertDialog = new AlertDialog.Builder(this).create();
         alertDialog.setTitle("Copy to clipboard");
-        alertDialog.setMessage("Copy the password to clipboard?");
+        alertDialog.setMessage(message);
 
         alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                 new DialogInterface.OnClickListener() { 
             public void onClick(DialogInterface dialog, int which) {
-                // Also works while the password is hidden
-                Utils.copyPasswordToClipboard(ShowActivity.this, password);
+                Utils.copyPasswordToClipboard(ShowActivity.this, value);
             }
         });
 
@@ -168,24 +261,35 @@ public class ShowActivity extends SherlockTimeoutActivity {
             public void onClick(DialogInterface dialog, int which) {}
         });
 
-        passwordView.setOnClickListener(
-                new OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        alertDialog.show();
-                    }
-                }
-        );
+        alertDialog.show();
+    }
+
+    private void copyTotpCode() {
+        Totp generator = Totp.parse(totp);
+        if (generator == null) {
+            return;
+        }
+
+        Utils.copyPasswordToClipboard(this,
+                generator.getCode(System.currentTimeMillis()));
+
+        // Android 13 and later confirm copying to the clipboard themselves
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Toast.makeText(this, R.string.totp_code_copied, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void editPassword() {
         Intent i = new Intent(this, EditActivity.class);
         i.putExtra("id", passwordId);
         i.putExtra("system", system);
+        i.putExtra("email", email);
         i.putExtra("username", username);
         i.putExtra("password", password);
+        i.putExtra("totp", totp);
         i.putExtra("note", note);
         i.putExtra("url", url);
+        i.putExtra("date", date);
 
         // Back returns here, saving returns here with the changes
         startActivityForResult(i, REQUEST_EDIT);

@@ -13,16 +13,16 @@ import android.os.SystemClock;
 import android.preference.PreferenceManager;
 
 /**
- * Removes a copied password from the clipboard, a while after it was copied
- * and when the screen turns off (see ScreenOffListener), unless the user has
- * turned it off in the settings.
+ * Removes a copied password or 2FA code from the clipboard, a while after it
+ * was copied and when the screen turns off (see ScreenOffListener), unless
+ * the user has turned it off in the settings.
  *
  * The timeout is an alarm to this receiver, which is declared in the
  * manifest, so that it also works while the application is in the background,
  * where it may be frozen or its process killed.
  */
 public class ClipboardClearReceiver extends BroadcastReceiver {
-    // The label of copied passwords
+    // The label of copied passwords and 2FA codes
     public static final String LABEL = "password";
 
     // The alarm is inexact, it may go off somewhat later

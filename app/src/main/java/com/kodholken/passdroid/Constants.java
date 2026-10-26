@@ -22,7 +22,7 @@ package com.kodholken.passdroid;
 public class Constants {
     public static final boolean DEBUG = false;
     public static final String  DBNAME = "password.db";
-    public static final int     DBVERSION = 2;
+    public static final int     DBVERSION = 3;
 
     public static final boolean CLEARDB = false;
 }

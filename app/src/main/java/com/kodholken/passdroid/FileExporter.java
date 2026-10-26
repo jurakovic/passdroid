@@ -172,10 +172,13 @@ public class FileExporter {
             sb.append("  <system name=\"" +
                       Utils.escapeXMLChars(removeInvalidChars(entry.getDecSystem())) +
                       "\">\n");
+            appendElement(sb, "email", entry.getDecEmail());
             appendElement(sb, "username", entry.getDecUsername());
             appendElement(sb, "password", entry.getDecPassword());
+            appendElement(sb, "totp", entry.getDecTotp());
             appendElement(sb, "note", entry.getDecNote());
             appendElement(sb, "url", entry.getDecUrl());
+            appendElement(sb, "date", entry.getDecDate());
             sb.append("  </system>\n");
         }
 

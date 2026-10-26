@@ -127,11 +127,32 @@ public class DbMigration {
      */
     public static void handleDatabaseUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Utils.debug("handleDatabaseUpgrade()");
-        if (oldVersion == 1 && newVersion == 2) {
+        if (oldVersion < 2 && newVersion >= 2) {
             Utils.debug("Adding table comlums 'note' and 'url' due to version " +
-                        "upgrade from 1 to 2");
+                        "upgrade from " + oldVersion + " to " + newVersion);
             db.execSQL("ALTER TABLE data ADD COLUMN note TEXT");
             db.execSQL("ALTER TABLE data ADD COLUMN url TEXT");
+        }
+
+        // The data table is created later if it does not exist yet, see
+        // PasswordData.verifyTable()
+        if (oldVersion < 3 && newVersion >= 3 && hasTable(db, "data")) {
+            Utils.debug("Adding table columns 'email', 'totp' and 'date' due " +
+                        "to version upgrade from " + oldVersion + " to " +
+                        newVersion);
+            db.execSQL("ALTER TABLE data ADD COLUMN email TEXT");
+            db.execSQL("ALTER TABLE data ADD COLUMN totp TEXT");
+            db.execSQL("ALTER TABLE data ADD COLUMN date TEXT");
+        }
+    }
+
+    private static boolean hasTable(SQLiteDatabase db, String table) {
+        Cursor cur = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                                 new String [] { table });
+        try {
+            return cur.moveToFirst();
+        } finally {
+            cur.close();
         }
     }
 
@@ -234,23 +255,16 @@ public class DbMigration {
         byte [] newKey = masterKey.getKey();
 
         try {
-            final String [] columns = { "id", "system", "username", "password", "note", "url" };
             PasswordData passwordData = new PasswordData(context);
 
             db = passwordData.getReadableDatabase();
             db.beginTransaction();
-            Cursor cur = db.query("data", columns, null, null, null, null, "id DESC");
+            Cursor cur = db.query("data", PasswordData.COLUMNS, null, null, null, null, "id DESC");
 
             int i = 0;
             PasswordEntry [] passwords = new PasswordEntry[cur.getCount()];
             while (cur.moveToNext()) {
-                passwords[i] = new PasswordEntry();
-                passwords[i].setId(cur.getInt(0));
-                passwords[i].setEncSystem(cur.getString(1));
-                passwords[i].setEncUsername(cur.getString(2));
-                passwords[i].setEncPassword(cur.getString(3));
-                passwords[i].setEncNote(cur.getString(4));
-                passwords[i].setEncUrl(cur.getString(5));
+                passwords[i] = PasswordData.readEntry(cur);
 
                 passwords[i].decryptAll(oldKey);
                 if (!isDecrypted(passwords[i])) {
@@ -263,18 +277,13 @@ public class DbMigration {
             }
             cur.close();
 
-            ContentValues values = new ContentValues();
             for (i = 0; i < passwords.length; i++) {
                 passwords[i].encryptAll(newKey);
-                values.put("system", passwords[i].getEncSystem());
-                values.put("username", passwords[i].getEncUsername());
-                values.put("password", passwords[i].getEncPassword());
-                values.put("note", passwords[i].getEncNote());
-                values.put("url", passwords[i].getEncUrl());
-                db.update("data", values, "id=" + passwords[i].getId(), null);
+                db.update("data", PasswordData.getValues(passwords[i]),
+                          "id=" + passwords[i].getId(), null);
             }
 
-            values.clear();
+            ContentValues values = new ContentValues();
             values.put("value", masterKey.getRecord());
             String [] attrs = { "key" };
             db.update("system", values, "attribute=?", attrs);
@@ -305,7 +314,10 @@ public class DbMigration {
                isDecrypted(entry.getEncUsername(), entry.getDecUsername()) &&
                isDecrypted(entry.getEncPassword(), entry.getDecPassword()) &&
                isDecrypted(entry.getEncNote(), entry.getDecNote()) &&
-               isDecrypted(entry.getEncUrl(), entry.getDecUrl());
+               isDecrypted(entry.getEncUrl(), entry.getDecUrl()) &&
+               isDecrypted(entry.getEncEmail(), entry.getDecEmail()) &&
+               isDecrypted(entry.getEncTotp(), entry.getDecTotp()) &&
+               isDecrypted(entry.getEncDate(), entry.getDecDate());
     }
 
     private static boolean isDecrypted(String encrypted, String decrypted) {

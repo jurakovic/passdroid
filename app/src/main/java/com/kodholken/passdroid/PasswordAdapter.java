@@ -74,7 +74,9 @@ public class PasswordAdapter extends BaseAdapter {
         
         for (PasswordEntry entry : entries) {
             if (filter == null || filter.equals("") ||
-                entry.getDecSystem().toLowerCase().contains(filter)) {
+                contains(entry.getDecSystem(), filter) ||
+                contains(entry.getDecUsername(), filter) ||
+                contains(entry.getDecEmail(), filter)) {
                 hitList.add(entry);
             }
         }
@@ -84,6 +86,10 @@ public class PasswordAdapter extends BaseAdapter {
         for (PasswordEntry entry : hitList) {
             hits[i++] = entry;
         }
+    }
+
+    private static boolean contains(String value, String filter) {
+        return value != null && value.toLowerCase().contains(filter);
     }
 
     /**
@@ -109,8 +115,15 @@ public class PasswordAdapter extends BaseAdapter {
 
         // Bind the data efficiently with the holder.
         holder.system.setText(hits[position].getDecSystem());
-        if (showUsername && hits[position].getDecUsername().length() > 0) {
-            holder.username.setText(hits[position].getDecUsername());
+
+        // The email is shown for entries without a username
+        String username = hits[position].getDecUsername();
+        if (username == null || username.length() == 0) {
+            username = hits[position].getDecEmail();
+        }
+
+        if (showUsername && username != null && username.length() > 0) {
+            holder.username.setText(username);
             holder.username.setVisibility(View.VISIBLE);
             holder.separator.setVisibility(View.VISIBLE);
         } else {

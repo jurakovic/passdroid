@@ -38,12 +38,18 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
     private String encPassword;
     private String encNote;
     private String encUrl;
+    private String encEmail;
+    private String encTotp;
+    private String encDate;
 
     private String decSystem;
     private String decUsername;
     private String decPassword;
     private String decNote;
     private String decUrl;
+    private String decEmail;
+    private String decTotp;   // 2FA secret, see Totp
+    private String decDate;   // See DateField
 
     public void decryptAll(byte [] key) {
         decSystem   = decrypt(key, encSystem);
@@ -60,6 +66,11 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
         } else {
             decUrl = null;
         }
+
+        // Entries added before these fields existed have no value for them
+        decEmail = encEmail != null ? decrypt(key, encEmail) : null;
+        decTotp  = encTotp  != null ? decrypt(key, encTotp)  : null;
+        decDate  = encDate  != null ? decrypt(key, encDate)  : null;
     }
 
     public void encryptAll(byte [] key) {
@@ -78,6 +89,10 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
         } else {
             encUrl = null;
         }
+
+        encEmail = decEmail != null ? encrypt(key, decEmail) : null;
+        encTotp  = decTotp  != null ? encrypt(key, decTotp)  : null;
+        encDate  = decDate  != null ? encrypt(key, decDate)  : null;
     }
 
     /*
@@ -275,6 +290,42 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
     }
     public void setDecUrl(String decUrl) {
         this.decUrl = decUrl;
+    }
+    public String getEncEmail() {
+        return encEmail;
+    }
+    public void setEncEmail(String encEmail) {
+        this.encEmail = encEmail;
+    }
+    public String getEncTotp() {
+        return encTotp;
+    }
+    public void setEncTotp(String encTotp) {
+        this.encTotp = encTotp;
+    }
+    public String getEncDate() {
+        return encDate;
+    }
+    public void setEncDate(String encDate) {
+        this.encDate = encDate;
+    }
+    public String getDecEmail() {
+        return decEmail;
+    }
+    public void setDecEmail(String decEmail) {
+        this.decEmail = decEmail;
+    }
+    public String getDecTotp() {
+        return decTotp;
+    }
+    public void setDecTotp(String decTotp) {
+        this.decTotp = decTotp;
+    }
+    public String getDecDate() {
+        return decDate;
+    }
+    public void setDecDate(String decDate) {
+        this.decDate = decDate;
     }
 
     @Override

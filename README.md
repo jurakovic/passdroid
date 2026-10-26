@@ -1,9 +1,9 @@
 # Passdroid++
 
 Passdroid++ is an offline password manager for Android. It keeps your
-passwords and notes in an encrypted database on your phone, protected by one
-master password. It has no internet access, so nothing it holds can leave the
-phone through the app.
+passwords, 2FA secrets and notes in an encrypted database on your phone,
+protected by one master password. It has no internet access, so nothing it
+holds can leave the phone through the app.
 
 Passdroid++ is based on Passdroid by Magnus Eriksson, whose last release was
 2.3 (2012). It runs on Android 7.0 and later. See [Changes from Passdroid
@@ -14,14 +14,18 @@ original Passdroid](#moving-from-the-original-passdroid) if you used it.
 
 ### Entries
 
-Each entry has a **system** (the name of the service, required),
-**username**, **password**, **note** and **URL**. Every field is encrypted.
+Each entry has a **system** (the name of the service, required), **email**,
+**username**, **password**, **2FA secret**, **note**, **URL** and **date**.
+Every field is encrypted.
 
-- The list is sorted by system and shows the username, unless "Display
-  username" is off. Search matches the system.
+- The list is sorted by system and shows the username, or the email if there
+  is no username, unless "Display username" is off. Search matches the
+  system, username and email.
 - A long press on an entry in the list asks whether to copy its password.
-- On the entry screen the password is hidden behind an eye button and asks
-  before it is copied. The URL opens in the browser.
+- On the entry screen the password and the 2FA secret are hidden behind an
+  eye button and ask before they are copied. The URL opens in the browser.
+- The date is set to the time the entry is added, e.g. to record when an
+  account was created, and can be changed or cleared.
 
 ### Master password and encryption
 
@@ -59,13 +63,21 @@ on in Settings.
 
 ### Clipboard
 
-- Copied passwords are marked as sensitive, so Android 13 and later don't
-  show them in the clipboard preview.
+- Copied passwords and 2FA codes are marked as sensitive, so Android 13 and
+  later don't show them in the clipboard preview.
 - With "Auto clear clipboard" (on by default) they are removed after about 45
   seconds, at the latest within a minute, and when the screen turns off.
 - Where Android lets Passdroid++ read the clipboard, which since Android 10 is
   only while it is open, something you copied in another app in the meantime
   is left alone.
+
+### 2FA codes
+
+- Store a 2FA secret in an entry: the key a service shows for manual setup,
+  or an `otpauth://totp/` link. The entry shows the current code and how long
+  it is valid. A tap copies it.
+- SHA-1, SHA-256 and SHA-512, 6 to 8 digits and any period are supported.
+  Counter-based codes (HOTP) are not.
 
 ### Password generator
 
@@ -104,8 +116,8 @@ on in Settings.
   that show your data.
 - On the screens where you type secrets, the keyboard is asked not to learn
   from what you type, and autofill services are kept out.
-- On Android 14 and later, passwords are hidden from accessibility services,
-  except tools such as screen readers.
+- On Android 14 and later, passwords and 2FA codes are hidden from
+  accessibility services, except tools such as screen readers.
 
 ## Installing
 
@@ -179,8 +191,11 @@ of Passdroid++.
 ### New features
 
 - Fingerprint unlock.
+- Email, 2FA secret and date fields.
+- 2FA codes on the entry.
+- Search also matches the username and the email, not only the system.
 - Dark theme and a theme setting.
-- An eye button for the password.
+- An eye button for the password and the 2FA secret.
 - Settings for the logout delay and for logging out when the screen turns
   off.
 
