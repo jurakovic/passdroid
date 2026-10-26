@@ -18,7 +18,7 @@ https://github.com/jurakovic/passdroid\n\
 Passdroid++ is based on Passdroid by Magnus Eriksson (http://passdroid.kodholken.com/).\n\
 Copyright &#169; 2009-2019  Magnus Eriksson &lt;eriksson.mag@gmail.com&gt;, and the contributors of Passdroid.\n\
 Application icon by VisualPharm (http://www.visualpharm.com/).\n\
-ZXing and AndroidX CameraX are licensed under the Apache License 2.0.\n\
+Roboto Mono font, Copyright 2015 The Roboto Mono Project Authors, licensed under the SIL Open Font License 1.1. ZXing and AndroidX CameraX are licensed under the Apache License 2.0.\n\
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n\
 You should have received a copy of the GNU General Public License along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.\
@@ -42,6 +42,8 @@ You should have received a copy of the GNU General Public License along with thi
 <string name="biometric_unlock_button">Unlock with fingerprint</string>
 <string name="biometric_use_password">Use password</string>
 <string name="theme_title">Theme</string>
+<string name="font_title">Font</string>
+<string name="font_size_title">Font size</string>
 <string name="show_password">Show password</string>
 <string name="hide_password">Hide password</string>
 <string name="logout_delay_title">Logout delay</string>

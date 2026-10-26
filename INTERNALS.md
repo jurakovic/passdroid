@@ -22,7 +22,7 @@ releasing.
 - [Export and import](#export-and-import)
 - [2FA codes](#2fa-codes)
 - [Password generator](#password-generator)
-- [Settings and theme](#settings-and-theme)
+- [Settings, theme and fonts](#settings-theme-and-fonts)
 - [Android platform details](#android-platform-details)
 - [Security](#security)
   - [Threat model](#threat-model)
@@ -110,13 +110,13 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
-| Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `ChangePasswordActivity` |
+| Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
 generator), `res/values/arrays.xml` (setting values, generator character
-sets).
+sets), `assets/fonts/` (Roboto Mono and its license).
 
 Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 [Tests](#tests).
@@ -637,7 +637,7 @@ username (or the email) in parentheses if `display_username` is on.
   forgets it. Opened from the list, it is shown on `DisplayPasswordActivity`,
   where a tap asks whether to copy it.
 
-## Settings and theme
+## Settings, theme and fonts
 
 Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 
@@ -649,6 +649,8 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `display_username` | `true` | the password list and the 2FA codes screen |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` |
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
+| `font` | `default` (`monospace`) | `FontSetting` |
+| `font_size` | `normal` (`small`, `large`) | `FontSetting` |
 | `biometric_unlock` | not persisted | `SettingsActivity` |
 | `passwordLength`, `passwordCharset` | 16, 0 | the generator |
 
@@ -662,6 +664,10 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
   remember the theme they were created with and recreate themselves when it
   changed. The themes are based on `Theme.Material`, because device makers
   restyle `DeviceDefault`.
+- **Fonts**: `FontSetting` applies Roboto Mono (from `assets/fonts`) and a
+  scale of 0.85, 1 or 1.2 to the values on the entry screens and in the
+  lists. Labels keep their size. Sizes are in `sp`, so the system font size
+  applies on top.
 
 ## Android platform details
 
@@ -1051,8 +1057,8 @@ release:
    Old files must still import without it. Increase
    `FileExporter.FORMAT_VERSION`, so earlier versions refuse the files
    instead of leaving the field out.
-6. The add, edit and show layouts and activities, and the intent extras
-   between them.
+6. The add, edit and show layouts and activities, the intent extras between
+   them, and `FontSetting` if it shows a value.
 7. Tests in `FileExportImportTest` and `PasswordEntryTest`.
 
 ### Adding a setting

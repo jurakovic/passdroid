@@ -150,11 +150,13 @@ public class TotpListActivity extends SherlockTimeoutActivity {
     private static class CodeAdapter extends BaseAdapter {
         private final Context context;
         private final LayoutInflater inflater;
+        private final float scale;  // Of the font size setting
         private List<Code> codes = new ArrayList<Code>();
 
         CodeAdapter(Context context) {
             this.context = context;
             inflater = LayoutInflater.from(context);
+            scale = FontSetting.getScale(context);
         }
 
         void setEntries(List<PasswordEntry> entries, boolean showAccount) {
@@ -184,6 +186,9 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = inflater.inflate(R.layout.totp_row, parent, false);
+                FontSetting.apply((TextView) convertView.findViewById(R.id.title));
+                // The size of the code is set below
+                FontSetting.applyFont((TextView) convertView.findViewById(R.id.code));
             }
 
             Code code = codes.get(position);
@@ -193,7 +198,7 @@ public class TotpListActivity extends SherlockTimeoutActivity {
 
             if (code.totp == null) {
                 codeView.setText(R.string.totp_invalid);
-                codeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                codeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15 * scale);
                 codeView.setTextColor(context.getColor(R.color.panel_text_secondary));
                 secondsView.setVisibility(View.GONE);
                 return convertView;
@@ -201,7 +206,7 @@ public class TotpListActivity extends SherlockTimeoutActivity {
 
             long now = System.currentTimeMillis();
             codeView.setText(Totp.format(code.totp.getCode(now)));
-            codeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
+            codeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32 * scale);
             codeView.setTextColor(context.getColor(R.color.totp_code));
 
             if (code.totp.getPeriod() != PERIOD) {

@@ -77,6 +77,9 @@ public class ShowActivity extends SherlockTimeoutActivity {
         readEntry(extras);
 
         this.setContentView(R.layout.show);
+        FontSetting.apply(this, R.id.system, R.id.email, R.id.username,
+                          R.id.password, R.id.totp, R.id.totp_code, R.id.note,
+                          R.id.url, R.id.date);
 
         // The password is hidden until the user chooses to show it
         new PasswordToggle((TextView) findViewById(R.id.password),

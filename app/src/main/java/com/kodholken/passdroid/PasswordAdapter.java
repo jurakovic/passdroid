@@ -108,6 +108,16 @@ public class PasswordAdapter extends BaseAdapter {
             holder.username = (TextView) convertView.findViewById(R.id.username);
             holder.separator = (TextView) convertView.findViewById(R.id.separator);
 
+            // Use non-bold font when we don't display the username
+            if (!showUsername) {
+                Typeface tf = holder.system.getTypeface();
+                holder.system.setTypeface(Typeface.create(tf, Typeface.NORMAL));
+            }
+
+            FontSetting.apply(holder.system);
+            FontSetting.apply(holder.separator);
+            FontSetting.apply(holder.username);
+
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
@@ -127,11 +137,6 @@ public class PasswordAdapter extends BaseAdapter {
             holder.username.setVisibility(View.VISIBLE);
             holder.separator.setVisibility(View.VISIBLE);
         } else {
-            // Use non-bold font when we don't display the username
-            if (!showUsername) {
-                Typeface tf = holder.system.getTypeface();
-                holder.system.setTypeface(Typeface.create(tf, Typeface.NORMAL));
-            }
             holder.username.setVisibility(View.GONE);
             holder.separator.setVisibility(View.GONE);
         }

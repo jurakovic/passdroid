@@ -51,6 +51,9 @@ public class AddActivity extends SherlockTimeoutActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.add);
+        FontSetting.apply(this, R.id.system, R.id.email, R.id.username,
+                          R.id.password, R.id.totp, R.id.note, R.id.url,
+                          R.id.date);
 
         password = (EditText) findViewById(R.id.password);
         // A new password is visible while it is entered

@@ -114,7 +114,9 @@ on in Settings.
 ### Appearance
 
 - Light or dark theme, or follow the system setting.
-- Text follows the system font size.
+- The values of the entries can use a monospace font (Roboto Mono), which
+  makes characters like 0 and O or l and 1 easier to tell apart, in a small,
+  normal or large size. Text follows the system font size.
 
 ### Privacy
 
@@ -206,7 +208,8 @@ of Passdroid++.
 - 2FA codes on the entry and on their own screen, and scanning of setup QR
   codes.
 - Search also matches the username and the email, not only the system.
-- Dark theme and a theme setting.
+- Dark theme and a theme setting, a monospace font option and a font size
+  setting.
 - Copy values with a tap, and an eye button for the password and the 2FA
   secret.
 - Settings for the logout delay and for logging out when the screen turns
@@ -252,5 +255,6 @@ Passdroid++ is free software under the GNU General Public License, version 3
 or later, see [LICENSE.TXT](LICENSE.TXT). Copyright (C) 2009-2019 Magnus
 Eriksson, and the contributors of Passdroid.
 
-It uses ZXing and CameraX (Apache License 2.0). The application icon is by
-VisualPharm.
+It includes the Roboto Mono font (SIL Open Font License 1.1, see
+`app/src/main/assets/fonts/RobotoMono-OFL.txt`) and uses ZXing and CameraX
+(Apache License 2.0). The application icon is by VisualPharm.

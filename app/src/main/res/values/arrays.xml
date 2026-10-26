@@ -36,4 +36,26 @@
 	  <item>light</item>
 	  <item>dark</item>
 	</string-array>
+
+	<string-array name="font_entries">
+	  <item>Default</item>
+	  <item>Monospace (Roboto Mono)</item>
+	</string-array>
+
+	<string-array name="font_values" translatable="false">
+	  <item>default</item>
+	  <item>monospace</item>
+	</string-array>
+
+	<string-array name="font_size_entries">
+	  <item>Small</item>
+	  <item>Normal</item>
+	  <item>Large</item>
+	</string-array>
+
+	<string-array name="font_size_values" translatable="false">
+	  <item>small</item>
+	  <item>normal</item>
+	  <item>large</item>
+	</string-array>
 </resources>
