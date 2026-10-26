@@ -18,6 +18,7 @@ https://github.com/jurakovic/passdroid\n\
 Passdroid++ is based on Passdroid by Magnus Eriksson (http://passdroid.kodholken.com/).\n\
 Copyright &#169; 2009-2019  Magnus Eriksson &lt;eriksson.mag@gmail.com&gt;, and the contributors of Passdroid.\n\
 Application icon by VisualPharm (http://www.visualpharm.com/).\n\
+ZXing and AndroidX CameraX are licensed under the Apache License 2.0.\n\
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n\
 You should have received a copy of the GNU General Public License along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.\
@@ -172,6 +173,19 @@ The file %s is encrypted.</string>
 <!-- 2FA codes screen -->
 <string name="totp_list_title">2FA codes</string>
 <string name="totp_list_empty">No entries have a 2FA secret yet. Add the 2FA secret of an entry when you edit it, and its code is shown here.</string>
+
+<!-- QR code scanning -->
+<string name="scan_qr_code">Scan QR code</string>
+<string name="scan_with_camera">Scan with camera</string>
+<string name="scan_from_image">Read from image</string>
+<string name="scan_hint">Point the camera at the 2FA QR code</string>
+<string name="scan_reading_image">Reading the QR code…</string>
+<string name="qr_not_found">No QR code was found in the image.</string>
+<string name="qr_not_totp">This QR code does not contain a 2FA secret.</string>
+<string name="qr_migration">This QR code is an export from an authenticator app, which is not supported. Use the QR code from the 2FA setup page of the service instead.</string>
+<string name="no_image_picker">No application available for choosing images.</string>
+<string name="camera_permission_denied">Passdroid++ needs the camera to scan QR codes. You can allow it in the app settings, or read the QR code from an image instead.</string>
+<string name="camera_failed">The camera could not be started.</string>
 <string name="save">Save</string>
 <string name="cancel">Cancel</string>
 <string name="export">Export</string>

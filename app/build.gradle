@@ -51,7 +51,11 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled = false
+            // Removes the unused code of the libraries, mostly CameraX and
+            // the Kotlin runtime it uses. This makes the APK about 4 MB
+            // smaller. Debug builds are not shrunk.
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
         }
     }
@@ -64,6 +68,15 @@ android {
 }
 
 dependencies {
+    // Decodes QR codes, see QrDecoder
+    implementation 'com.google.zxing:core:3.5.4'
+
+    // Camera preview and frames for scanning QR codes, see ScanActivity
+    def cameraxVersion = '1.6.2'
+    implementation "androidx.camera:camera-camera2:$cameraxVersion"
+    implementation "androidx.camera:camera-lifecycle:$cameraxVersion"
+    implementation "androidx.camera:camera-view:$cameraxVersion"
+
     testImplementation 'junit:junit:4.13.2'
     // Earlier versions encrypted with the platform's Bouncy Castle provider
     // ("BC"). The tests check that the default provider the app uses now

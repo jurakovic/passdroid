@@ -42,6 +42,7 @@ public class AddActivity extends SherlockTimeoutActivity {
     private Button generateButton;
     private EditText password;
     private DateField date;
+    private QrScan qrScan;
     private Intent generateIntent;
 
     private static final String STATE_DATE = "date";
@@ -57,6 +58,7 @@ public class AddActivity extends SherlockTimeoutActivity {
                            true);
         new PasswordToggle((EditText) findViewById(R.id.totp),
                            (ImageButton) findViewById(R.id.totp_toggle), true);
+        qrScan = new QrScan(this, findViewById(R.id.totp_scan));
 
         // The date defaults to when the entry is added
         date = new DateField((EditText) findViewById(R.id.date),
@@ -174,6 +176,10 @@ public class AddActivity extends SherlockTimeoutActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode,
             Intent data) {
+        if (qrScan.onActivityResult(requestCode, resultCode, data)) {
+            return;
+        }
+
         if (resultCode == 1) {
             this.password.setText(GeneratePasswordActivity.
                     takeGeneratedPassword());

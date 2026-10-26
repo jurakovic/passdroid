@@ -104,6 +104,52 @@ public class TotpTest {
     }
 
     @Test
+    public void secretToStore() {
+        String key = "JBSWY3DPEHPK3PXP";
+
+        // Usual settings, only the key is kept
+        assertEquals(key, Totp.getSecretToStore(
+                "otpauth://totp/ACME%20Co:alice@example.com?secret=" + key +
+                "&issuer=ACME%20Co&algorithm=SHA1&digits=6&period=30"));
+        assertEquals(key, Totp.getSecretToStore(" otpauth://totp/x?secret=" + key + " "));
+
+        // Other settings need the whole URI
+        String uri = "otpauth://totp/x?secret=" + key + "&digits=8";
+        assertEquals(uri, Totp.getSecretToStore(uri));
+        uri = "otpauth://totp/x?secret=" + key + "&algorithm=SHA256";
+        assertEquals(uri, Totp.getSecretToStore(uri));
+
+        // A plain key is kept as it is
+        assertEquals("jbsw y3dp ehpk 3pxp", Totp.getSecretToStore(" jbsw y3dp ehpk 3pxp "));
+
+        assertNull(Totp.getSecretToStore("https://example.com/"));
+        assertNull(Totp.getSecretToStore("otpauth-migration://offline?data=CjEKCkhlbGxv"));
+        assertNull(Totp.getSecretToStore("otpauth://hotp/x?secret=" + key));
+    }
+
+    @Test
+    public void issuerAndAccount() {
+        String uri = "otpauth://totp/ACME%20Co:alice+2fa@example.com?secret=JBSWY3DPEHPK3PXP" +
+                     "&issuer=ACME+Corp";
+        assertEquals("ACME Corp", Totp.getIssuer(uri));
+        assertEquals("alice+2fa@example.com", Totp.getAccount(uri));
+
+        // The issuer from the label
+        uri = "otpauth://totp/GitHub:%20alice?secret=JBSWY3DPEHPK3PXP";
+        assertEquals("GitHub", Totp.getIssuer(uri));
+        assertEquals("alice", Totp.getAccount(uri));
+
+        // No issuer
+        uri = "otpauth://totp/alice?secret=JBSWY3DPEHPK3PXP";
+        assertNull(Totp.getIssuer(uri));
+        assertEquals("alice", Totp.getAccount(uri));
+
+        assertNull(Totp.getIssuer("JBSWY3DPEHPK3PXP"));
+        assertNull(Totp.getAccount("JBSWY3DPEHPK3PXP"));
+        assertNull(Totp.getAccount("otpauth://totp/?secret=JBSWY3DPEHPK3PXP"));
+    }
+
+    @Test
     public void base32() {
         assertArrayEquals("12345678901234567890".getBytes(StandardCharsets.US_ASCII),
                           Totp.decodeBase32(SHA1_KEY));

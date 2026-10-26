@@ -5,7 +5,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -51,49 +53,32 @@ public class Totp {
         int period = 30;
 
         if (key.regionMatches(true, 0, "otpauth:", 0, 8)) {
-            if (!key.regionMatches(true, 0, "otpauth://totp/", 0, 15)) {
+            OtpAuthUri uri = OtpAuthUri.parse(key);
+            if (uri == null) {
                 return null;  // Counter based codes (HOTP) are not supported
             }
 
-            int query = key.indexOf('?');
-            if (query < 0) {
-                return null;
-            }
-
-            String parameters = key.substring(query + 1);
-            key = null;
-            for (String parameter : parameters.split("&")) {
-                int separator = parameter.indexOf('=');
-                if (separator < 0) {
-                    continue;
-                }
-
-                String name = parameter.substring(0, separator).toLowerCase(Locale.US);
-                String value = decode(parameter.substring(separator + 1));
-                if (value == null) {
-                    return null;
-                }
-
-                try {
-                    if (name.equals("secret")) {
-                        key = value;
-                    } else if (name.equals("digits")) {
-                        digits = Integer.parseInt(value);
-                    } else if (name.equals("period")) {
-                        period = Integer.parseInt(value);
-                    } else if (name.equals("algorithm")) {
-                        algorithm = getAlgorithm(value);
-                        if (algorithm == null) {
-                            return null;
-                        }
-                    }
-                } catch (NumberFormatException ex) {
-                    return null;
-                }
-            }
-
+            key = uri.parameters.get("secret");
             if (key == null) {
                 return null;
+            }
+
+            try {
+                if (uri.parameters.containsKey("digits")) {
+                    digits = Integer.parseInt(uri.parameters.get("digits"));
+                }
+                if (uri.parameters.containsKey("period")) {
+                    period = Integer.parseInt(uri.parameters.get("period"));
+                }
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+
+            if (uri.parameters.containsKey("algorithm")) {
+                algorithm = getAlgorithm(uri.parameters.get("algorithm"));
+                if (algorithm == null) {
+                    return null;
+                }
             }
         }
 
@@ -109,11 +94,129 @@ public class Totp {
         return new Totp(decoded, algorithm, digits, period);
     }
 
-    private static String decode(String value) {
-        try {
-            return URLDecoder.decode(value, "UTF-8");
-        } catch (UnsupportedEncodingException | IllegalArgumentException ex) {
+    /**
+     * Get the 2FA secret to store for a scanned QR code. For an otpauth URI
+     * with the usual settings (SHA1, 6 digits, 30 seconds) only the key is
+     * kept, the same key that services show for manual setup.
+     *
+     * @return null if the text is not a valid 2FA secret.
+     */
+    public static String getSecretToStore(String text) {
+        Totp totp = parse(text);
+        if (totp == null) {
             return null;
+        }
+
+        String trimmed = text.trim();
+        OtpAuthUri uri = OtpAuthUri.parse(trimmed);
+        if (uri != null && totp.algorithm.equals("HmacSHA1") &&
+            totp.digits == 6 && totp.period == 30) {
+            return uri.parameters.get("secret").trim();
+        }
+
+        return trimmed;
+    }
+
+    /**
+     * @return the service of an otpauth URI, e.g. "GitHub", or null.
+     */
+    public static String getIssuer(String text) {
+        OtpAuthUri uri = OtpAuthUri.parse(text);
+        if (uri == null) {
+            return null;
+        }
+
+        String issuer = uri.parameters.get("issuer");
+        if (issuer != null && issuer.trim().length() > 0) {
+            return issuer.trim();
+        }
+
+        // The label may start with the issuer, "Issuer:account"
+        int separator = uri.label.indexOf(':');
+        return separator > 0 ? uri.label.substring(0, separator).trim() : null;
+    }
+
+    /**
+     * @return the account of an otpauth URI, e.g. "alice@example.com", or
+     *         null.
+     */
+    public static String getAccount(String text) {
+        OtpAuthUri uri = OtpAuthUri.parse(text);
+        if (uri == null) {
+            return null;
+        }
+
+        int separator = uri.label.indexOf(':');
+        String account = uri.label.substring(separator + 1).trim();
+        return account.length() > 0 ? account : null;
+    }
+
+    /**
+     * The decoded parts of an otpauth://totp/LABEL?PARAMETERS URI, see
+     * https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+     */
+    private static class OtpAuthUri {
+        private static final String PREFIX = "otpauth://totp/";
+
+        final String label;
+        final Map<String, String> parameters;  // By lower case name
+
+        private OtpAuthUri(String label, Map<String, String> parameters) {
+            this.label = label;
+            this.parameters = parameters;
+        }
+
+        /**
+         * @return null if the text is not a valid otpauth://totp/ URI.
+         */
+        static OtpAuthUri parse(String text) {
+            if (text == null) {
+                return null;
+            }
+
+            String uri = text.trim();
+            if (!uri.regionMatches(true, 0, PREFIX, 0, PREFIX.length())) {
+                return null;
+            }
+
+            int query = uri.indexOf('?');
+            if (query < 0) {
+                query = uri.length();
+            }
+
+            // A '+' in the label is not a space, e.g. "alice+2fa@example.com"
+            String label = decode(uri.substring(PREFIX.length(), query).replace("+", "%2B"));
+            if (label == null) {
+                return null;
+            }
+
+            Map<String, String> parameters = new HashMap<String, String>();
+            if (query < uri.length()) {
+                for (String parameter : uri.substring(query + 1).split("&")) {
+                    int separator = parameter.indexOf('=');
+                    if (separator < 0) {
+                        continue;
+                    }
+
+                    String value = decode(parameter.substring(separator + 1));
+                    if (value == null) {
+                        return null;
+                    }
+
+                    parameters.put(parameter.substring(0, separator).toLowerCase(Locale.US),
+                                   value);
+                }
+            }
+
+            return new OtpAuthUri(label, parameters);
+        }
+
+        private static String decode(String value) {
+            try {
+                return URLDecoder.decode(value, "UTF-8");
+            } catch (UnsupportedEncodingException | IllegalArgumentException ex) {
+                return null;
+            }
         }
     }
 

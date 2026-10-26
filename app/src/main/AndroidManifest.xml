@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:tools="http://schemas.android.com/tools"
       android:installLocation="auto">
 
     <supports-screens
@@ -9,6 +10,13 @@
         android:anyDensity="true"/>
 
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Only for scanning QR codes, asked for when the scanner is opened -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <!-- Declared by androidx.media3, which CameraX depends on. Nothing in
+         the app reads the network state, and it has no network access. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"
+                     tools:node="remove" />
 
     <!-- No cloud backup of the database: it would be a copy outside the
          device that only the master password protects. Encrypted exports
@@ -35,6 +43,9 @@
 
         <activity android:label="@string/totp_list_title"
                   android:name=".TotpListActivity"/>
+
+        <activity android:label="@string/scan_qr_code"
+                  android:name=".ScanActivity"/>
 
         <activity android:label="@string/about_title"
                   android:name=".AboutActivity"

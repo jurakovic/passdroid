@@ -132,6 +132,16 @@
         android:tint="?android:attr/textColorSecondary"
         android:src="@drawable/ic_visibility"
         android:contentDescription="@string/show_password"/>
+
+      <!-- See QrScan -->
+      <ImageButton
+        android:id="@+id/totp_scan"
+        android:layout_width="48dip"
+        android:layout_height="48dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_qr_scan"
+        android:contentDescription="@string/scan_qr_code"/>
     </LinearLayout>
 
     <TextView

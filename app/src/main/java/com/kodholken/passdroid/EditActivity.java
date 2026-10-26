@@ -42,6 +42,7 @@ public class EditActivity extends SherlockTimeoutActivity {
     private EditText note;
     private EditText url;
     private DateField date;
+    private QrScan qrScan;
 
     private Intent generateIntent;
     private long passwordId;
@@ -70,6 +71,7 @@ public class EditActivity extends SherlockTimeoutActivity {
         EditText totp = (EditText) findViewById(R.id.totp);
         totp.setText(extras.getString("totp"));
         new PasswordToggle(totp, (ImageButton) findViewById(R.id.totp_toggle), false);
+        qrScan = new QrScan(this, findViewById(R.id.totp_scan));
         
         String value;
         
@@ -181,6 +183,10 @@ public class EditActivity extends SherlockTimeoutActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         //super.onActivityResult(requestCode, resultCode, data);
+        if (qrScan.onActivityResult(requestCode, resultCode, data)) {
+            return;
+        }
+
         if (resultCode == 1) {
             this.password.setText(GeneratePasswordActivity.takeGeneratedPassword());
         }

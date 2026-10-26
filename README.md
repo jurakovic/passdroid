@@ -58,8 +58,8 @@ on in Settings.
 - After Passdroid++ has been in the background for **5 seconds**. You can
   choose 5 or 30 seconds, 1 or 5 minutes, or turn "Log out on close" off.
 - **When the screen turns off** (a setting, on by default).
-- While the system file picker is open for Passdroid++, you get at least 2
-  minutes.
+- While the system file picker or image picker is open for Passdroid++, you
+  get at least 2 minutes.
 - Logging out forgets the key and everything that was decrypted.
 
 ### Clipboard
@@ -81,8 +81,13 @@ on in Settings.
   all entries, with a bar that shows how long they are valid. A tap copies a
   code, a long press opens the entry. Like the list, it shows the username
   or email next to the system unless "Display username" is off.
+- **Scan a setup QR code** with the camera, or read it from an image such as
+  a screenshot. Empty system, email and username fields are filled in from
+  the QR code. The camera permission is asked for when the scanner is first
+  opened.
 - SHA-1, SHA-256 and SHA-512, 6 to 8 digits and any period are supported.
-  Counter-based codes (HOTP) are not.
+  Counter-based codes (HOTP) and the QR codes that authenticator apps export
+  accounts with are not.
 
 ### Password generator
 
@@ -113,8 +118,8 @@ on in Settings.
 
 ### Privacy
 
-- **No internet permission.** The only permission is biometrics, for
-  fingerprint unlock.
+- **No internet permission.** The only permissions are the camera, for
+  scanning QR codes, and biometrics, for fingerprint unlock.
 - **Android backup is off**, so the database is not copied to the cloud.
   Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens
@@ -126,7 +131,8 @@ on in Settings.
 
 ## Installing
 
-- Android 7.0 or later. Fingerprint unlock needs Android 9 or later.
+- Android 7.0 or later. Fingerprint unlock needs Android 9 or later. A camera
+  is optional.
 - Passdroid++ is not on Google Play. Download `passdroid-<version>.apk` from
   the [releases](https://github.com/jurakovic/passdroid/releases) and open it
   on the phone. The first time, Android asks you to allow installing apps
@@ -197,7 +203,8 @@ of Passdroid++.
 
 - Fingerprint unlock.
 - Email, 2FA secret and date fields.
-- 2FA codes on the entry and on their own screen.
+- 2FA codes on the entry and on their own screen, and scanning of setup QR
+  codes.
 - Search also matches the username and the email, not only the system.
 - Dark theme and a theme setting.
 - Copy values with a tap, and an eye button for the password and the 2FA
@@ -245,4 +252,5 @@ Passdroid++ is free software under the GNU General Public License, version 3
 or later, see [LICENSE.TXT](LICENSE.TXT). Copyright (C) 2009-2019 Magnus
 Eriksson, and the contributors of Passdroid.
 
-The application icon is by VisualPharm.
+It uses ZXing and CameraX (Apache License 2.0). The application icon is by
+VisualPharm.

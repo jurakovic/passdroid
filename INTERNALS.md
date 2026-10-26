@@ -40,15 +40,19 @@ releasing.
 
 - A single-module Android app in **Java**, on the plain platform classes
   (`Activity`, `ListActivity`, `PreferenceActivity`, `SQLiteOpenHelper`). No
-  AndroidX, no dependency injection, no Kotlin.
+  AndroidX except CameraX for the QR scanner, and the AndroidX libraries it
+  needs. No dependency injection, no Kotlin in the app code.
 - `minSdk` 24 (Android 7.0), `compileSdk` and `targetSdk` 37 (Android 17).
-- No dependencies. Tests: JUnit 4 and BouncyCastle.
+- Dependencies: ZXing core (QR decoding), CameraX (camera preview and
+  frames). Tests: JUnit 4 and BouncyCastle.
 - Java package and namespace `com.kodholken.passdroid`, the package of the
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
   next to the original or published under it.
-- The only permission is `USE_BIOMETRIC`. There is no `INTERNET`
-  permission. Everything stays on the device unless the user exports it.
+- The only permissions are `CAMERA` and `USE_BIOMETRIC`. There is no
+  `INTERNET` permission, and the manifest removes `ACCESS_NETWORK_STATE`,
+  which `androidx.media3`, a dependency of CameraX, declares. Everything
+  stays on the device unless the user exports it.
 
 ## Building
 
@@ -73,15 +77,21 @@ Point `ANDROID_HOME` or `sdk.dir` in `local.properties` to the SDK.
     own format version, see [Database](#database) and [XML](#xml).
   - `versionCode` must be a whole number from 1 to 2,100,000,000 (the Google
     Play limit). Android doesn't install an update with a lower one.
+- **Release builds are shrunk with R8** (`minifyEnabled`,
+  `shrinkResources`) but not obfuscated (`-dontobfuscate` in
+  `proguard-rules.txt`), so stack traces stay readable. Without shrinking,
+  CameraX and the Kotlin runtime it brings would make the APK about 4 MB
+  larger.
 - `unitTests.returnDefaultValues = true`, since `FileImporter` logs through
   `android.util.Log`, which is a stub in local unit tests.
 
 The "Build" workflow, `.github/workflows/build.yml`, runs on every push and
 pull request. It installs platform `android-37.0` and build tools 36.0.0,
 runs `testDebugUnitTest lintDebug assembleDebug assembleRelease` with the
-default version, and uploads the debug APK. The debug APK is signed with a
-debug key generated for each run, so the debug APKs of different runs can't
-be installed over each other. Releases are made with the "Publish" workflow,
+default version, and uploads the debug APK. The release build is there to
+check that R8 keeps what the app needs. The debug APK is signed with a debug
+key generated for each run, so the debug APKs of different runs can't be
+installed over each other. Releases are made with the "Publish" workflow,
 see [Releasing](#releasing).
 
 ## Source layout
@@ -98,7 +108,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
-| 2FA | `Totp`, `TotpListActivity` |
+| 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
@@ -180,11 +190,11 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
   passed**. The alarm is inexact, and since Android 14 broadcasts are held
   back while the app is cached, so the check on return is what actually
   enforces the timeout.
-- While the system file picker is open for the app,
-  `setExtendedTimeout(true)` makes the delay at least 2 minutes. The
-  activity that started the picker calls `clearTimeoutTimer()` itself in
-  `onActivityResult()`, which runs before `onResume()`, and finishes if the
-  session ended.
+- While the system file or image picker, or the camera permission dialog,
+  is open for the app, `setExtendedTimeout(true)` makes the delay at least 2
+  minutes. The activity that started the picker calls `clearTimeoutTimer()`
+  itself in `onActivityResult()`, which runs before `onResume()`, and
+  finishes if the session ended.
 - A login clears a timer and a pause time left from before it, so the login
   isn't undone right away.
 
@@ -208,9 +218,10 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 ### Background work
 
 `Utils.runWithProgress()` runs slow work (key derivation, an import with a
-password) in a plain thread behind a non-cancelable progress dialog, and the
-completion on the UI thread, unless the activity has been destroyed or is
-finishing. Screens guard against starting the same work twice with a flag.
+password, reading a QR code from an image) in a plain thread behind a
+non-cancelable progress dialog, and the completion on the UI thread, unless
+the activity has been destroyed or is finishing. Screens guard against
+starting the same work twice with a flag.
 
 ## Master key
 
@@ -569,12 +580,39 @@ inside the elements may contain the same text.
 - a base32 key as services show it for manual setup. Spaces, dashes, `=`
   padding and case are ignored. SHA-1, 6 digits, 30 seconds;
 - an `otpauth://totp/<label>?secret=...` URI with the optional `algorithm`
-  (SHA1, SHA256, SHA512), `digits` (6 to 8) and `period` parameters.
+  (SHA1, SHA256, SHA512), `digits` (6 to 8), `period` and `issuer`
+  parameters.
 
 `otpauth://hotp/` (counter-based) URIs are rejected.
 
 `getCode(time)` implements RFC 6238 on top of the RFC 4226 dynamic
 truncation, and is tested against the RFC 6238 test vectors.
+
+### Storing a scanned secret
+
+`Totp.getSecretToStore()`: for a URI with the default parameters only the
+base32 key is stored, the same text the user would type; otherwise the whole
+URI, so the parameters are kept. `QrScan` fills empty system, email (if the
+account contains `@`) or username fields from the issuer and account of the
+URI. QR codes without a 2FA secret are rejected, with a specific message for
+the export codes of authenticator apps (`otpauth-migration://`).
+
+### Scanning
+
+- **Camera** (`ScanActivity`): CameraX preview plus `ImageAnalysis` at about
+  1280×720 with `STRATEGY_KEEP_ONLY_LATEST`. The Y (brightness) plane of each
+  frame is copied row by row (rows may be padded) and decoded with ZXing. A
+  QR code without a 2FA secret only shows a hint, and scanning goes on.
+  CameraX needs a `LifecycleOwner`; the activity implements it itself so that
+  it keeps the session handling of `TimeoutActivity`. The camera permission
+  is requested when the scanner opens.
+- **Image** (`QrScan`): the photo picker (`ACTION_PICK_IMAGES`) on Android 13
+  and later, otherwise `ACTION_OPEN_DOCUMENT` for images. The image is
+  decoded in a background thread, scaled down if it is larger than 2500
+  pixels.
+- `QrDecoder` uses ZXing's `QRCodeReader` with `TRY_HARDER` and a
+  `HybridBinarizer`, and tries the inverted image when nothing is found, for
+  light on dark codes.
 
 ### 2FA codes screen
 
@@ -637,7 +675,7 @@ Behavior that depends on the Android version, and where it is handled:
 | 10 | No clipboard reads in the background | `ClipboardClearReceiver` |
 | 11 | `BIOMETRIC_STRONG`, `setUserAuthenticationParameters()` | `BiometricUnlock` |
 | 12 | Immutable `PendingIntent`s, exported launcher activity | `Session`, `ClipboardClearReceiver`, manifest |
-| 13 | `RECEIVER_NOT_EXPORTED`, sensitive clips, back callbacks | `Utils.registerNotExportedReceiver()`, `Utils`, activities |
+| 13 | `RECEIVER_NOT_EXPORTED`, photo picker, sensitive clips, back callbacks | `Utils.registerNotExportedReceiver()`, `QrScan`, `Utils`, activities |
 | 14 | Held-back broadcasts for cached apps, `accessibilityDataSensitive` | `Session.clearTimeoutTimer()`, layouts |
 | 15 | Edge-to-edge windows | `Utils.applySystemBarInsets()` |
 | 16 | No `onBackPressed()` for apps that target it | `OnBackInvokedCallback` |
@@ -837,7 +875,9 @@ Android 9 and later, off by default.
 
 #### Android integration
 
-- Permissions: `USE_BIOMETRIC`. **No `INTERNET`.**
+- Permissions: `USE_BIOMETRIC` and `CAMERA`, which is asked for when the QR
+  scanner is first opened. **No `INTERNET`.** The manifest removes
+  `ACCESS_NETWORK_STATE`, which a library declares.
 - Only the launcher activity is exported. The receivers are not exported,
   and the timeout alarm is an immutable intent for the app itself.
 - **Android backup is off** (`allowBackup="false"`). Encrypted exports are
@@ -953,14 +993,15 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
-| `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets |
+| `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account |
+| `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the
 default provider reads and writes what the BouncyCastle provider wrote. There
-are no instrumented tests; screens, the Keystore and the clipboard are only
-tested by hand, see [Manual tests](#manual-tests).
+are no instrumented tests; screens, the Keystore, the camera and the
+clipboard are only tested by hand, see [Manual tests](#manual-tests).
 
 Lint runs in CI (`lintDebug`) and must have no errors.
 
@@ -979,6 +1020,7 @@ release:
   also while searching.
 - Open the search: the field fills the action bar.
 - Open the 2FA codes screen, with "Display username" on and off.
+- Scan a setup QR code with the camera and from a screenshot.
 - Edit an entry, clear the system name and save: it is refused.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
   file again.
