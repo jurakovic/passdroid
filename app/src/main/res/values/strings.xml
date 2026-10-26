@@ -163,6 +163,7 @@ The file %s is encrypted.</string>
 <!-- Seconds until the 2FA code changes -->
 <string name="totp_seconds_left">%d s</string>
 <string name="totp_code_copied">2FA code copied</string>
+<string name="copied">Copied to clipboard</string>
 <string name="copy_totp_secret">Copy the 2FA secret to clipboard?</string>
 <string name="date">Date</string>
 <string name="date_not_set">Not set</string>

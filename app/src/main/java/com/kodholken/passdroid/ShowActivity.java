@@ -216,12 +216,24 @@ public class ShowActivity extends SherlockTimeoutActivity {
     }
 
     /**
-     * Set up a clickable password and 2FA secret. When clicked the user will
-     * be prompted to choose if the value should be copied to the clipboard.
-     * This also works while they are hidden. A click on the 2FA code copies
-     * it right away since it is only valid for a short time.
+     * Set up copying the values to the clipboard with a click. The password
+     * and the 2FA secret are copied after a confirmation, which also works
+     * while they are hidden. The other values are copied right away, except
+     * the URL, which opens in the browser, and the date.
      */
     private void setupClipboardActions() {
+        OnClickListener copyText = new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Utils.copyToClipboard(ShowActivity.this,
+                                      ((TextView) v).getText().toString());
+            }
+        };
+
+        for (int id : new int [] { R.id.system, R.id.email, R.id.username, R.id.note }) {
+            findViewById(id).setOnClickListener(copyText);
+        }
+
         findViewById(R.id.password).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {

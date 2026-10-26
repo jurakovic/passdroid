@@ -95,7 +95,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
 | Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField` |
-| Clipboard | `Utils.copyPasswordToClipboard()`, `ClipboardClearReceiver` |
+| Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
 | 2FA | `Totp` |
@@ -379,9 +379,10 @@ Screens pass the decrypted values of an entry in intent extras.
 - **`ShowActivity`**: shows the values it gets in the intent, and after an
   edit the values the edit screen returns. The password and the 2FA secret
   are shown with `PasswordToggle`: hidden as asterisks until the eye button
-  is pressed. A tap on them asks whether to copy them, also while they are
-  hidden. A `Totp` generator shows the live code of the 2FA secret,
-  refreshed every second, and a tap copies the code.
+  is pressed. A `Totp` generator shows the live code of the 2FA secret,
+  refreshed every second. Taps on the system, email, username and note copy
+  them as plain text, and a tap on the code copies it; the password and the
+  secret ask first, also while they are hidden.
 - **`EditActivity`**: gets the values in the intent, encrypts all fields on
   save, updates the row and returns the saved values. The system name is
   required, as on `AddActivity`.
@@ -403,6 +404,9 @@ Screens pass the decrypted values of an entry in intent extras.
     `ELAPSED_REALTIME` alarm with an immutable `PendingIntent` to the
     manifest receiver (not exported), so it fires even if the process was
     frozen or killed.
+- **Other values** (system, username, email, note) go through
+  `Utils.copyToClipboard()` with the label `"text"`, and cancel a pending
+  clear: the user has copied something else.
 - `ClipboardClearReceiver.clear()` runs from the alarm and from the screen
   off listener:
   1. cancels the alarm and resets the flag;

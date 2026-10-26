@@ -40,6 +40,7 @@ import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
+import android.widget.Toast;
 
 public class Utils {
     public static void alertDialog(Context context, String title, 
@@ -120,6 +121,24 @@ public class Utils {
         clipboard.setPrimaryClip(clip);
         Session.getInstance().setPasswordInClipboard(true);
         ClipboardClearReceiver.schedule(context);
+    }
+
+    /**
+     * Copy a value that is not secret to the clipboard, e.g. a username.
+     */
+    public static void copyToClipboard(Context context, String text) {
+        ClipboardManager clipboard =
+            (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText("text", text));
+
+        // A password copied before is no longer in the clipboard
+        Session.getInstance().setPasswordInClipboard(false);
+        ClipboardClearReceiver.cancel(context);
+
+        // Android 13 and later confirm copying to the clipboard themselves
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
