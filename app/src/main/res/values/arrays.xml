@@ -58,4 +58,13 @@
 	  <item>normal</item>
 	  <item>large</item>
 	</string-array>
+
+	<!-- See PasswordStrength -->
+	<string-array name="strength_ratings">
+	  <item>very weak</item>
+	  <item>weak</item>
+	  <item>fair</item>
+	  <item>good</item>
+	  <item>excellent</item>
+	</string-array>
 </resources>

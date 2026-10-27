@@ -98,7 +98,7 @@ on in Settings.
 - Letters and digits, letters only, digits only, or letters, digits and
   symbols, up to 99 characters. The length and the characters are
   remembered. The default is 16 letters and digits.
-- A bar shows the strength.
+- The strength is shown in bits, rated from "very weak" to "excellent".
 
 ### Import and export
 
@@ -219,6 +219,7 @@ of Passdroid++.
   secret.
 - Settings for the logout delay and for logging out when the screen turns
   off.
+- Strength rating in the password generator.
 - Settings are included in exports.
 
 ### Bugs fixed from 2.3

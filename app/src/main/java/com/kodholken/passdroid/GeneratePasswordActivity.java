@@ -26,8 +26,6 @@ import java.util.Random;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.GradientDrawable.Orientation;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.MotionEvent;
@@ -43,6 +41,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 public class GeneratePasswordActivity extends TimeoutActivity {
     private static final String passwordLengthKey = "passwordLength";
@@ -57,6 +56,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
     private ImageButton decButton;
     private Spinner spinner;
     private ImageView strengthImage;
+    private TextView strengthText;
     private boolean displayPassword;
 
     private static final int MAX_PASSWORD_LENGTH = 99;
@@ -92,13 +92,23 @@ public class GeneratePasswordActivity extends TimeoutActivity {
         updateStrength();
     }
 
+    // By PasswordStrength rating
+    private static final int [] STRENGTH_COLORS = {
+        R.color.strength_very_weak, R.color.strength_weak,
+        R.color.strength_fair, R.color.strength_good,
+        R.color.strength_excellent
+    };
+
     private void updateStrength() {
         int length = Integer.parseInt(lengthField.getText().toString());
         String charset = getCharset(spinner.getSelectedItemPosition());
 
-        int strength = (int) ((Math.log(charset.length()) / Math.log(2)) * length);
-        //LinearGradient strengthMeter = new LinearGradient(0, 0, 50, 10, new int[] { 0x70ff0000, 0x70ffff00 }, null, Shader.TileMode.CLAMP);
-        GradientDrawable strengthMeter = new GradientDrawable(Orientation.LEFT_RIGHT, new int[] { 0x90ff0000, 0x90ffff00, 0x9000ff00 });
+        int bits = PasswordStrength.getBits(length, charset.length());
+        int rating = PasswordStrength.getRating(bits);
+        strengthText.setText(getResources().getQuantityString(
+                R.plurals.strength_value, bits,
+                getResources().getStringArray(R.array.strength_ratings)[rating],
+                bits));
 
         ViewGroup vg = (ViewGroup) findViewById(R.id.layout_id);
 
@@ -112,28 +122,20 @@ public class GeneratePasswordActivity extends TimeoutActivity {
             return;
         }
 
-        strengthMeter.setSize(layoutWidth, 10);
-
-        Bitmap b = createStrengthBitmap(strength / 80.0, layoutWidth);
+        // Full for an excellent password
+        Bitmap b = createStrengthBitmap((double) bits / PasswordStrength.EXCELLENT_BITS,
+                                        getColor(STRENGTH_COLORS[rating]),
+                                        layoutWidth);
         strengthImage.setImageBitmap(b);
     }
 
-    private Bitmap createStrengthBitmap(double strength, int width) {
+    private Bitmap createStrengthBitmap(double strength, int color, int width) {
         Bitmap bm = Bitmap.createBitmap(width, 10, Bitmap.Config.ARGB_8888);
 
-        int color = 0xffffffff;
         int scaleColor = 0xff000000;
 
         if (strength > 1.0) {
             strength = 1.0;
-        }
-
-        if (strength < 0.5) {
-            color = 0xffff0000;
-            color += (int) (255 * (2.0 * strength)) << 8;
-        } else {
-            color = 0xff00ff00;
-            color += (int) (255 * (1.0 - 2.0 * strength)) << 16;
         }
 
         bm.setPixel(0, 3, scaleColor);
@@ -172,6 +174,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
 
     private void setupStrengthImage() {
         strengthImage = (ImageView) findViewById(R.id.strength_meter);
+        strengthText = (TextView) findViewById(R.id.strength_text);
     }
 
     private void setupSpinner() {

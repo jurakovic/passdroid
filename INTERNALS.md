@@ -109,14 +109,14 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
-| Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
+| Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
 generator), `res/values/arrays.xml` (setting values, generator character
-sets), `assets/fonts/` (Roboto Mono and its license).
+sets, strength ratings), `assets/fonts/` (Roboto Mono and its license).
 
 Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 [Tests](#tests).
@@ -250,8 +250,8 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
   `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder. On the setup
   and change screens `PasswordLengthHint` shows the minimum below the field
   and counts the missing characters while typing. There is no strength
-  meter: the generator's assumes random characters, and a typed password
-  like `Password1234!` would look strong.
+  meter: `PasswordStrength` assumes random characters and would rate a typed
+  password like `Password1234!` as excellent.
 
 ### Legacy format
 
@@ -670,7 +670,10 @@ is the system, followed by the username (or the email) in parentheses if
   (79). The length is 1 to 99, 16 by default. The length and the set are
   stored in the preferences `passwordLength` and `passwordCharset` when a
   password is generated.
-- **Strength**: a bar for length × log₂(set size) bits, full at 80 bits.
+- **Strength**: `PasswordStrength.getBits()` = ⌊length × log₂(set size)⌋,
+  rated very weak below 40 bits, weak from 40, fair from 65, good from 75,
+  excellent from 100. The bar is full at 100 bits. The formula is only
+  right for random passwords, so the meter is only shown in the generator.
 - Opened from the add or edit screen, the result is handed back through the
   static `takeGeneratedPassword()`, which returns the password once and
   forgets it. Opened from the list, it is shown on `DisplayPasswordActivity`,
@@ -790,8 +793,8 @@ can try passwords offline, as fast as their hardware allows.
   "Change" button. The setup and change screens show the minimum below the
   field and count the missing characters.
 - There is no strength meter for the master password, since the
-  generator's estimate assumes random characters and would make a typed
-  password like `Password1234!` look strong.
+  generator's estimate assumes random characters and would rate a typed
+  password like `Password1234!` as excellent.
 
 Rough strength: one high-end GPU tries in the order of 10,000–20,000 master
 passwords per second against this derivation. 8 random lowercase letters
@@ -936,6 +939,12 @@ Android 9 and later, off by default.
 - `SecureRandom`, every character chosen uniformly.
 - Default **16 characters** of letters and digits, about 95 bits. The length
   and the characters chosen last are remembered.
+- Strength meter: bits = length × log₂(characters), rated very weak below
+  40, weak from 40, fair from 65, good from 75, excellent from 100 bits. The
+  bar is full at 100. About 80 bits can't be found by trying, even if a
+  service stores the password poorly; 128 bits can't be found at all. The
+  formula is only right for random passwords, which is why the meter is
+  only in the generator.
 
 #### Android integration
 
@@ -1018,6 +1027,8 @@ Not done, in rough order of value:
    close", the screen off logout and the clipboard clearing, without saying
    which settings changed. It could keep the current values of those, or
    list the changes and ask.
+5. Optionally a default generator length of 17, which rates excellent
+   instead of good.
 
 Limitations that are not about security are listed in
 [Known limitations](#known-limitations).
@@ -1067,6 +1078,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
+| `PasswordStrengthTest` | Bits and ratings |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
@@ -1103,7 +1115,7 @@ release:
   refused. Log in with an existing short one: the reminder appears.
 - Turn fingerprint unlock on and off, log in with it.
 - Open the password generator in portrait and landscape and change the
-  length and the characters: the bar follows.
+  length and the characters: the rating and the bar follow.
 - The keyboard offers no suggestions learned from notes, and no autofill
   service offers to save the master password.
 - Install the new APK over the previous release: the entries are there
