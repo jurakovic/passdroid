@@ -74,6 +74,37 @@ public class PasswordModel {
         return passwords[index];
     }
 
+    /**
+     * @return the entry with an id, or null if there is none, e.g. because
+     *         the user has been logged out.
+     */
+    public PasswordEntry getById(long id) {
+        for (PasswordEntry entry : getPasswords()) {
+            if (entry.getId() == id) {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return copies of the entries with all fields decrypted, e.g. for an
+     *         export. The model only keeps the fields that the list shows
+     *         decrypted, see PasswordEntry.decryptListFields().
+     */
+    public PasswordEntry[] getDecryptedPasswords() {
+        PasswordEntry [] entries = getPasswords();
+        byte [] key = Session.getInstance().getKey();
+
+        PasswordEntry [] copies = new PasswordEntry[entries.length];
+        for (int i = 0; i < entries.length; i++) {
+            copies[i] = entries[i].decryptedCopy(key);
+        }
+
+        return copies;
+    }
+
     public boolean setPasswords(PasswordEntry [] passwords) {
         // The user has been logged out
         byte [] key = Session.getInstance().getKey();
@@ -96,7 +127,6 @@ public class PasswordModel {
                 entry.setId(id);
             }
             db.setTransactionSuccessful();
-            this.passwords = passwords;
             res = true;
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -106,6 +136,9 @@ public class PasswordModel {
         db.close();
 
         if (res) {
+            // Loaded again with only the fields the list shows decrypted
+            this.passwords = null;
+            loaded = false;
             notifyListeners();
         }
 
@@ -151,7 +184,7 @@ public class PasswordModel {
         while (cur.moveToNext()) {
             passwords[i] = PasswordData.readEntry(cur);
 
-            passwords[i].decryptAll(Session.getInstance().getKey());
+            passwords[i].decryptListFields(Session.getInstance().getKey());
 
             i++;
         }

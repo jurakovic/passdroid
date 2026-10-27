@@ -393,9 +393,8 @@ PasswordModelListener {
                     int position, long id) {
 
                 // Get the entry from the adapter since the list may be filtered
-                final String password =
-                    ((PasswordEntry) passwordAdapter.getItem(position))
-                    .getDecPassword();
+                final PasswordEntry entry =
+                    (PasswordEntry) passwordAdapter.getItem(position);
 
                 final AlertDialog alertDialog = new AlertDialog.Builder(context).create();
                 alertDialog.setTitle("Copy to clipboard");
@@ -404,7 +403,8 @@ PasswordModelListener {
                 alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                         new DialogInterface.OnClickListener() { 
                     public void onClick(DialogInterface dialog, int which) {
-                        Utils.copyPasswordToClipboard(context, password);
+                        Utils.copyPasswordToClipboard(context,
+                                entry.decryptPassword(Session.getInstance().getKey()));
                     }
                 });
 

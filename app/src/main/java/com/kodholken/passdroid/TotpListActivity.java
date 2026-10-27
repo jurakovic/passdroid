@@ -106,20 +106,26 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         super.onPause();
     }
 
+    /**
+     * Load the entries with a 2FA secret. The secrets are only decrypted while
+     * this activity is open, and only their code generators are kept.
+     */
     private void loadEntries() {
+        byte [] key = Session.getInstance().getKey();
         // The same setting as in the password list
         boolean showAccount = PreferenceManager.getDefaultSharedPreferences(this)
                 .getBoolean("display_username", true);
-        List<PasswordEntry> entries = new ArrayList<PasswordEntry>();
+        List<Code> codes = new ArrayList<Code>();
         for (PasswordEntry entry : PasswordModel.getInstance(this).getPasswords()) {
-            if (entry.getDecTotp() != null && entry.getDecTotp().length() > 0) {
-                entries.add(entry);
+            String secret = entry.decryptTotp(key);
+            if (secret != null && secret.length() > 0) {
+                codes.add(new Code(entry, Totp.parse(secret), showAccount));
             }
         }
 
-        adapter.setEntries(entries, showAccount);
-        emptyText.setVisibility(entries.isEmpty() ? View.VISIBLE : View.GONE);
-        timeBar.setVisibility(entries.isEmpty() ? View.INVISIBLE : View.VISIBLE);
+        adapter.setCodes(codes);
+        emptyText.setVisibility(codes.isEmpty() ? View.VISIBLE : View.GONE);
+        timeBar.setVisibility(codes.isEmpty() ? View.INVISIBLE : View.VISIBLE);
     }
 
     private static class Code {
@@ -131,9 +137,9 @@ public class TotpListActivity extends SherlockTimeoutActivity {
          * @param showAccount true to show the username, or the email if there
          *                    is none, after the system.
          */
-        Code(PasswordEntry entry, boolean showAccount) {
+        Code(PasswordEntry entry, Totp totp, boolean showAccount) {
             this.entry = entry;
-            totp = Totp.parse(entry.getDecTotp());
+            this.totp = totp;
 
             // The account tells entries of the same service apart
             String account = showAccount ? entry.getDecUsername() : null;
@@ -159,11 +165,8 @@ public class TotpListActivity extends SherlockTimeoutActivity {
             scale = FontSetting.getScale(context);
         }
 
-        void setEntries(List<PasswordEntry> entries, boolean showAccount) {
-            codes = new ArrayList<Code>();
-            for (PasswordEntry entry : entries) {
-                codes.add(new Code(entry, showAccount));
-            }
+        void setCodes(List<Code> codes) {
+            this.codes = codes;
             notifyDataSetChanged();
         }
 

@@ -109,6 +109,11 @@ public class Utils {
      * that the clipboard preview (Android 13 and later) does not show it.
      */
     public static void copyPasswordToClipboard(Context context, String password) {
+        // E.g. it could not be decrypted after a logout
+        if (password == null) {
+            return;
+        }
+
         ClipboardManager clipboard =
             (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
 

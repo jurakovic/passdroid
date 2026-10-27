@@ -363,8 +363,16 @@ the wrong key.
 
 `PasswordModel` is a process-wide singleton over the `data` table.
 
-- `getPasswords()` loads all rows on first use and decrypts **all fields**.
-  The entries are sorted by system (case-insensitive), then username.
+- `getPasswords()` loads all rows on first use and decrypts **only the list
+  fields**: system, username and email (`decryptListFields()`). The entries
+  are sorted by system (case-insensitive), then username.
+- The password, 2FA secret, note, URL and date stay encrypted in the
+  `PasswordEntry` objects. Screens decrypt them when needed with
+  `decryptPassword()` etc. and don't keep the result, except the screen that
+  shows them.
+- `getById()` finds an entry by its database id. `getDecryptedPasswords()`
+  returns fully decrypted copies for an export, which the caller drops
+  afterwards.
 - `setPasswords()` replaces **all** rows in one transaction, for an import.
   It encrypts the entries with the session key, and fails if the user has
   been logged out.
@@ -378,24 +386,29 @@ Screens that change entries write to the database directly and set
 
 ## Screens and data flow
 
-Screens pass the decrypted values of an entry in intent extras.
+Screens pass **only the entry id** in intents (`ShowActivity.EXTRA_ID`,
+`EditActivity.EXTRA_ID`) and look the entry up in `PasswordModel`, so no
+decrypted values go through the system in intents. Two intents carry a
+secret that isn't stored yet: the generated password to
+`DisplayPasswordActivity`, and the text of a scanned QR code from
+`ScanActivity`.
 
 - **`PasswordListActivity`**: `PasswordAdapter` filters by a lowercase
   substring of the system, username or email. The search field is an action
   view in the action bar (`collapsable_search.xml`). The action bar measures
   action views as `wrap_content`, so its root, `FullWidthLayout`, takes the
-  whole width it is offered. A long press asks whether to copy the password.
-  The entry is taken from the adapter, not the model, so the right one is
-  used while the list is filtered.
-- **`ShowActivity`**: shows the values it gets in the intent, and after an
-  edit the values the edit screen returns. The password and the 2FA secret
-  are shown with `PasswordToggle`: hidden as asterisks until the eye button
-  is pressed. A `Totp` generator shows the live code of the 2FA secret,
-  refreshed every second. Taps on the system, email, username and note copy
-  them as plain text, and a tap on the code copies it; the password and the
-  secret ask first, also while they are hidden.
-- **`EditActivity`**: gets the values in the intent, encrypts all fields on
-  save, updates the row and returns the saved values. The system name is
+  whole width it is offered. A long press asks whether to copy the password,
+  which is decrypted only on "Yes". The entry is taken from the adapter, not
+  the model, so the right one is used while the list is filtered.
+- **`ShowActivity`**: decrypts the note, URL and date for display, and the
+  2FA secret once into a `Totp` generator for the live code, refreshed every
+  second. The password and the 2FA secret are shown with `PasswordToggle` in
+  its "source" mode: hidden as `********` (so the length doesn't show), and
+  decrypted from the session key only while visible or when copied. Taps on
+  the system, email, username and note copy them as plain text; the password
+  and the secret ask first.
+- **`EditActivity`**: works on a fully decrypted copy (`decryptedCopy()`),
+  encrypts all fields again on save and updates the row. The system name is
   required, as on `AddActivity`.
 - **`AddActivity`**: inserts a new row. The date defaults to the current
   time.
@@ -554,9 +567,10 @@ always reads them.
 
 `FileExportActivity` asks for a file with `ACTION_CREATE_DOCUMENT` (the
 Storage Access Framework, no storage permission), opens it with mode `"wt"`
-so an existing file is truncated, and writes the XML of the entries of
-`PasswordModel`, encrypted or not. The stream is closed before success is
-reported, since some document providers only store the data then.
+so an existing file is truncated, and writes the XML of
+`PasswordModel.getDecryptedPasswords()`, encrypted or not. The stream is
+closed before success is reported, since some document providers only store
+the data then.
 
 ### Importing
 
@@ -631,12 +645,13 @@ the export codes of authenticator apps (`otpauth-migration://`).
 
 ### 2FA codes screen
 
-`TotpListActivity` lists the entries with a 2FA secret each time it is
-shown, with a `Totp` generator for each. A handler runs every 50 ms to move
-the bar for the 30 second period and rebinds the list once a second. Entries
-with another period show their own seconds left. A tap copies the code, a
-long press opens the entry. The title is the system, followed by the
-username (or the email) in parentheses if `display_username` is on.
+`TotpListActivity` decrypts the secrets of all entries each time it is
+shown and keeps only the `Totp` generators, which hold the decoded keys. A
+handler runs every 50 ms to move the bar for the 30 second period and
+rebinds the list once a second. Entries with another period show their own
+seconds left. A tap copies the code, a long press opens the entry. The title
+is the system, followed by the username (or the email) in parentheses if
+`display_username` is on.
 
 ## Password generator
 
@@ -856,13 +871,21 @@ Android 9 and later, off by default.
 
 #### Data in memory
 
-- All fields of all entries are decrypted when the entries are loaded, and
-  kept until the logout.
+- Only the **system, username and email** are decrypted when the entries are
+  loaded, for the list and its search.
+- The **password and the 2FA secret are decrypted only when they are shown
+  with the eye button or copied**, and dropped again. Hidden values are
+  shown as `********`, so their length is not shown either.
+- The note, URL and date are decrypted when an entry is opened. For the live
+  2FA code only the code generator is kept.
+- Screens pass entries by their id, so no decrypted values go through the
+  system process in intents.
 - The last generated password is forgotten once it has been used.
-- Closed password list screens are released, so their decrypted entries
+- Closed password list screens are released, so their decrypted list fields
   don't stay in memory after a logout.
 - Limits: the key is in memory while the user is logged in, and decrypted
-  Java strings can't be wiped.
+  Java strings can't be wiped. On-demand decryption limits how much is
+  decrypted at a time, not what could be decrypted.
 
 #### Clipboard
 
@@ -951,7 +974,8 @@ Trade-offs that were made on purpose:
   gives with no work and no risk to the vault.
 - **The key stays in the app's memory while the user is logged in**, instead
   of in the Android Keystore: every decryption would go through the
-  Keystore, a much larger change.
+  Keystore, a much larger change. On-demand decryption limits what is
+  decrypted at a time instead.
 - **Database fields are not authenticated.** Someone who can write the
   database could swap or alter values, but that needs root-level access to
   the app's storage, and backup is off. Part of the "vault format v2" in
@@ -960,6 +984,9 @@ Trade-offs that were made on purpose:
   choice, but needs a library and an amount of memory that fits old phones.
   With the 12 character minimum, PBKDF2 is adequate. Also part of the
   "vault format v2".
+- **Decrypted values are Java strings**, which can't be wiped from memory.
+  That can't be solved on Android; on-demand decryption keeps it to what is
+  shown or copied.
 
 ### Open items
 
@@ -1025,7 +1052,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 |---|---|
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
-| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
+| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code |
 | `SessionTest` | Both kinds of logout wipe the key |
@@ -1075,7 +1102,8 @@ release:
 ### Adding a field to entries
 
 1. `PasswordEntry`: the `enc`/`dec` fields with getters and setters,
-   `decryptAll()`, `encryptAll()`.
+   `decryptAll()`, `encryptAll()`, `decryptedCopy()`, and a `decryptX()`
+   method if it is decrypted on demand.
 2. `PasswordData`: `COLUMNS`, `onCreate()`, `readEntry()`, `getValues()`.
 3. `Constants.DBVERSION` + 1, and an `ALTER TABLE` step in
    `DbMigration.handleDatabaseUpgrade()`.
@@ -1084,8 +1112,8 @@ release:
    Old files must still import without it. Increase
    `FileExporter.FORMAT_VERSION`, so earlier versions refuse the files
    instead of leaving the field out.
-6. The add, edit and show layouts and activities, the intent extras between
-   them, and `FontSetting` if it shows a value.
+6. The add, edit and show layouts and activities, `FontSetting` if it shows
+   a value.
 7. Tests in `FileExportImportTest` and `PasswordEntryTest`.
 
 ### Adding a setting

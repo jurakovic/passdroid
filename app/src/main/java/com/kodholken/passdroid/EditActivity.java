@@ -36,6 +36,9 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 public class EditActivity extends SherlockTimeoutActivity {
+    // The id of the entry, see ShowActivity
+    public static final String EXTRA_ID = "id";
+
     private Button saveButton;
     private Button generateButton;
     private EditText password;
@@ -52,49 +55,51 @@ public class EditActivity extends SherlockTimeoutActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        passwordId = getIntent().getLongExtra(EXTRA_ID, -1);
+        PasswordEntry stored = PasswordModel.getInstance(this).getById(passwordId);
+        if (stored == null) {
+            // E.g. restored after the process was killed, without a login
+            finish();
+            return;
+        }
+        PasswordEntry entry = stored.decryptedCopy(Session.getInstance().getKey());
+
         setContentView(R.layout.add);
         FontSetting.apply(this, R.id.system, R.id.email, R.id.username,
                           R.id.password, R.id.totp, R.id.note, R.id.url,
                           R.id.date);
 
-        Bundle extras = getIntent().getExtras();
-
-        passwordId = extras.getLong("id");
-
-        ((TextView) findViewById(R.id.system)).setText(extras.getString("system"));
-        ((TextView) findViewById(R.id.email)).setText(extras.getString("email"));
-        ((TextView) findViewById(R.id.username)).setText(extras.getString("username"));
+        ((TextView) findViewById(R.id.system)).setText(entry.getDecSystem());
+        ((TextView) findViewById(R.id.email)).setText(entry.getDecEmail());
+        ((TextView) findViewById(R.id.username)).setText(entry.getDecUsername());
 
         password = (EditText) findViewById(R.id.password);
-        password.setText(extras.getString("password"));
+        password.setText(entry.getDecPassword());
         // The password is hidden until the user chooses to show it
         new PasswordToggle(password, (ImageButton) findViewById(R.id.password_toggle),
                            false);
 
         EditText totp = (EditText) findViewById(R.id.totp);
-        totp.setText(extras.getString("totp"));
+        totp.setText(entry.getDecTotp());
         new PasswordToggle(totp, (ImageButton) findViewById(R.id.totp_toggle), false);
         qrScan = new QrScan(this, findViewById(R.id.totp_scan));
         
-        String value;
-        
         note = (EditText) findViewById(R.id.note);
-        value = extras.getString("note");
-        if (value != null) {
-            note.setText(value);
+        if (entry.getDecNote() != null) {
+            note.setText(entry.getDecNote());
         }
-        
+
         url = (EditText) findViewById(R.id.url);
-        value = extras.getString("url");
-        if (value != null) {
-            url.setText(value);
+        if (entry.getDecUrl() != null) {
+            url.setText(entry.getDecUrl());
         }
 
         date = new DateField((EditText) findViewById(R.id.date),
                              findViewById(R.id.date_clear),
                              savedInstanceState != null ?
                                  savedInstanceState.getString(STATE_DATE) :
-                                 extras.getString("date"));
+                                 entry.getDecDate());
 
         saveButton = (Button) this.findViewById(R.id.save_button);
         saveButton.setOnClickListener(new OnClickListener() {
@@ -154,16 +159,7 @@ public class EditActivity extends SherlockTimeoutActivity {
         db.close();
 
         // ShowActivity shows the changes
-        Intent result = new Intent();
-        result.putExtra("system", system);
-        result.putExtra("email", email);
-        result.putExtra("username", username);
-        result.putExtra("password", password);
-        result.putExtra("totp", totp);
-        result.putExtra("note", note);
-        result.putExtra("url", url);
-        result.putExtra("date", date);
-        setResult(RESULT_OK, result);
+        setResult(RESULT_OK);
 
         finish();
     }

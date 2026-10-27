@@ -42,19 +42,35 @@ import android.widget.TextView;
 /**
  * Activity that displays a password entry and let the user choose to edit or
  * delete the entry.
+ *
+ * The password and the 2FA secret are only decrypted when they are shown or
+ * copied. The entry is passed by its id, so that no decrypted values are
+ * passed through the system in the intent.
  */
 public class ShowActivity extends SherlockTimeoutActivity {	
+    public static final String EXTRA_ID = "id";
+
     private static final int REQUEST_EDIT = 1;
 
-    private long passwordId;
-    private String system;
-    private String email;
-    private String username;
-    private String password;
-    private String totp;
-    private String note;
-    private String url;
-    private String date;
+    private PasswordEntry entry;  // With the fields of the list decrypted
+    private Totp totp;            // null if there is no valid 2FA secret
+    private boolean hasTotp;      // The entry has a 2FA secret, maybe invalid
+    private PasswordToggle passwordToggle;
+    private PasswordToggle totpToggle;
+
+    // Decrypt the password and the 2FA secret when they are shown or copied
+    private final PasswordToggle.Source password = new PasswordToggle.Source() {
+        @Override
+        public String get() {
+            return entry.decryptPassword(Session.getInstance().getKey());
+        }
+    };
+    private final PasswordToggle.Source totpSecret = new PasswordToggle.Source() {
+        @Override
+        public String get() {
+            return entry.decryptTotp(Session.getInstance().getKey());
+        }
+    };
 
     // Updates the 2FA code while the activity is in the foreground
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -71,10 +87,13 @@ public class ShowActivity extends SherlockTimeoutActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Bundle extras = getIntent().getExtras();
-
-        passwordId = extras.getLong("id");
-        readEntry(extras);
+        entry = PasswordModel.getInstance(this).getById(
+                getIntent().getLongExtra(EXTRA_ID, -1));
+        if (entry == null) {
+            // E.g. restored after the process was killed, without a login
+            finish();
+            return;
+        }
 
         this.setContentView(R.layout.show);
         FontSetting.apply(this, R.id.system, R.id.email, R.id.username,
@@ -82,12 +101,12 @@ public class ShowActivity extends SherlockTimeoutActivity {
                           R.id.url, R.id.date);
 
         // The password is hidden until the user chooses to show it
-        new PasswordToggle((TextView) findViewById(R.id.password),
-                           (ImageButton) findViewById(R.id.password_toggle),
-                           false);
-        new PasswordToggle((TextView) findViewById(R.id.totp),
-                           (ImageButton) findViewById(R.id.totp_toggle),
-                           false);
+        passwordToggle = new PasswordToggle(
+                (TextView) findViewById(R.id.password),
+                (ImageButton) findViewById(R.id.password_toggle), password);
+        totpToggle = new PasswordToggle(
+                (TextView) findViewById(R.id.totp),
+                (ImageButton) findViewById(R.id.totp_toggle), totpSecret);
 
         showEntry();
         setupClipboardActions();
@@ -98,7 +117,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
         super.onResume();
 
         // The activity finishes if the user has been logged out
-        if (!isFinishing() && totp != null && totp.length() > 0) {
+        if (!isFinishing() && hasTotp) {
             handler.post(codeUpdater);
         }
     }
@@ -109,29 +128,27 @@ public class ShowActivity extends SherlockTimeoutActivity {
         super.onPause();
     }
 
-    private void readEntry(Bundle extras) {
-        system = extras.getString("system");
-        email = extras.getString("email");
-        username = extras.getString("username");
-        password = extras.getString("password");
-        totp = extras.getString("totp");
-        note = extras.getString("note");
-        url = extras.getString("url");
-        date = extras.getString("date");
-    }
-
     private void showEntry() {
-        showField(R.id.system_title, R.id.system, system);
-        showField(R.id.email_title, R.id.email, email);
-        showField(R.id.username_title, R.id.username, username);
-        ((TextView) findViewById(R.id.password)).setText(password);
-        ((TextView) findViewById(R.id.totp)).setText(totp);
-        findViewById(R.id.totp_rows).setVisibility(
-                totp != null && totp.length() > 0 ? View.VISIBLE : View.GONE);
+        byte [] key = Session.getInstance().getKey();
+
+        showField(R.id.system_title, R.id.system, entry.getDecSystem());
+        showField(R.id.email_title, R.id.email, entry.getDecEmail());
+        showField(R.id.username_title, R.id.username, entry.getDecUsername());
+        passwordToggle.setVisible(false);
+
+        // Only the code generator is kept for the code, not the secret
+        String secret = entry.decryptTotp(key);
+        hasTotp = secret != null && secret.length() > 0;
+        totp = hasTotp ? Totp.parse(secret) : null;
+        totpToggle.setVisible(false);
+        findViewById(R.id.totp_rows).setVisibility(hasTotp ? View.VISIBLE :
+                                                             View.GONE);
         showTotpCode();
-        showField(R.id.note_title, R.id.note, note);
-        showField(R.id.url_title, R.id.url, url);
-        showField(R.id.date_title, R.id.date, DateField.format(this, date));
+
+        showField(R.id.note_title, R.id.note, entry.decryptNote(key));
+        showField(R.id.url_title, R.id.url, entry.decryptUrl(key));
+        showField(R.id.date_title, R.id.date,
+                  DateField.format(this, entry.decryptDate(key)));
     }
 
     /**
@@ -141,17 +158,16 @@ public class ShowActivity extends SherlockTimeoutActivity {
         TextView codeView = (TextView) findViewById(R.id.totp_code);
         TextView secondsView = (TextView) findViewById(R.id.totp_seconds_left);
 
-        Totp generator = Totp.parse(totp);
-        if (generator == null) {
+        if (totp == null) {
             codeView.setText(R.string.totp_invalid);
             secondsView.setVisibility(View.GONE);
             return;
         }
 
         long now = System.currentTimeMillis();
-        codeView.setText(Totp.format(generator.getCode(now)));
+        codeView.setText(Totp.format(totp.getCode(now)));
         secondsView.setText(getString(R.string.totp_seconds_left,
-                                      generator.getSecondsLeft(now)));
+                                      totp.getSecondsLeft(now)));
         secondsView.setVisibility(View.VISIBLE);
     }
 
@@ -171,10 +187,13 @@ public class ShowActivity extends SherlockTimeoutActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        // Show the saved changes
-        if (requestCode == REQUEST_EDIT && resultCode == RESULT_OK &&
-            data != null) {
-            readEntry(data.getExtras());
+        // Show the saved changes, the model loads them again
+        if (requestCode == REQUEST_EDIT && resultCode == RESULT_OK) {
+            entry = PasswordModel.getInstance(this).getById(entry.getId());
+            if (entry == null) {
+                finish();
+                return;
+            }
             showEntry();
         }
     }
@@ -243,7 +262,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
         findViewById(R.id.totp).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                confirmCopy(getString(R.string.copy_totp_secret), totp);
+                confirmCopy(getString(R.string.copy_totp_secret), totpSecret);
             }
         });
 
@@ -255,7 +274,10 @@ public class ShowActivity extends SherlockTimeoutActivity {
         });
     }
 
-    private void confirmCopy(String message, final String value) {
+    /**
+     * Ask before copying a value, which is decrypted only then.
+     */
+    private void confirmCopy(String message, final PasswordToggle.Source value) {
         final AlertDialog alertDialog = new AlertDialog.Builder(this).create();
         alertDialog.setTitle("Copy to clipboard");
         alertDialog.setMessage(message);
@@ -263,7 +285,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
         alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                 new DialogInterface.OnClickListener() { 
             public void onClick(DialogInterface dialog, int which) {
-                Utils.copyPasswordToClipboard(ShowActivity.this, value);
+                Utils.copyPasswordToClipboard(ShowActivity.this, value.get());
             }
         });
 
@@ -276,9 +298,8 @@ public class ShowActivity extends SherlockTimeoutActivity {
     }
 
     private void copyTotpCode() {
-        Totp generator = Totp.parse(totp);
-        if (generator != null) {
-            Utils.copyTotpCode(this, generator);
+        if (totp != null) {
+            Utils.copyTotpCode(this, totp);
         }
     }
 
@@ -287,29 +308,13 @@ public class ShowActivity extends SherlockTimeoutActivity {
      */
     public static Intent createIntent(Context context, PasswordEntry entry) {
         Intent i = new Intent(context, ShowActivity.class);
-        i.putExtra("id",       entry.getId());
-        i.putExtra("system",   entry.getDecSystem());
-        i.putExtra("email",    entry.getDecEmail());
-        i.putExtra("username", entry.getDecUsername());
-        i.putExtra("password", entry.getDecPassword());
-        i.putExtra("totp",     entry.getDecTotp());
-        i.putExtra("note",     entry.getDecNote());
-        i.putExtra("url",      entry.getDecUrl());
-        i.putExtra("date",     entry.getDecDate());
+        i.putExtra(EXTRA_ID, entry.getId());
         return i;
     }
 
     private void editPassword() {
         Intent i = new Intent(this, EditActivity.class);
-        i.putExtra("id", passwordId);
-        i.putExtra("system", system);
-        i.putExtra("email", email);
-        i.putExtra("username", username);
-        i.putExtra("password", password);
-        i.putExtra("totp", totp);
-        i.putExtra("note", note);
-        i.putExtra("url", url);
-        i.putExtra("date", date);
+        i.putExtra(EditActivity.EXTRA_ID, entry.getId());
 
         // Back returns here, saving returns here with the changes
         startActivityForResult(i, REQUEST_EDIT);
@@ -318,7 +323,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
     private void confirmDelete() {
         AlertDialog alertDialog = new AlertDialog.Builder(this).create();
         alertDialog.setTitle("Confirm delete");
-        alertDialog.setMessage("Are your sure you want to delete "+system+"?");
+        alertDialog.setMessage("Are your sure you want to delete "+entry.getDecSystem()+"?");
 
         alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                 new DialogInterface.OnClickListener() { 
@@ -342,7 +347,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
         SQLiteDatabase db = passwordData.getWritableDatabase();
 
         try {
-            db.delete("data", "id=" + passwordId, null);
+            db.delete("data", "id=" + entry.getId(), null);
         } catch (SQLException ex) {
             ex.printStackTrace();
         }

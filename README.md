@@ -191,7 +191,8 @@ of Passdroid++.
 - Master passwords need at least 12 characters. 2.3 accepted any, even an
   empty one.
 - Every logout, also the automatic ones, wipes the key and the decrypted
-  entries; 2.3 only did that for a logout from the menu.
+  entries; 2.3 only did that for a logout from the menu. Passwords and 2FA
+  secrets are only decrypted while they are shown or copied.
 - Copied passwords are removed from the clipboard after 45 seconds and are
   hidden in the clipboard preview. 2.3 only cleared the clipboard when the
   screen turned off.

@@ -1,6 +1,7 @@
 package com.kodholken.passdroid;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Provider;
@@ -130,5 +131,89 @@ public class PasswordEntryTest {
         entry.decryptAll(key);
 
         assertEquals("secret", entry.getDecPassword());
+    }
+
+    private static PasswordEntry encryptedEntry(byte [] key) {
+        PasswordEntry entry = new PasswordEntry();
+        entry.setId(42);
+        entry.setDecSystem("Mail");
+        entry.setDecEmail("alice@example.com");
+        entry.setDecUsername("alice");
+        entry.setDecPassword("secret");
+        entry.setDecTotp("JBSWY3DPEHPK3PXP");
+        entry.setDecNote("note");
+        entry.setDecUrl("https://example.com");
+        entry.setDecDate("2026-10-25T14:30");
+        entry.encryptAll(key);
+
+        // As read from the database
+        PasswordEntry stored = new PasswordEntry();
+        stored.setId(entry.getId());
+        stored.setEncSystem(entry.getEncSystem());
+        stored.setEncEmail(entry.getEncEmail());
+        stored.setEncUsername(entry.getEncUsername());
+        stored.setEncPassword(entry.getEncPassword());
+        stored.setEncTotp(entry.getEncTotp());
+        stored.setEncNote(entry.getEncNote());
+        stored.setEncUrl(entry.getEncUrl());
+        stored.setEncDate(entry.getEncDate());
+        return stored;
+    }
+
+    @Test
+    public void onlyListFieldsAreDecryptedWhenLoading() {
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = encryptedEntry(key);
+
+        entry.decryptListFields(key);
+
+        assertEquals("Mail", entry.getDecSystem());
+        assertEquals("alice@example.com", entry.getDecEmail());
+        assertEquals("alice", entry.getDecUsername());
+        assertNull(entry.getDecPassword());
+        assertNull(entry.getDecTotp());
+        assertNull(entry.getDecNote());
+        assertNull(entry.getDecUrl());
+        assertNull(entry.getDecDate());
+
+        // The others on demand, without keeping them
+        assertEquals("secret", entry.decryptPassword(key));
+        assertEquals("JBSWY3DPEHPK3PXP", entry.decryptTotp(key));
+        assertEquals("note", entry.decryptNote(key));
+        assertEquals("https://example.com", entry.decryptUrl(key));
+        assertEquals("2026-10-25T14:30", entry.decryptDate(key));
+        assertNull(entry.getDecPassword());
+    }
+
+    @Test
+    public void decryptedCopyHasAllFields() {
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = encryptedEntry(key);
+        entry.decryptListFields(key);
+
+        PasswordEntry copy = entry.decryptedCopy(key);
+
+        assertEquals(42, copy.getId());
+        assertEquals("Mail", copy.getDecSystem());
+        assertEquals("secret", copy.getDecPassword());
+        assertEquals("JBSWY3DPEHPK3PXP", copy.getDecTotp());
+        assertEquals("2026-10-25T14:30", copy.getDecDate());
+        assertNull(entry.getDecPassword());
+    }
+
+    @Test
+    public void fieldsOfOldEntriesAreNull() {
+        // Entries added before the email, 2FA secret and date existed
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = encryptedEntry(key);
+        entry.setEncEmail(null);
+        entry.setEncTotp(null);
+        entry.setEncDate(null);
+
+        entry.decryptListFields(key);
+
+        assertNull(entry.getDecEmail());
+        assertNull(entry.decryptTotp(key));
+        assertNull(entry.decryptDate(key));
     }
 }

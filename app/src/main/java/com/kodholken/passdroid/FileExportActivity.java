@@ -132,17 +132,17 @@ public class FileExportActivity extends SherlockTimeoutActivity {
                 if (MasterKey.isLegacy(record)) {
                     exporter.exportEncryptedLegacy(
                             Session.getInstance().getKey(),
-                            PasswordModel.getInstance(this).getPasswords());
+                            PasswordModel.getInstance(this).getDecryptedPasswords());
                 } else {
                     exporter.exportEncrypted(
                             Session.getInstance().getKey(),
                             MasterKey.getSalt(record),
                             MasterKey.getIterations(record),
-                            PasswordModel.getInstance(this).getPasswords());
+                            PasswordModel.getInstance(this).getDecryptedPasswords());
                 }
             } else {
                 exporter.exportCleartext(
-                        PasswordModel.getInstance(this).getPasswords());
+                        PasswordModel.getInstance(this).getDecryptedPasswords());
             }
 
             // Some document providers only store the data when the stream is

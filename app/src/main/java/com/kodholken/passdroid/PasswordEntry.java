@@ -73,6 +73,56 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
         decDate  = encDate  != null ? decrypt(key, encDate)  : null;
     }
 
+    /**
+     * Decrypt only the fields that the list of entries shows and searches:
+     * the system, the username and the email. The others are decrypted when
+     * they are needed, with decryptPassword() etc., and are not kept.
+     */
+    public void decryptListFields(byte [] key) {
+        decSystem   = decrypt(key, encSystem);
+        decUsername = decrypt(key, encUsername);
+        decEmail    = encEmail != null ? decrypt(key, encEmail) : null;
+    }
+
+    public String decryptPassword(byte [] key) {
+        return decrypt(key, encPassword);
+    }
+
+    public String decryptTotp(byte [] key) {
+        return encTotp != null ? decrypt(key, encTotp) : null;
+    }
+
+    public String decryptNote(byte [] key) {
+        return encNote != null ? decrypt(key, encNote) : null;
+    }
+
+    public String decryptUrl(byte [] key) {
+        return encUrl != null ? decrypt(key, encUrl) : null;
+    }
+
+    public String decryptDate(byte [] key) {
+        return encDate != null ? decrypt(key, encDate) : null;
+    }
+
+    /**
+     * @return a copy of the entry with all fields decrypted, e.g. to edit or
+     *         export it.
+     */
+    public PasswordEntry decryptedCopy(byte [] key) {
+        PasswordEntry copy = new PasswordEntry();
+        copy.id          = id;
+        copy.encSystem   = encSystem;
+        copy.encUsername = encUsername;
+        copy.encPassword = encPassword;
+        copy.encNote     = encNote;
+        copy.encUrl      = encUrl;
+        copy.encEmail    = encEmail;
+        copy.encTotp     = encTotp;
+        copy.encDate     = encDate;
+        copy.decryptAll(key);
+        return copy;
+    }
+
     public void encryptAll(byte [] key) {
         encSystem   = encrypt(key, decSystem);
         encUsername = encrypt(key, decUsername);
