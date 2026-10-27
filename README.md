@@ -85,6 +85,8 @@ on in Settings.
   a screenshot. Empty system, email and username fields are filled in from
   the QR code. The camera permission is asked for when the scanner is first
   opened.
+- **Show a 2FA secret as a QR code**, to move it to a separate authenticator
+  app.
 - SHA-1, SHA-256 and SHA-512, 6 to 8 digits and any period are supported.
   Counter-based codes (HOTP) and the QR codes that authenticator apps export
   accounts with are not.
@@ -208,8 +210,8 @@ of Passdroid++.
 
 - Fingerprint unlock.
 - Email, 2FA secret and date fields.
-- 2FA codes on the entry and on their own screen, and scanning of setup QR
-  codes.
+- 2FA codes on the entry and on their own screen, scanning of setup QR codes,
+  and showing a secret as a QR code.
 - Search also matches the username and the email, not only the system.
 - Dark theme and a theme setting, a monospace font option and a font size
   setting.

@@ -70,4 +70,20 @@ public class QrDecoderTest {
         assertNull(QrDecoder.decodeArgb(pixels, 400, 300));
         assertNull(QrDecoder.decodeArgb(new int[400 * 300], 400, 300));
     }
+
+    @Test
+    public void encodedQrCodeCanBeRead() {
+        int [] pixels = QrEncoder.encodeArgb(URI, 400);
+        assertEquals(URI, QrDecoder.decodeArgb(pixels, 400, 400));
+
+        // Non-ASCII text, e.g. in an otpauth URI that is stored as it is
+        String text = "otpauth://totp/Åsa:björn?secret=JBSWY3DPEHPK3PXP";
+        pixels = QrEncoder.encodeArgb(text, 400);
+        assertEquals(text, QrDecoder.decodeArgb(pixels, 400, 400));
+    }
+
+    @Test
+    public void tooSmallForQrCode() {
+        assertNull(QrEncoder.encodeArgb(URI, 10));
+    }
 }

@@ -158,4 +158,41 @@ public class TotpTest {
         assertArrayEquals("foobar".getBytes(StandardCharsets.US_ASCII),
                           Totp.decodeBase32("MZXW6YTBOI======"));
     }
+
+    @Test
+    public void uriForQrCode() {
+        String uri = Totp.toUri("jbsw y3dp-ehpk 3pxp==", "Git Hub", "alice+test@example.com");
+        assertEquals("otpauth://totp/Git%20Hub:alice%2Btest%40example.com" +
+                     "?secret=JBSWY3DPEHPK3PXP&issuer=Git%20Hub", uri);
+
+        // An authenticator app reads the same issuer, account and codes
+        assertEquals("Git Hub", Totp.getIssuer(uri));
+        assertEquals("alice+test@example.com", Totp.getAccount(uri));
+        assertEquals("JBSWY3DPEHPK3PXP", Totp.getSecretToStore(uri));
+        long time = 1700000000000L;
+        assertEquals(Totp.parse("JBSWY3DPEHPK3PXP").getCode(time),
+                     Totp.parse(uri).getCode(time));
+    }
+
+    @Test
+    public void uriWithoutAccount() {
+        assertEquals("otpauth://totp/GitHub?secret=JBSWY3DPEHPK3PXP&issuer=GitHub",
+                     Totp.toUri("JBSWY3DPEHPK3PXP", "GitHub", ""));
+        assertEquals("otpauth://totp/GitHub?secret=JBSWY3DPEHPK3PXP&issuer=GitHub",
+                     Totp.toUri("JBSWY3DPEHPK3PXP", "GitHub", null));
+    }
+
+    @Test
+    public void uriSecretIsKept() {
+        // E.g. with settings other than the defaults
+        String uri = "otpauth://totp/A:b?secret=JBSWY3DPEHPK3PXP&digits=8&issuer=A";
+        assertEquals(uri, Totp.toUri("  " + uri + " ", "Other", "other"));
+    }
+
+    @Test
+    public void noUriForInvalidSecret() {
+        assertNull(Totp.toUri("not base32!", "GitHub", "alice"));
+        assertNull(Totp.toUri("", "GitHub", "alice"));
+        assertNull(Totp.toUri(null, "GitHub", "alice"));
+    }
 }

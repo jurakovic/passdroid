@@ -43,8 +43,8 @@ releasing.
   AndroidX except CameraX for the QR scanner, and the AndroidX libraries it
   needs. No dependency injection, no Kotlin in the app code.
 - `minSdk` 24 (Android 7.0), `compileSdk` and `targetSdk` 37 (Android 17).
-- Dependencies: ZXing core (QR decoding), CameraX (camera preview and
-  frames). Tests: JUnit 4 and BouncyCastle.
+- Dependencies: ZXing core (QR decoding and encoding), CameraX (camera
+  preview and frames). Tests: JUnit 4 and BouncyCastle.
 - Java package and namespace `com.kodholken.passdroid`, the package of the
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
@@ -108,7 +108,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
-| 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder` |
+| 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
@@ -643,6 +643,15 @@ the export codes of authenticator apps (`otpauth-migration://`).
   `HybridBinarizer`, and tries the inverted image when nothing is found, for
   light on dark codes.
 
+### Showing a secret as a QR code
+
+`ShowActivity` builds an `otpauth://totp/` URI with `Totp.toUri()` (issuer =
+system, account = username or else email; percent encoded, with `%20` for
+spaces; a stored URI is used as it is), encodes it with `QrEncoder` (ZXing
+`QRCodeWriter`, error correction M, quiet zone of 4 modules, UTF-8 only when
+needed) and shows it in a dialog. The dialog sets `FLAG_SECURE` itself,
+since a dialog has its own window, and is dismissed in `onPause()`.
+
 ### 2FA codes screen
 
 `TotpListActivity` decrypts the secrets of all entries each time it is
@@ -903,7 +912,8 @@ Android 9 and later, off by default.
 #### Screens and input
 
 - All screens that show secrets set `FLAG_SECURE`: no screenshots and no
-  content in the recent apps.
+  content in the recent apps. The 2FA QR code dialog sets it too, since a
+  dialog has its own window.
 - On the entry, login, setup, password change, import password and search
   screens the keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
@@ -916,6 +926,8 @@ Android 9 and later, off by default.
 
 - TOTP per RFC 6238 (SHA-1/256/512), secrets as base32 or `otpauth://totp/`
   URIs, stored encrypted like the other fields.
+- A secret can be **shown as a QR code** to move it to a separate
+  authenticator app.
 - 2FA secrets in the same vault as the passwords are a trade-off, see
   [Decisions](#decisions).
 
@@ -1053,8 +1065,8 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields |
-| `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account |
-| `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code |
+| `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
+| `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 
@@ -1081,6 +1093,8 @@ release:
 - Open the search: the field fills the action bar.
 - Open the 2FA codes screen, with "Display username" on and off.
 - Scan a setup QR code with the camera and from a screenshot.
+- Show a 2FA secret as a QR code and scan it with an authenticator app:
+  same codes.
 - Edit an entry, clear the system name and save: it is refused.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
   file again.

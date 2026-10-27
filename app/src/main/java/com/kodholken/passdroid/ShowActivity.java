@@ -29,14 +29,18 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager.LayoutParams;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
@@ -57,6 +61,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
     private boolean hasTotp;      // The entry has a 2FA secret, maybe invalid
     private PasswordToggle passwordToggle;
     private PasswordToggle totpToggle;
+    private AlertDialog qrDialog;  // Showing the 2FA secret, or null
 
     // Decrypt the password and the 2FA secret when they are shown or copied
     private final PasswordToggle.Source password = new PasswordToggle.Source() {
@@ -108,6 +113,13 @@ public class ShowActivity extends SherlockTimeoutActivity {
                 (TextView) findViewById(R.id.totp),
                 (ImageButton) findViewById(R.id.totp_toggle), totpSecret);
 
+        findViewById(R.id.totp_qr).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showTotpQrCode();
+            }
+        });
+
         showEntry();
         setupClipboardActions();
     }
@@ -125,6 +137,13 @@ public class ShowActivity extends SherlockTimeoutActivity {
     @Override
     protected void onPause() {
         handler.removeCallbacks(codeUpdater);
+
+        // Not left on the screen, e.g. when it is turned off
+        if (qrDialog != null) {
+            qrDialog.dismiss();
+            qrDialog = null;
+        }
+
         super.onPause();
     }
 
@@ -143,6 +162,8 @@ public class ShowActivity extends SherlockTimeoutActivity {
         totpToggle.setVisible(false);
         findViewById(R.id.totp_rows).setVisibility(hasTotp ? View.VISIBLE :
                                                              View.GONE);
+        findViewById(R.id.totp_qr).setVisibility(totp != null ? View.VISIBLE :
+                                                                View.GONE);
         showTotpCode();
 
         showField(R.id.note_title, R.id.note, entry.decryptNote(key));
@@ -295,6 +316,46 @@ public class ShowActivity extends SherlockTimeoutActivity {
         });
 
         alertDialog.show();
+    }
+
+    /**
+     * Show the 2FA secret as a QR code, e.g. to move it to an authenticator
+     * app. It has the system as the issuer and the username or the email as
+     * the account, unless the secret is an otpauth URI with its own.
+     */
+    private void showTotpQrCode() {
+        String account = entry.getDecUsername();
+        if (account == null || account.length() == 0) {
+            account = entry.getDecEmail();
+        }
+
+        String uri = Totp.toUri(totpSecret.get(), entry.getDecSystem(), account);
+        int size = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                240, getResources().getDisplayMetrics()));
+        int [] pixels = uri != null ? QrEncoder.encodeArgb(uri, size) : null;
+        if (pixels == null) {
+            Utils.alertDialog(this, getString(R.string.failure),
+                              getString(R.string.totp_invalid));
+            return;
+        }
+
+        ImageView image = new ImageView(this);
+        image.setImageBitmap(Bitmap.createBitmap(pixels, size, size,
+                                                 Bitmap.Config.ARGB_8888));
+        image.setContentDescription(getString(R.string.totp_qr_title));
+        image.setPadding(0, size / 12, 0, 0);
+
+        qrDialog = new AlertDialog.Builder(this)
+            .setTitle(R.string.totp_qr_title)
+            .setMessage(R.string.totp_qr_text)
+            .setView(image)
+            .setPositiveButton(R.string.ok, null)
+            .create();
+        // A dialog has its own window, without the FLAG_SECURE of the
+        // activity that keeps it out of screenshots
+        qrDialog.getWindow().setFlags(LayoutParams.FLAG_SECURE,
+                                      LayoutParams.FLAG_SECURE);
+        qrDialog.show();
     }
 
     private void copyTotpCode() {

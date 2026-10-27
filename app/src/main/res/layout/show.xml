@@ -144,6 +144,16 @@
           android:tint="?android:attr/textColorSecondary"
           android:src="@drawable/ic_visibility"
           android:contentDescription="@string/show_password"/>
+
+        <!-- To move the secret to an authenticator app -->
+        <ImageButton
+          android:id="@+id/totp_qr"
+          android:layout_width="48dip"
+          android:layout_height="36dip"
+          android:background="?android:attr/selectableItemBackgroundBorderless"
+          android:tint="?android:attr/textColorSecondary"
+          android:src="@drawable/ic_qr_code"
+          android:contentDescription="@string/totp_show_qr"/>
       </LinearLayout>
 
       <TextView

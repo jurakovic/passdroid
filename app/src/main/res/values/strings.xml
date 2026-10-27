@@ -171,6 +171,10 @@ The file %s is encrypted.</string>
 <string name="totp_code_copied">2FA code copied</string>
 <string name="copied">Copied to clipboard</string>
 <string name="copy_totp_secret">Copy the 2FA secret to clipboard?</string>
+<string name="totp_show_qr">Show the 2FA secret as a QR code</string>
+<string name="totp_qr_title">2FA QR code</string>
+<string name="totp_qr_text">Scan this QR code with the authenticator app you \
+would like to transfer this entry to</string>
 <string name="date">Date</string>
 <string name="date_not_set">Not set</string>
 <string name="clear_date">Clear date</string>

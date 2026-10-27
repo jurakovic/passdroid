@@ -3,6 +3,7 @@ package com.kodholken.passdroid;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
@@ -115,6 +116,49 @@ public class Totp {
         }
 
         return trimmed;
+    }
+
+    /**
+     * Get an otpauth URI for a 2FA secret, e.g. for a QR code that an
+     * authenticator app can scan. A secret that is a URI is returned as it
+     * is.
+     *
+     * @param issuer  the service, e.g. "GitHub", or null.
+     * @param account e.g. "alice@example.com", or null.
+     * @return null if the secret is not valid.
+     */
+    public static String toUri(String secret, String issuer, String account) {
+        if (parse(secret) == null) {
+            return null;
+        }
+
+        String trimmed = secret.trim();
+        if (trimmed.regionMatches(true, 0, "otpauth:", 0, 8)) {
+            return trimmed;
+        }
+
+        // The key as services show it, without spaces, dashes and padding
+        String key = trimmed.replaceAll("[\\s=-]", "").toUpperCase(Locale.ROOT);
+
+        issuer = issuer != null ? issuer.trim() : "";
+        account = account != null ? account.trim() : "";
+        String label = issuer.length() > 0 && account.length() > 0 ?
+                       encode(issuer) + ":" + encode(account) :
+                       encode(issuer + account);
+
+        return OtpAuthUri.PREFIX + label + "?secret=" + key +
+               (issuer.length() > 0 ? "&issuer=" + encode(issuer) : "");
+    }
+
+    /**
+     * Percent encode a part of a URI, with %20 for spaces.
+     */
+    private static String encode(String text) {
+        try {
+            return URLEncoder.encode(text, "UTF-8").replace("+", "%20");
+        } catch (UnsupportedEncodingException ex) {
+            throw new RuntimeException(ex);  // UTF-8 is always supported
+        }
     }
 
     /**
