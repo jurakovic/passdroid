@@ -119,13 +119,15 @@ longer password made of a few random words is easy to remember and hard to guess
 This will export the password database to a file of your choice. \
 In combination with the import function this can be used to move the \
 password database to another device or as a way to back up your data. \
+The settings are exported as well, except fingerprint unlock. \
 If you export the file unencrypted make sure it is \
 removed from the phone as quickly as possible since other applications will \
 be able to read it.</string>
 
 <string name="import_description">\
 This will import a database of passwords that has been exported from Passdroid++ or Passdroid. \
-The import will remove any existing passwords on this device.</string>
+The import will remove any existing passwords on this device. \
+Settings in the file replace the current settings.</string>
 
 <string name="import_description_file_present" formatted="false">%f contains %n entries.</string>
 
@@ -146,6 +148,7 @@ The file %s is encrypted.</string>
 <string name="import_password_title">Import password</string>
 <string name="import_password_desc">The file could not be decrypted using the current master password. Please enter the master password that was in use when you exported the password database.</string>
 <string name="import_failed">Import failed.</string>
+<string name="import_settings_done">The settings were imported as well.</string>
 
 <!-- Generics -->
 <string name="yes">Yes</string>

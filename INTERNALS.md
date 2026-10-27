@@ -107,7 +107,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
-| Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity` |
+| Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder` |
 | Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
@@ -480,6 +480,16 @@ UTF-8 encoded:
     <url><![CDATA[https://github.com]]></url>
     <date><![CDATA[2026-10-25T14:30]]></date>
   </system>
+  <settings>
+    <setting name="clear_clipboard">true</setting>
+    <setting name="close_logout">true</setting>
+    <setting name="display_username">true</setting>
+    <setting name="font">default</setting>
+    <setting name="font_size">normal</setting>
+    <setting name="logout_delay">5</setting>
+    <setting name="screen_off_logout">true</setting>
+    <setting name="theme">system</setting>
+  </settings>
 </passdroid>
 ```
 
@@ -491,6 +501,10 @@ UTF-8 encoded:
   (`FileExporter.removeInvalidChars()`).
 - Fields that are `null` are left out. A file without some of the fields
   imports them as empty values.
+- `<settings>` holds the exported settings, sorted by name, see
+  [Settings, theme and fonts](#settings-theme-and-fonts). Exports of the
+  original Passdroid have none, and an import of them keeps the current
+  settings.
 - The `version` attribute is the file format version,
   `FileExporter.FORMAT_VERSION` (3). `app-version` is the version name of
   the app that wrote it, for information only. Older files have an app
@@ -501,7 +515,7 @@ UTF-8 encoded:
   |---|---|---|
   | 1 | `1.6` and earlier | Unescaped system names |
   | 2 | `1.7` to `2.3` | |
-  | 3 | `2.4`, or `3` | CDATA values, `email`, `totp`, `date` |
+  | 3 | `2.4`, or `3` | CDATA values, `email`, `totp`, `date`, `<settings>` |
 
   A newer format, or an app version after 2.4, is refused: an older app
   would leave out what it doesn't know. Files in format 1 go through a
@@ -562,7 +576,8 @@ reported, since some document providers only store the data then.
 4. **cleartext**: parsed directly; afterwards the app offers to delete the
    file (`DocumentsContract.deleteDocument()`);
 5. stores the entries with `PasswordModel.setPasswords()`, which **replaces
-   all entries**.
+   all entries**, and applies the settings of the file with
+   `SettingsBackup.apply()`.
 
 `FileImporter.parse()` decodes the bytes as UTF-8 itself (dropping a byte
 order mark) and hands the parser a `StringReader`, so the parser can't pick
@@ -641,18 +656,24 @@ username (or the email) in parentheses if `display_username` is on.
 
 Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 
-| Key | Default | Used by |
-|---|---|---|
-| `close_logout` | `true` | `Session.setTimeoutTimer()` |
-| `logout_delay` | `5` (seconds: 5, 30, 60, 300) | `Session.getTimeout()` |
-| `screen_off_logout` | `true` | `Session.screenOff()`, `clearTimeoutTimer()` |
-| `display_username` | `true` | the password list and the 2FA codes screen |
-| `clear_clipboard` | `true` | `ClipboardClearReceiver` |
-| `theme` | `system` (`light`, `dark`) | `ThemeSetting` |
-| `font` | `default` (`monospace`) | `FontSetting` |
-| `font_size` | `normal` (`small`, `large`) | `FontSetting` |
-| `biometric_unlock` | not persisted | `SettingsActivity` |
-| `passwordLength`, `passwordCharset` | 16, 0 | the generator |
+| Key | Default | Used by | Exported |
+|---|---|---|---|
+| `close_logout` | `true` | `Session.setTimeoutTimer()` | yes |
+| `logout_delay` | `5` (seconds: 5, 30, 60, 300) | `Session.getTimeout()` | yes |
+| `screen_off_logout` | `true` | `Session.screenOff()`, `clearTimeoutTimer()` | yes |
+| `display_username` | `true` | the password list and the 2FA codes screen | yes |
+| `clear_clipboard` | `true` | `ClipboardClearReceiver` | yes |
+| `theme` | `system` (`light`, `dark`) | `ThemeSetting` | yes |
+| `font` | `default` (`monospace`) | `FontSetting` | yes |
+| `font_size` | `normal` (`small`, `large`) | `FontSetting` | yes |
+| `biometric_unlock` | not persisted | `SettingsActivity` | no |
+| `passwordLength`, `passwordCharset` | 16, 0 | the generator | no |
+
+`SettingsBackup.get()` collects the exported settings (after applying the
+defaults, so unchanged settings are included too). `SettingsBackup.apply()`
+only takes known keys with valid values: `true` or `false` for the check
+boxes, a value of the setting's array resource for the lists. Other values
+are ignored and keep the current setting.
 
 - **Theme**: `ThemeSetting.apply()` runs in `attachBaseContext()` of every
   activity that shows something. For "light" or "dark" it overrides the
@@ -777,6 +798,8 @@ passphrase is out of reach.
   app offers to delete it.
 - Exports have a file format version. A newer format is refused, so an older
   app doesn't import a file and leave out what it doesn't know.
+- The settings are included in exports, except fingerprint unlock. Imported
+  settings are checked against the known settings and their allowed values.
 - Exports truncate an existing file and leave out characters XML doesn't
   allow, so a backup can always be imported again.
 - Imports read at most 10 MB and reject files with a document type
@@ -952,6 +975,10 @@ Not done, in rough order of value:
    and field name as associated data, and Argon2id instead of PBKDF2, in one
    migration at login. The riskiest kind of change, since it rewrites the
    whole vault. Only with device testing and a fresh export at hand.
+4. **Imported security settings**: an import can turn off "Log out on
+   close", the screen off logout and the clipboard clearing, without saying
+   which settings changed. It could keep the current values of those, or
+   list the changes and ask.
 
 Limitations that are not about security are listed in
 [Known limitations](#known-limitations).
@@ -996,7 +1023,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 
 | Class | Covers |
 |---|---|
-| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
+| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account |
@@ -1063,7 +1090,10 @@ release:
 
 ### Adding a setting
 
-Add it to `res/xml/settings.xml`.
+Add it to `res/xml/settings.xml`. If it should be exported, add it to
+`SettingsBackup` (the boolean list, or the list map with the array resource
+of its allowed values). Settings that only make sense on one device, like
+fingerprint unlock, are not exported.
 
 ### Changing a file format
 
@@ -1180,3 +1210,6 @@ Limitations:
   export format.
 - Import replaces all entries; there is no merge.
 - Many strings are hardcoded in English in the code instead of resources.
+
+The open security items, e.g. that an import can turn off the automatic
+logout settings, are listed in [Open items](#open-items).

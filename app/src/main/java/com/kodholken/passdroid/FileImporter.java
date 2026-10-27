@@ -30,6 +30,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,6 +51,7 @@ import android.util.Log;
 public class FileImporter {
     private byte [] data;
     private PasswordEntry[] passwordEntries;
+    private Map<String, String> settings;
 
     /**
      * Importer constructor.
@@ -253,8 +256,8 @@ public class FileImporter {
      *
      *   1  Passdroid 1.6 and earlier, see createInputStream()
      *   2  Passdroid 1.7 to 2.3
-     *   3  Passdroid++: CDATA values, the email, 2FA secret and date fields.
-     *      Its first builds were numbered 2.4.
+     *   3  Passdroid++: CDATA values, the email, 2FA secret and date fields
+     *      and the settings. Its first builds were numbered 2.4.
      *
      * @throws FileImporterException if the version is invalid.
      */
@@ -287,6 +290,14 @@ public class FileImporter {
         return passwordEntries;
     }
 
+    /**
+     * @return the settings in the file by name, or null if the file has no
+     *         settings, like the exports of Passdroid 2.3 and earlier.
+     */
+    public Map<String, String> getSettings() {
+        return settings;
+    }
+
     private interface ImportFileParser {
         void parse(Node root);
     }
@@ -303,10 +314,31 @@ public class FileImporter {
                 if (nodes.item(i).getNodeName().equals("system")) {
                     PasswordEntry entry = parseSystemNode(nodes.item(i));
                     entries.add(entry);
+                } else if (nodes.item(i).getNodeName().equals("settings")) {
+                    settings = parseSettingsNode(nodes.item(i));
                 }
             }
 
             passwordEntries = entries.toArray(new PasswordEntry [entries.size()]);
+        }
+
+        private Map<String, String> parseSettingsNode(Node settingsNode) {
+            Map<String, String> result = new LinkedHashMap<String, String>();
+
+            NodeList nodes = settingsNode.getChildNodes();
+            for (int i = 0; i < nodes.getLength(); i++) {
+                Node node = nodes.item(i);
+                if (!node.getNodeName().equals("setting")) {
+                    continue;
+                }
+
+                Node name = node.getAttributes().getNamedItem("name");
+                if (name != null) {
+                    result.put(name.getNodeValue(), node.getTextContent());
+                }
+            }
+
+            return result;
         }
 
         private PasswordEntry parseSystemNode(Node system) {

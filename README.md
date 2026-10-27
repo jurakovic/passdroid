@@ -103,12 +103,14 @@ on in Settings.
 - **Export** to a file you choose, encrypted (recommended) or unencrypted XML.
   An encrypted export needs the master password that was current when it was
   made, and a modified file is not imported.
+- Exports include your settings, except fingerprint unlock.
 - **Import** an encrypted file made with the current master password directly.
   For other encrypted files Passdroid++ asks for the master password they were
   made with. Exports of the original Passdroid can be imported.
 - A file in a newer format, from a later version of Passdroid++, is refused
   until you update Passdroid++.
-- **Importing replaces all entries** with those in the file.
+- **Importing replaces all entries** with those in the file, and applies the
+  settings in the file.
 - After importing an unencrypted file, Passdroid++ offers to delete it.
 
 ### Appearance
@@ -214,6 +216,7 @@ of Passdroid++.
   secret.
 - Settings for the logout delay and for logging out when the screen turns
   off.
+- Settings are included in exports.
 
 ### Bugs fixed from 2.3
 

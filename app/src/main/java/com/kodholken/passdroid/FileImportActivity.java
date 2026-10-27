@@ -22,6 +22,7 @@ package com.kodholken.passdroid;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.regex.Matcher;
 
 import android.app.AlertDialog;
@@ -141,8 +142,13 @@ public class FileImportActivity extends SherlockTimeoutActivity {
             // If we get here the key was correct
 
             PasswordModel model = PasswordModel.getInstance(this);
-            model.setPasswords(fileImporter.getPasswordEntries());
-            showDialog(getString(R.string.success), fileImporter.getPasswordEntries().length + " entries imported.");
+            if (model.setPasswords(fileImporter.getPasswordEntries())) {
+                showDialog(getString(R.string.success),
+                           fileImporter.getPasswordEntries().length +
+                           " entries imported." + importSettings());
+            } else {
+                showDialog(getString(R.string.failure), getString(R.string.import_failed));
+            }
         } catch (FileImporterException ex) {
             ex.printStackTrace();
             if (!ex.isWrongKey()) {
@@ -219,8 +225,15 @@ public class FileImportActivity extends SherlockTimeoutActivity {
             public void run() {
                 if (decrypted[0]) {
                     PasswordModel model = PasswordModel.getInstance(FileImportActivity.this);
-                    model.setPasswords(fileImporter.getPasswordEntries());
-                    showDialog(getString(R.string.success), fileImporter.getPasswordEntries().length + " entries imported from encrypted file.");
+                    if (model.setPasswords(fileImporter.getPasswordEntries())) {
+                        showDialog(getString(R.string.success),
+                                   fileImporter.getPasswordEntries().length +
+                                   " entries imported from encrypted file." +
+                                   importSettings());
+                    } else {
+                        showDialog(getString(R.string.failure),
+                                   getString(R.string.import_failed));
+                    }
                 } else if (error[0] != null && !error[0].isWrongKey()) {
                     showReadError(error[0]);
                 } else {
@@ -235,10 +248,27 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         if (model.setPasswords(fileImporter.getPasswordEntries())) {
             deleteFileDialog(getString(R.string.success),
                              fileImporter.getPasswordEntries().length +
-                             " entries imported. Do you want to delete the imported file from the device?");
+                             " entries imported." + importSettings() +
+                             " Do you want to delete the imported file from the device?");
         } else {
-            showDialog(getString(R.string.failure), "Import failed.");
+            showDialog(getString(R.string.failure), getString(R.string.import_failed));
         }
+    }
+
+    /**
+     * Change the settings to the ones in the imported file. Files without
+     * settings, like the exports of Passdroid 2.3 and earlier, keep the
+     * current settings.
+     *
+     * @return text for the message about the import.
+     */
+    private String importSettings() {
+        Map<String, String> settings = fileImporter.getSettings();
+        if (settings == null || SettingsBackup.apply(this, settings) == 0) {
+            return "";
+        }
+
+        return " " + getString(R.string.import_settings_done);
     }
 
     /**

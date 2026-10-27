@@ -24,6 +24,8 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Class that handles the exporting of the password database to file.
@@ -44,6 +46,7 @@ public class FileExporter {
 
     private OutputStream output;
     private String appVersion;
+    private Map<String, String> settings;
 
     /**
      * Exporter constructor.
@@ -56,6 +59,15 @@ public class FileExporter {
     public FileExporter(OutputStream output, String appVersion) {
         this.output = output;
         this.appVersion = appVersion;
+    }
+
+    /**
+     * Include settings in the exported file.
+     *
+     * @param settings values by name, see SettingsBackup.
+     */
+    public void setSettings(Map<String, String> settings) {
+        this.settings = settings;
     }
 
     /**
@@ -180,6 +192,15 @@ public class FileExporter {
             appendElement(sb, "url", entry.getDecUrl());
             appendElement(sb, "date", entry.getDecDate());
             sb.append("  </system>\n");
+        }
+
+        if (settings != null && !settings.isEmpty()) {
+            sb.append("  <settings>\n");
+            for (Map.Entry<String, String> setting : new TreeMap<String, String>(settings).entrySet()) {
+                sb.append("    <setting name=\"" + Utils.escapeXMLChars(setting.getKey()) + "\">" +
+                          Utils.escapeXMLChars(setting.getValue()) + "</setting>\n");
+            }
+            sb.append("  </settings>\n");
         }
 
         sb.append("</passdroid>\n");

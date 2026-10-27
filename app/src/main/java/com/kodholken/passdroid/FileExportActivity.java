@@ -123,6 +123,7 @@ public class FileExportActivity extends SherlockTimeoutActivity {
 
             FileExporter exporter = new FileExporter(output,
                                                      Utils.getVersion(this));
+            exporter.setSettings(SettingsBackup.get(this));
             if (encryptFileCheckbox.isChecked()) {
                 // The file is encrypted with the database key, so the salt
                 // and iteration count it was derived with are stored in the

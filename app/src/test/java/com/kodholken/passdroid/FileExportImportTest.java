@@ -2,11 +2,14 @@ package com.kodholken.passdroid;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -162,6 +165,68 @@ public class FileExportImportTest {
         assertEntriesEqual(new PasswordEntry [] {
             createEntry("Mail", "alice", "secret", "note", "https://example.com")
         }, importer.getPasswordEntries());
+
+        // The current settings are kept
+        assertNull(importer.getSettings());
+    }
+
+    private static Map<String, String> createSettings() {
+        Map<String, String> settings = new HashMap<String, String>();
+        settings.put("theme", "dark");
+        settings.put("close_logout", "false");
+        settings.put("logout_delay", "300");
+        settings.put("odd <&\"'>", "<&\"'>");
+        return settings;
+    }
+
+    @Test
+    public void settingsRoundTrip() throws Exception {
+        PasswordEntry [] entries = createEntries();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        FileExporter exporter = new FileExporter(output, APP_VERSION);
+        exporter.setSettings(createSettings());
+        exporter.exportCleartext(entries);
+
+        FileImporter importer = new FileImporter(output.toByteArray());
+        importer.parse();
+        assertEntriesEqual(entries, importer.getPasswordEntries());
+        assertEquals(createSettings(), importer.getSettings());
+
+        // Encrypted
+        MasterKey masterKey = MasterKey.create("master password", ITERATIONS);
+        output = new ByteArrayOutputStream();
+        exporter = new FileExporter(output, APP_VERSION);
+        exporter.setSettings(createSettings());
+        exporter.exportEncrypted(masterKey.getKey(),
+                                 MasterKey.getSalt(masterKey.getRecord()),
+                                 MasterKey.getIterations(masterKey.getRecord()),
+                                 entries);
+
+        importer = new FileImporter(output.toByteArray());
+        importer.parseEncrypted(masterKey.getKey());
+        assertEntriesEqual(entries, importer.getPasswordEntries());
+        assertEquals(createSettings(), importer.getSettings());
+    }
+
+    @Test
+    public void settingsWithoutNameAreIgnored() throws Exception {
+        String xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<passdroid version=\"2.3\">\n" +
+            "  <settings>\n" +
+            "    <setting>dark</setting>\n" +
+            "    <setting name=\"font\">monospace</setting>\n" +
+            "    <other name=\"theme\">dark</other>\n" +
+            "  </settings>\n" +
+            "</passdroid>\n";
+
+        FileImporter importer = new FileImporter(xml.getBytes("UTF-8"));
+        importer.parse();
+        assertEquals(0, importer.getPasswordEntries().length);
+
+        Map<String, String> expected = new HashMap<String, String>();
+        expected.put("font", "monospace");
+        assertEquals(expected, importer.getSettings());
     }
 
     private static byte [] exportEncrypted(MasterKey masterKey,
