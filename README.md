@@ -1,4 +1,21 @@
+<div align="center" markdown="1">
+
+<img src="app/src/main/res/drawable-hdpi/safe_icon_large.png" width="72" alt="Passdroid++ icon">
+
 # Passdroid++
+
+**Offline password manager and 2FA authenticator for Android**
+
+[![Release](https://img.shields.io/github/v/release/jurakovic/passdroid)](https://github.com/jurakovic/passdroid/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/jurakovic/passdroid/build.yml?branch=master)](https://github.com/jurakovic/passdroid/actions/workflows/build.yml)
+[![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](#installing)
+[![License: GPL v3](https://img.shields.io/github/license/jurakovic/passdroid)](LICENSE.TXT)
+<!--[![Downloads](https://img.shields.io/github/downloads/jurakovic/passdroid/total)](https://github.com/jurakovic/passdroid/releases)-->
+
+[<img src="https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" height="40" alt="Download APK">](https://github.com/jurakovic/passdroid/releases/latest)
+[<img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png?raw=true" height="40" alt="Get it on Obtainium">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/jurakovic/passdroid)
+
+</div>
 
 Passdroid++ is an offline password manager for Android. It keeps your
 passwords, 2FA secrets and notes in an encrypted database on your phone,
@@ -9,6 +26,31 @@ Passdroid++ is based on Passdroid by Magnus Eriksson, whose last release was
 2.3 (2012). It runs on Android 7.0 and later. See [Changes from Passdroid
 2.3](#changes-from-passdroid-23) for what is new, and [Moving from the
 original Passdroid](#moving-from-the-original-passdroid) if you used it.
+
+## Highlights
+
+- **No internet permission.** Nothing leaves the phone through the app.
+- **Strong encryption.** AES-256, with the key derived from the master
+  password with PBKDF2 and 600,000 iterations.
+- **2FA codes.** Store 2FA secrets next to the passwords and scan setup QR
+  codes with the camera.
+- **Fingerprint unlock** on Android 9 and later.
+- **Encrypted exports** for backups and for moving to another phone.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="screenshots/login.png" width="200" alt="Login"></td>
+    <td><img src="screenshots/list.png" width="200" alt="Password list"></td>
+    <td><img src="screenshots/2fa-codes.png" width="200" alt="2FA codes"></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/entry.png" width="200" alt="Entry"></td>
+    <td><img src="screenshots/add-entry.png" width="200" alt="Add an entry"></td>
+    <td><img src="screenshots/settings.png" width="200" alt="Settings"></td>
+  </tr>
+</table>
 
 ## Features
 
