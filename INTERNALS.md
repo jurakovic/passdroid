@@ -555,6 +555,12 @@ offset  size  content
 - An export is therefore tied to the master password that was current when
   it was made. After a password change, older exports still need the old
   password.
+- `tools/encrypt-export.sh` makes such a file on a computer from an XML file
+  (bash and openssl, so it also runs in Git Bash on Windows). Its password
+  is only for the file: the import asks for it after the session key fails.
+  `openssl enc` can't do AES-GCM and takes at most an 8 byte salt, so the
+  script encrypts with AES-256-CTR, computes the GCM tag itself and writes
+  an 8 byte salt, which the format allows.
 
 ### Legacy encrypted export ("sqt")
 
@@ -1154,7 +1160,8 @@ fingerprint unlock, are not exported.
 Keep reading every older format; exports are the users' backups. Write a new
 format only with a new signature or a higher `FileExporter.FORMAT_VERSION`,
 add it to the table in `FileImporter.getFormatVersion()`, and add a round
-trip test plus a test that reads a file in the old format. If entries are
+trip test plus a test that reads a file in the old format. A new encrypted
+format needs a change of `tools/encrypt-export.sh`. If entries are
 stored differently in the database, increase `DbMigration.DATA_VERSION` and
 add the conversion to `postLoginMigration()`.
 
