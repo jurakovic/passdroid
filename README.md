@@ -63,7 +63,7 @@ is encrypted.
 
 - The list is sorted by system and shows the username, or the email if there
   is no username, unless "Display username" is off. Search matches the
-  system, username and email.
+  system, username and email, and the x in the search field clears it.
 - A long press on an entry in the list asks whether to copy its password.
 - On the entry screen a tap on the system, email, username or note copies
   it. The password and the 2FA secret are hidden behind an eye button and ask
