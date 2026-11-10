@@ -264,7 +264,7 @@ public class FileImportActivity extends SherlockTimeoutActivity {
      */
     private String importSettings() {
         Map<String, String> settings = fileImporter.getSettings();
-        if (settings == null || SettingsBackup.apply(this, settings) == 0) {
+        if (settings == null || SettingsBackup.apply(this, settings).isEmpty()) {
             return "";
         }
 

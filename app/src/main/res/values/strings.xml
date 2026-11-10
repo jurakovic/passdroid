@@ -45,11 +45,19 @@ so they cannot be read without it.
 <string name="font_size_title">Font size</string>
 <string name="show_password">Show password</string>
 <string name="hide_password">Hide password</string>
+<string name="close_logout_title">Log out on close</string>
 <string name="logout_delay_title">Logout delay</string>
 <!-- %s is replaced with the chosen delay, e.g. "30 seconds" -->
 <string name="logout_delay_summary">After %s in the background</string>
 <string name="screen_off_logout_title">Log out when the screen turns off</string>
 <string name="screen_off_logout_summary">Log out right away when the screen is turned off, regardless of the logout delay.</string>
+<string name="display_username_title">Display username</string>
+<string name="clear_clipboard_title">Auto clear clipboard</string>
+<!-- The value of a check box setting, e.g. in "Log out on close: off (was on)" -->
+<string name="setting_on">on</string>
+<string name="setting_off">off</string>
+<!-- A setting that an import changed: its title, the new value and the old one -->
+<string name="setting_change">%1$s: %2$s (was %3$s)</string>
 <string name="biometric_unlock_failed">Fingerprint unlock failed. Log in with your master password.</string>
 <string name="biometric_invalidated">Fingerprint unlock was turned off because the fingerprints on this device have changed. Log in with your master password and turn it on again in Settings.</string>
 <string name="biometric_turned_off">Fingerprint unlock has been turned off. You can turn it on again in Settings.</string>
@@ -150,6 +158,7 @@ Settings in the file replace the current settings.</string>
 <string name="import_password_desc">The file could not be decrypted using the current master password. Please enter the master password that was in use when you exported the password database.</string>
 <string name="import_failed">Import failed.</string>
 <string name="import_settings_done">The settings were imported as well.</string>
+<string name="import_settings_changed">Changed settings:</string>
 
 <!-- Generics -->
 <string name="yes">Yes</string>
