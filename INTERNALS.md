@@ -1169,14 +1169,18 @@ The work is done by `publish.sh`, which runs locally as well, see
 
 ### Version and version code
 
-- **Version** (`publish.sh version`): the version numbers continue those of
-  Passdroid, so the major version stream (`base_ver`) is 3. The version is
-  the latest `v3.x.y` tag, bumped by "Bump Type" (major, minor or patch, by
-  default patch). Run from master, it is the next release, e.g. 3.2.1 after
-  3.2.0. Run from another branch, or with "Preview", it is the next preview,
-  e.g. 3.2.1-preview.1, then 3.2.1-preview.2, published as a pre-release.
-  With no tag in the stream it is `<base_ver>.0.0`. "Version" sets the
-  version directly. An existing tag is an error.
+- **Version** (`publish.sh version`): the latest tag of the major version
+  stream, bumped by "Bump Type" (major, minor or patch, by default patch).
+  The stream ("Major version stream", `base_ver`) is by default `auto`: the
+  major of the latest `v<major>.x.y` tag, release or preview, but at least
+  3, since the version numbers continue those of Passdroid. So a major
+  release, or its first preview, moves the stream on by itself; a lower
+  number picks an older stream, e.g. for a 3.x fix after 4.0.0. Run from
+  master, the version is the next release, e.g. 3.2.1 after 3.2.0. Run from
+  another branch, or with "Preview", it is the next preview, e.g.
+  3.2.1-preview.1, then 3.2.1-preview.2, published as a pre-release. With
+  no tag in the stream it is `<base_ver>.0.0`. "Version" sets the version
+  directly. An existing tag is an error.
 - **Version code**: the number of the workflow run, or the "Version code"
   input. Keep the file name `publish.yml`: renaming it starts the run numbers
   at 1 again, and Android doesn't install an update with a lower version
