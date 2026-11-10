@@ -1184,9 +1184,11 @@ release:
 ### Adding a setting
 
 Add it to `res/xml/settings.xml`. If it should be exported, add it to
-`SettingsBackup` (the boolean list, or the list map with the array resource
-of its allowed values). Settings that only make sense on one device, like
-fingerprint unlock, are not exported.
+`SettingsBackup`: the boolean list, or the list map with the array resource
+of its allowed values and the map with its labels; its title; and its place
+in `ORDER`, the order of the settings screen, in which an import lists what
+it changed. Settings that only make sense on one device, like fingerprint
+unlock, are not exported.
 
 ### Adding a string
 
