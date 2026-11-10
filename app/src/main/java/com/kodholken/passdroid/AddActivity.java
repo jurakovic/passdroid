@@ -22,6 +22,8 @@ package com.kodholken.passdroid;
 import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.PasswordData;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -41,6 +43,10 @@ public class AddActivity extends SherlockTimeoutActivity {
     private Button saveButton;
     private Button generateButton;
     private EditText password;
+    private PasswordToggle passwordToggle;
+    // The last password the generate button put in, which it replaces
+    // without asking
+    private String lastGenerated;
     private DateField date;
     private QrScan qrScan;
     private Intent generateIntent;
@@ -57,8 +63,8 @@ public class AddActivity extends SherlockTimeoutActivity {
 
         password = (EditText) findViewById(R.id.password);
         // A new password is visible while it is entered
-        new PasswordToggle(password, (ImageButton) findViewById(R.id.password_toggle),
-                           true);
+        passwordToggle = new PasswordToggle(password,
+                (ImageButton) findViewById(R.id.password_toggle), true);
         new PasswordToggle((EditText) findViewById(R.id.totp),
                            (ImageButton) findViewById(R.id.totp_toggle), true);
         qrScan = new QrScan(this, findViewById(R.id.totp_scan));
@@ -148,9 +154,47 @@ public class AddActivity extends SherlockTimeoutActivity {
         generateButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                quickGenerate();
+            }
+        });
+
+        findViewById(R.id.generator_options).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
                 createGenerateActivity();
             }
         });
+    }
+
+    /**
+     * Generate a password with the generator's last settings, without
+     * opening it. Asks before replacing a password that wasn't generated
+     * here, such as a stored or a typed one.
+     */
+    private void quickGenerate() {
+        String current = password.getText().toString();
+        if (current.length() == 0 || current.equals(lastGenerated)) {
+            setGeneratedPassword();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setMessage(R.string.replace_password)
+            .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    setGeneratedPassword();
+                }
+            })
+            .setNegativeButton(R.string.no, null)
+            .show();
+    }
+
+    private void setGeneratedPassword() {
+        lastGenerated = PasswordGenerator.generateWithStoredSettings(this);
+        password.setText(lastGenerated);
+        // The new password is shown, so the change doesn't go unnoticed
+        passwordToggle.setVisible(true);
     }
     
     @Override
@@ -186,6 +230,7 @@ public class AddActivity extends SherlockTimeoutActivity {
         if (resultCode == 1) {
             this.password.setText(GeneratePasswordActivity.
                     takeGeneratedPassword());
+            passwordToggle.setVisible(true);
         }
     }
 }

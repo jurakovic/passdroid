@@ -192,6 +192,7 @@ would like to transfer this entry to</string>
 <string name="clear_date">Clear date</string>
 <string name="clear_search">Clear search</string>
 <string name="generator_options">Password generator</string>
+<string name="replace_password">Replace the password with a new one?</string>
 <!-- A button of the time picker that stores the picked date without a time -->
 <string name="date_no_time">No time</string>
 
