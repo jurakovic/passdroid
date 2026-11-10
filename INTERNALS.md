@@ -597,7 +597,9 @@ the data then.
    file (`DocumentsContract.deleteDocument()`);
 5. stores the entries with `PasswordModel.setPasswords()`, which **replaces
    all entries**, and applies the settings of the file with
-   `SettingsBackup.apply()`.
+   `SettingsBackup.apply()`. The message lists the settings that changed,
+   one line each with the old value ("Log out on close: off (was on)",
+   `SettingsBackup.describe()`), or nothing if none did.
 
 `FileImporter.parse()` decodes the bytes as UTF-8 itself (dropping a byte
 order mark) and hands the parser a `StringReader`, so the parser can't pick
@@ -706,7 +708,13 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 defaults, so unchanged settings are included too). `SettingsBackup.apply()`
 only takes known keys with valid values: `true` or `false` for the check
 boxes, a value of the setting's array resource for the lists. Other values
-are ignored and keep the current setting.
+are ignored and keep the current setting. It writes only the values that
+differ from the current ones, and returns those changes in the order of the
+settings screen (`SettingsBackup.ORDER`), with the old and the new value.
+The check boxes and lists of `SettingsActivity` read their values only when
+they are created, and it stays below the import screen. So a setting that
+changes while it isn't in front marks it as stale, and it recreates itself
+when it comes back.
 
 - **Theme**: `ThemeSetting.apply()` runs in `attachBaseContext()` of every
   activity that shows something. For "light" or "dark" it overrides the
@@ -838,6 +846,9 @@ passphrase is out of reach.
   app doesn't import a file and leave out what it doesn't know.
 - The settings are included in exports, except fingerprint unlock. Imported
   settings are checked against the known settings and their allowed values.
+  The import lists every setting it changed, so turning off "Log out on
+  close", the screen off logout or the clipboard clearing doesn't go
+  unnoticed.
 - Exports truncate an existing file and leave out characters XML doesn't
   allow, so a backup can always be imported again.
 - Imports read at most 10 MB and reject files with a document type
@@ -1034,11 +1045,7 @@ Not done, in rough order of value:
    and field name as associated data, and Argon2id instead of PBKDF2, in one
    migration at login. The riskiest kind of change, since it rewrites the
    whole vault. Only with device testing and a fresh export at hand.
-4. **Imported security settings**: an import can turn off "Log out on
-   close", the screen off logout and the clipboard clearing, without saying
-   which settings changed. It could keep the current values of those, or
-   list the changes and ask.
-5. Optionally a default generator length of 17, which rates excellent
+4. Optionally a default generator length of 17, which rates excellent
    instead of good.
 
 Limitations that are not about security are listed in
@@ -1092,6 +1099,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `PasswordStrengthTest` | Bits and ratings |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
+| `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored |
 | `StringResourcesTest` | No line in `res/values*` ends with a backslash, see [Adding a string](#adding-a-string) |
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the
@@ -1108,6 +1116,12 @@ release:
 
 - Log in, turn the screen off and on, log in again: no second logout.
 - Export over an existing, longer export file and import it again.
+- Export, change "Log out on close", the logout delay, the clipboard
+  clearing and the theme, and import the export from Settings: the message
+  lists those four with their old values, and back on Settings the check
+  boxes, the summaries and the theme are the imported ones. Importing the
+  same file again lists no settings, nor does an export of the original
+  Passdroid.
 - Copy a password, wait about a minute: the clipboard is empty. Copy a
   password, copy text in another app and come back within the minute: the
   text is kept.
@@ -1296,5 +1310,5 @@ Limitations:
 - Import replaces all entries; there is no merge.
 - Many strings are hardcoded in English in the code instead of resources.
 
-The open security items, e.g. that an import can turn off the automatic
-logout settings, are listed in [Open items](#open-items).
+The open security items, e.g. a longer minimum for the master password, are
+listed in [Open items](#open-items).

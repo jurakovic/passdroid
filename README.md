@@ -154,7 +154,8 @@ on in Settings.
 - A file in a newer format, from a later version of Passdroid++, is refused
   until you update Passdroid++.
 - **Importing replaces all entries** with those in the file, and applies the
-  settings in the file.
+  settings in the file. The message after the import lists each setting it
+  changed, with its old value.
 - After importing an unencrypted file, Passdroid++ offers to delete it.
 
 ### Appearance
