@@ -12,17 +12,16 @@
 
 <!-- About -->
 <string name="about_title">About Passdroid++</string>
-<string name="about_text">Passdroid++ is an open source application that lets you store your passwords in a secure way on your Android device. The passwords are encrypted with AES-256 and a key derived from the master password, \
-so they cannot be read without it.\n\
-https://github.com/jurakovic/passdroid\n\
-Passdroid++ is based on Passdroid by Magnus Eriksson (http://passdroid.kodholken.com/).\n\
-Copyright &#169; 2009-2019  Magnus Eriksson &lt;eriksson.mag@gmail.com&gt;, and the contributors of Passdroid.\n\
-Application icon by VisualPharm (http://www.visualpharm.com/).\n\
-Roboto Mono font, Copyright 2015 The Roboto Mono Project Authors, licensed under the SIL Open Font License 1.1. ZXing and AndroidX CameraX are licensed under the Apache License 2.0.\n\
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n\
-You should have received a copy of the GNU General Public License along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.\
-</string>
+<string name="about_text">Passdroid++ is an open source application that lets you store your passwords in a secure way on your Android device. The passwords are encrypted with AES-256 and a key derived from the master password,
+so they cannot be read without it.
+\n\nhttps://github.com/jurakovic/passdroid
+\n\nPassdroid++ is based on Passdroid by Magnus Eriksson (http://passdroid.kodholken.com/).
+\n\nCopyright &#169; 2009-2019  Magnus Eriksson &lt;eriksson.mag@gmail.com&gt;, and the contributors of Passdroid.
+\n\nApplication icon by VisualPharm (http://www.visualpharm.com/).
+\n\nRoboto Mono font, Copyright 2015 The Roboto Mono Project Authors, licensed under the SIL Open Font License 1.1. ZXing and AndroidX CameraX are licensed under the Apache License 2.0.
+\n\nThis program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+\n\nYou should have received a copy of the GNU General Public License along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</string>
 
 <!-- Login -->
 <string name="login_title">Login</string>
@@ -58,15 +57,15 @@ You should have received a copy of the GNU General Public License along with thi
 <!-- Initialize  -->
 <string name="initialize_title">Initialize</string>
 <string name="initialize_welcome">Welcome to Passdroid++!</string>
-<string name="initialize_text">Before continuing you need to choose a master password \
-that will protect the information that is stored on the device. If this password is forgotten \
+<string name="initialize_text">Before continuing you need to choose a master password
+that will protect the information that is stored on the device. If this password is forgotten
 the passwords stored are not recoverable.</string>
 <string name="enter_password">Enter the password you want to use:</string>
 <string name="repeat_password">Enter the password again:</string>
 <string name="initialize_mismatch_title">Mismatch</string>
 <string name="initialize_mismatch_text">"The passwords you entered did not match. Please try again."</string>
 <string name="master_password_too_short_title">Too short</string>
-<string name="master_password_too_short">The master password must have at least %d \
+<string name="master_password_too_short">The master password must have at least %d
 characters. A few random words are easy to remember and hard to guess.</string>
 <plurals name="master_password_hint">
     <item quantity="one">At least %1$d character.</item>
@@ -81,8 +80,8 @@ characters. A few random words are easy to remember and hard to guess.</string>
     <item quantity="other">At least %1$d characters \u2713</item>
 </plurals>
 <string name="master_password_short_title">Short master password</string>
-<string name="master_password_short_reminder">Your master password has fewer than %d \
-characters. Someone with a copy of your passwords, such as an export, could guess it. A \
+<string name="master_password_short_reminder">Your master password has fewer than %d
+characters. Someone with a copy of your passwords, such as an export, could guess it. A
 longer password made of a few random words is easy to remember and hard to guess.</string>
 <string name="change">Change</string>
 <string name="later">Later</string>
@@ -115,24 +114,21 @@ longer password made of a few random words is easy to remember and hard to guess
 <string name="export_successful">Database successfully exported to %s</string>
 <string name="export_cleartext_successful">Database successfully exported to %s. Note that the passwords are NOT ENCRYPTED.</string>
 
-<string name="export_description">\
-This will export the password database to a file of your choice. \
-In combination with the import function this can be used to move the \
-password database to another device or as a way to back up your data. \
-The settings are exported as well, except fingerprint unlock. \
-If you export the file unencrypted make sure it is \
-removed from the phone as quickly as possible since other applications will \
+<string name="export_description">This will export the password database to a file of your choice.
+In combination with the import function this can be used to move the
+password database to another device or as a way to back up your data.
+The settings are exported as well, except fingerprint unlock.
+If you export the file unencrypted make sure it is
+removed from the phone as quickly as possible since other applications will
 be able to read it.</string>
 
-<string name="import_description">\
-This will import a database of passwords that has been exported from Passdroid++ or Passdroid. \
-The import will remove any existing passwords on this device. \
+<string name="import_description">This will import a database of passwords that has been exported from Passdroid++ or Passdroid.
+The import will remove any existing passwords on this device.
 Settings in the file replace the current settings.</string>
 
 <string name="import_description_file_present" formatted="false">%f contains %n entries.</string>
 
-<string name="import_description_encrypted_file_present" formatted="false">\
-The file %s is encrypted.</string>
+<string name="import_description_encrypted_file_present" formatted="false">The file %s is encrypted.</string>
 
 <string name="import_description_failure" formatted="false">Failed to read %f: %e.</string>
 
@@ -178,7 +174,7 @@ The file %s is encrypted.</string>
 <string name="copy_totp_secret">Copy the 2FA secret to clipboard?</string>
 <string name="totp_show_qr">Show the 2FA secret as a QR code</string>
 <string name="totp_qr_title">2FA QR code</string>
-<string name="totp_qr_text">Scan this QR code with the authenticator app you \
+<string name="totp_qr_text">Scan this QR code with the authenticator app you
 would like to transfer this entry to</string>
 <string name="date">Date</string>
 <string name="date_not_set">Not set</string>
