@@ -141,6 +141,10 @@ on in Settings.
 
 - Open it from the list menu, or from the add and edit screens to fill in the
   password.
+- On the add and edit screens, "Generate password" fills in a new password
+  right away, with the length and characters last chosen in the generator;
+  the button next to it opens the generator. It asks before replacing a
+  password it didn't generate.
 - Letters and digits, letters only, digits only, or letters, digits and
   symbols, up to 99 characters. The length and the characters are
   remembered. The default is 16 letters and digits.

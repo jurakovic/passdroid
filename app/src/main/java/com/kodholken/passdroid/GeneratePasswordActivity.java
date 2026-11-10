@@ -19,15 +19,10 @@
 
 package com.kodholken.passdroid;
 
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Random;
-
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,14 +38,11 @@ import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+/**
+ * The password generator. The passwords come from PasswordGenerator, which
+ * also stores the length and the characters chosen here.
+ */
 public class GeneratePasswordActivity extends TimeoutActivity {
-    private static final String passwordLengthKey = "passwordLength";
-    private static final String passwordCharsetKey = "passwordCharset";
-    private static final String numericCharset = "0123456789";
-    private static final String alphabeticCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final String alphanumericCharset = alphabeticCharset + numericCharset;
-    private static final String extendedCharset = alphanumericCharset + "!#@%&/()?+-_:;*=$";
-
     private EditText lengthField;
     private ImageButton incButton;
     private ImageButton decButton;
@@ -58,9 +50,6 @@ public class GeneratePasswordActivity extends TimeoutActivity {
     private ImageView strengthImage;
     private TextView strengthText;
     private boolean displayPassword;
-
-    private static final int MAX_PASSWORD_LENGTH = 99;
-    private static final int DEFAULT_PASSWORD_LENGTH = 16;
 
     // We save the generated password here for the caller to retrieve when we
     // have finished. 
@@ -76,7 +65,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
         setContentView(R.layout.generate_password);
 
         lengthField = (EditText)  findViewById(R.id.length_input);
-        lengthField.setText("" + getStoredPasswordLength());
+        lengthField.setText("" + PasswordGenerator.getStoredLength(this));
 
         Bundle extras = getIntent().getExtras();
         if (extras != null && extras.containsKey("displayPassword")) {
@@ -101,7 +90,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
 
     private void updateStrength() {
         int length = Integer.parseInt(lengthField.getText().toString());
-        String charset = getCharset(spinner.getSelectedItemPosition());
+        String charset = PasswordGenerator.getCharset(spinner.getSelectedItemPosition());
 
         int bits = PasswordStrength.getBits(length, charset.length());
         int rating = PasswordStrength.getRating(bits);
@@ -179,7 +168,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
 
     private void setupSpinner() {
         spinner = (Spinner) findViewById(R.id.charset);
-        spinner.setSelection(getStoredCharset());
+        spinner.setSelection(PasswordGenerator.getStoredCharset(this));
 
         spinner.setOnItemSelectedListener(new OnItemSelectedListener() {
 
@@ -205,11 +194,11 @@ public class GeneratePasswordActivity extends TimeoutActivity {
                 int current = 0;
                 try {
                     current = Integer.parseInt(lengthField.getText().toString());
-                    if (current < MAX_PASSWORD_LENGTH) {
+                    if (current < PasswordGenerator.MAX_PASSWORD_LENGTH) {
                         current++;
                     }
                 } catch (NumberFormatException ex) {
-                    current = DEFAULT_PASSWORD_LENGTH;
+                    current = PasswordGenerator.DEFAULT_PASSWORD_LENGTH;
                 }
 
                 lengthField.setText("" + current);
@@ -247,7 +236,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
                         current--;
                     }
                 } catch (NumberFormatException ex) {
-                    current = DEFAULT_PASSWORD_LENGTH;
+                    current = PasswordGenerator.DEFAULT_PASSWORD_LENGTH;
                 }
 
                 lengthField.setText("" + current);
@@ -307,48 +296,11 @@ public class GeneratePasswordActivity extends TimeoutActivity {
         });
     }
 
-    private String getCharset(int pos) {
-        if (pos == Spinner.INVALID_POSITION) {
-            return alphanumericCharset;
-        }
-
-        String charset;
-        switch (pos) {
-        case 0:
-            charset = alphanumericCharset;
-            break;
-        case 1:
-            charset = alphabeticCharset;
-            break;
-        case 2:
-            charset = numericCharset;
-            break;
-        case 3:
-            charset = extendedCharset;
-            break;
-        default:
-            charset = alphanumericCharset;
-        }
-
-        return charset;
-    }
-
     private void generatePassword() {
-        Random random = new SecureRandom();
-
-        String charset = getCharset(spinner.getSelectedItemPosition());
-
-        // One string, not one for each added character
         int length = Integer.parseInt(lengthField.getText().toString());
-        char [] chars = new char[length];
-        for (int i = 0; i < length; i++) {
-            chars[i] = charset.charAt(random.nextInt(charset.length()));
-        }
-        generatedPassword = new String(chars);
-        Arrays.fill(chars, '\0');
-
-        storePasswordLength(length);
-        storeCharset(spinner.getSelectedItemPosition());
+        int charset = spinner.getSelectedItemPosition();
+        generatedPassword = PasswordGenerator.generate(length, charset);
+        PasswordGenerator.store(this, length, charset);
     }
 
     /**
@@ -359,25 +311,5 @@ public class GeneratePasswordActivity extends TimeoutActivity {
         String password = generatedPassword;
         generatedPassword = null;
         return password;
-    }
-
-    private int getStoredPasswordLength() {
-        return PreferenceManager.getDefaultSharedPreferences(this).
-        getInt(passwordLengthKey, DEFAULT_PASSWORD_LENGTH);
-    }
-
-    private void storePasswordLength(int length) {
-        PreferenceManager.getDefaultSharedPreferences(this).edit().
-        putInt(passwordLengthKey, length).commit();
-    }
-
-    private int getStoredCharset() {
-        return PreferenceManager.getDefaultSharedPreferences(this).
-        getInt(passwordCharsetKey, 0);
-    }
-
-    private void storeCharset(int charset) {
-        PreferenceManager.getDefaultSharedPreferences(this).edit().
-        putInt(passwordCharsetKey, charset).commit();
     }
 }

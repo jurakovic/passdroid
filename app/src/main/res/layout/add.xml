@@ -92,12 +92,31 @@
         android:contentDescription="@string/show_password"/>
     </LinearLayout>
  
-    <Button
-      android:id="@+id/generate_button"
-      android:text="@string/generate_password"
+    <LinearLayout
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"
-      android:textSize="13sp"/>
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+      <!-- Generates a password with the generator's last settings -->
+      <Button
+        android:id="@+id/generate_button"
+        android:text="@string/generate_password"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="13sp"/>
+
+      <!-- Opens the password generator -->
+      <ImageButton
+        android:id="@+id/generator_options"
+        android:layout_width="48dip"
+        android:layout_height="48dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_tune"
+        android:contentDescription="@string/generator_options"/>
+    </LinearLayout>
 
     <TextView
       android:paddingTop="10dip"
