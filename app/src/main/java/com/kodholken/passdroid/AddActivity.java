@@ -173,7 +173,11 @@ public class AddActivity extends SherlockTimeoutActivity {
      */
     private void quickGenerate() {
         String current = password.getText().toString();
-        if (current.length() == 0 || current.equals(lastGenerated)) {
+        if (!current.equals(lastGenerated)) {
+            // Replaced since, so it is not kept any longer
+            lastGenerated = null;
+        }
+        if (current.length() == 0 || lastGenerated != null) {
             setGeneratedPassword();
             return;
         }
@@ -230,6 +234,7 @@ public class AddActivity extends SherlockTimeoutActivity {
         if (resultCode == 1) {
             this.password.setText(GeneratePasswordActivity.
                     takeGeneratedPassword());
+            lastGenerated = null;
             passwordToggle.setVisible(true);
         }
     }
