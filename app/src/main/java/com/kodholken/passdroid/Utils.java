@@ -19,7 +19,6 @@
 
 package com.kodholken.passdroid;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -41,6 +40,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
 
 public class Utils {
     public static void alertDialog(Context context, String title, 
@@ -67,18 +68,16 @@ public class Utils {
 
     /**
      * Register a broadcast receiver that only receives broadcasts from this
-     * application and the system.
+     * application and the system, on every Android version. Since Android 13
+     * the receiver is not exported. Before, it is guarded by a signature
+     * permission that only this application holds, which AndroidX declares
+     * in the manifest (DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION).
      */
-    @SuppressLint("UnspecifiedRegisterReceiverFlag") // Flags are API 33+
     public static void registerNotExportedReceiver(Context context,
                                                    BroadcastReceiver receiver,
                                                    IntentFilter filter) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter,
-                                     Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            context.registerReceiver(receiver, filter);
-        }
+        ContextCompat.registerReceiver(context, receiver, filter,
+                                       ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     /**

@@ -40,19 +40,27 @@ releasing.
 
 - A single-module Android app in **Java**, on the plain platform classes
   (`Activity`, `ListActivity`, `PreferenceActivity`, `SQLiteOpenHelper`). No
-  AndroidX except CameraX for the QR scanner, and the AndroidX libraries it
-  needs. No dependency injection, no Kotlin in the app code.
+  AndroidX except CameraX for the QR scanner and the AndroidX libraries it
+  needs, of which the app uses androidx.core (`ContextCompat`) directly. No
+  dependency injection, no Kotlin in the app code.
 - `minSdk` 24 (Android 7.0), `compileSdk` and `targetSdk` 37 (Android 17).
 - Dependencies: ZXing core (QR decoding and encoding), CameraX (camera
-  preview and frames). Tests: JUnit 4 and BouncyCastle.
+  preview and frames), androidx.core (receivers that are not exported on
+  every Android version). Tests: JUnit 4 and BouncyCastle.
 - Java package and namespace `com.kodholken.passdroid`, the package of the
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
   next to the original or published under it.
-- The only permissions are `CAMERA` and `USE_BIOMETRIC`. There is no
-  `INTERNET` permission, and the manifest removes `ACCESS_NETWORK_STATE`,
-  which `androidx.media3`, a dependency of CameraX, declares. Everything
-  stays on the device unless the user exports it.
+- The only permissions are `CAMERA` and `USE_BIOMETRIC`, and the app's own
+  signature permission
+  `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which
+  androidx.core declares and uses so that the app's runtime receivers are
+  not exported before Android 13, see
+  [Android platform details](#android-platform-details). It grants nothing
+  outside the app. There is no `INTERNET` permission, and the manifest
+  removes `ACCESS_NETWORK_STATE`, which `androidx.media3`, a dependency of
+  CameraX, declares. Everything stays on the device unless the user exports
+  it.
 
 ## Building
 
@@ -172,8 +180,9 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 `TimeoutActivity`. Each:
 
 - sets `FLAG_SECURE` on its window,
-- registers a not exported receiver for the timeout broadcast, which logs
-  out and finishes the activity,
+- registers a receiver for the timeout broadcast that is not exported on any
+  Android version (see [Android platform details](#android-platform-details)),
+  which logs out and finishes the activity,
 - applies the theme and recreates itself when the theme setting changed,
 - keeps its content clear of the system bars (`Utils.applySystemBarInsets()`),
 - counts resumes and pauses in the session. When the count drops to 0, the
@@ -748,8 +757,14 @@ Other settings:
   `importantForAutofill="noExcludeDescendants"`.
 - The password, 2FA secret, 2FA code and generated password views have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
-- Only `MainActivity` is exported. The timeout receivers are registered at
-  runtime as not exported, the clipboard receiver is declared with
+- Only `MainActivity` is exported. The timeout and screen off receivers are
+  registered at runtime as not exported, with
+  `ContextCompat.registerReceiver()` (`Utils.registerNotExportedReceiver()`):
+  since Android 13 with `RECEIVER_NOT_EXPORTED`, before with the signature
+  permission `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
+  which AndroidX declares in the manifest. So only the app and the system
+  can send to them, and before Android 13 also apps signed with the same
+  key. The clipboard receiver is declared with
   `exported="false"`.
 
 ## Security
@@ -953,7 +968,11 @@ Android 9 and later, off by default.
 
 - Permissions: `USE_BIOMETRIC` and `CAMERA`, which is asked for when the QR
   scanner is first opened. **No `INTERNET`.** The manifest removes
-  `ACCESS_NETWORK_STATE`, which a library declares.
+  `ACCESS_NETWORK_STATE`, which a library declares. androidx.core adds the
+  app's own signature permission
+  `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which before
+  Android 13 keeps the receivers to the app and apps signed with its key,
+  and grants nothing else.
 - Only the launcher activity is exported. The receivers are not exported,
   and the timeout alarm is an immutable intent for the app itself.
 - **Android backup is off** (`allowBackup="false"`). Encrypted exports are
