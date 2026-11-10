@@ -1125,9 +1125,10 @@ release:
 - Copy a password, wait about a minute: the clipboard is empty. Copy a
   password, copy text in another app and come back within the minute: the
   text is kept.
-- Open an entry: show and copy the password and the 2FA secret. Edit it,
-  view it again, delete it. Copy a password with a long press in the list,
-  also while searching.
+- Open an entry: show and copy the password and the 2FA secret. Edit it and
+  give it a note of several lines, which shows the same on the entry screen
+  and after an export and import; view it again, delete it. Copy a password
+  with a long press in the list, also while searching.
 - Open the search: the field fills the action bar.
 - Open the 2FA codes screen, with "Display username" on and off.
 - Scan a setup QR code with the camera and from a screenshot.
