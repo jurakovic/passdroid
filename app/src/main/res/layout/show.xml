@@ -164,7 +164,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"/>
 
-      <!-- A tap copies the code -->
+      <!-- Copies the code, see ShowActivity.setupClipboardActions() -->
       <LinearLayout
         android:id="@+id/totp_code_row"
         android:layout_width="fill_parent"

@@ -122,7 +122,7 @@ on in Settings.
 
 - Store a 2FA secret in an entry: the key a service shows for manual setup,
   or an `otpauth://totp/` link. The entry shows the current code and how long
-  it is valid. A tap copies it.
+  it is valid. A tap copies it, or a long press with "Tap to copy" off.
 - The **2FA codes screen** (the clock icon in the list) shows the codes of
   all entries, with a bar that shows how long they are valid. A tap copies a
   code, a long press opens the entry. Like the list, it shows the username
