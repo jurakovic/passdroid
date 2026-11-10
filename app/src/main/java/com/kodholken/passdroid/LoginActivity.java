@@ -68,9 +68,10 @@ public class LoginActivity extends Activity {
 
         // If we are already logged in we are done. This will return control
         // to the MainActivity which is responsible for creating and launching
-        // a PasswordActivity instance.
+        // the password list.
         if (Session.getInstance().isLoggedIn()) {
             finish();
+            return;
         }
 
         setContentView(R.layout.login);
