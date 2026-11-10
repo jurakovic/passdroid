@@ -728,7 +728,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `font_size` | `normal` (`small`, `large`) | `FontSetting` | yes |
 | `date_format` | `device` (`iso`) | `DateField.format()` | yes |
 | `biometric_unlock` | not persisted | `SettingsActivity` | no |
-| `passwordLength`, `passwordCharset` | 16, 0 | the generator | no |
+| `passwordLength`, `passwordCharset` | 16, 0 | `PasswordGenerator`: the generator and the generate button of the add and edit screens | no |
 
 `SettingsBackup.get()` collects the exported settings (after applying the
 defaults, so unchanged settings are included too). `SettingsBackup.apply()`
