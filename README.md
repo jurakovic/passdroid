@@ -67,7 +67,9 @@ is encrypted.
 - A long press on an entry in the list asks whether to copy its password.
 - On the entry screen a tap on the system, email, username or note copies
   it. The password and the 2FA secret are hidden behind an eye button and ask
-  before they are copied. The URL opens in the browser.
+  before they are copied. The URL opens in the browser. With "Tap to copy"
+  off in Settings, a long press copies instead, so a tap never copies by
+  accident.
 - The date is set to the time the entry is added, e.g. to record when an
   account was created, and can be changed or cleared. Its time is optional:
   "No time" in the time picker keeps the date alone.
@@ -120,7 +122,7 @@ on in Settings.
 
 - Store a 2FA secret in an entry: the key a service shows for manual setup,
   or an `otpauth://totp/` link. The entry shows the current code and how long
-  it is valid. A tap copies it.
+  it is valid. A tap copies it, or a long press with "Tap to copy" off.
 - The **2FA codes screen** (the clock icon in the list) shows the codes of
   all entries, with a bar that shows how long they are valid. A tap copies a
   code, a long press opens the entry. Like the list, it shows the username

@@ -53,6 +53,8 @@ so they cannot be read without it.
 <string name="screen_off_logout_title">Log out when the screen turns off</string>
 <string name="screen_off_logout_summary">Log out right away when the screen is turned off, regardless of the logout delay.</string>
 <string name="display_username_title">Display username</string>
+<string name="tap_to_copy_title">Tap to copy</string>
+<string name="tap_to_copy_summary">Copy a value on the entry screen with a tap. When off, a long press copies it.</string>
 <string name="clear_clipboard_title">Auto clear clipboard</string>
 <!-- The value of a check box setting, e.g. in "Log out on close: off (was on)" -->
 <string name="setting_on">on</string>

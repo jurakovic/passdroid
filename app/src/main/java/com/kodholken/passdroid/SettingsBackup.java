@@ -20,7 +20,8 @@ import android.preference.PreferenceManager;
  */
 public class SettingsBackup {
     static final String [] BOOLEANS = {
-        "close_logout", "screen_off_logout", "display_username", "clear_clipboard"
+        "close_logout", "screen_off_logout", "display_username", "tap_to_copy",
+        "clear_clipboard"
     };
 
     /**
@@ -29,7 +30,7 @@ public class SettingsBackup {
      */
     static final String [] ORDER = {
         "close_logout", "logout_delay", "screen_off_logout", "display_username",
-        "clear_clipboard", ThemeSetting.PREFERENCE, FontSetting.PREFERENCE,
+        "tap_to_copy", "clear_clipboard", ThemeSetting.PREFERENCE, FontSetting.PREFERENCE,
         FontSetting.SIZE_PREFERENCE, DateField.PREFERENCE
     };
 
@@ -82,6 +83,7 @@ public class SettingsBackup {
         titles.put("logout_delay", R.string.logout_delay_title);
         titles.put("screen_off_logout", R.string.screen_off_logout_title);
         titles.put("display_username", R.string.display_username_title);
+        titles.put("tap_to_copy", R.string.tap_to_copy_title);
         titles.put("clear_clipboard", R.string.clear_clipboard_title);
         titles.put(ThemeSetting.PREFERENCE, R.string.theme_title);
         titles.put(FontSetting.PREFERENCE, R.string.font_title);

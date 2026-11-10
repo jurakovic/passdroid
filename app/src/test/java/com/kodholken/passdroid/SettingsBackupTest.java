@@ -20,6 +20,7 @@ public class SettingsBackupTest {
         settings.put("logout_delay", "5");
         settings.put("screen_off_logout", "true");
         settings.put("display_username", "true");
+        settings.put("tap_to_copy", "true");
         settings.put("clear_clipboard", "true");
         settings.put("theme", "system");
         settings.put("font", "default");
@@ -48,18 +49,20 @@ public class SettingsBackupTest {
         imported.put("font_size", "large");
         imported.put("theme", "dark");
         imported.put("clear_clipboard", "false");
+        imported.put("tap_to_copy", "false");
         imported.put("screen_off_logout", "false");
         imported.put("close_logout", "false");
 
         List<SettingsBackup.Change> changes = SettingsBackup.changes(current(), imported);
 
-        assertEquals(6, changes.size());
+        assertEquals(7, changes.size());
         assertEquals("close_logout", changes.get(0).name);
         assertEquals("screen_off_logout", changes.get(1).name);
-        assertEquals("clear_clipboard", changes.get(2).name);
-        assertEquals("theme", changes.get(3).name);
-        assertEquals("font_size", changes.get(4).name);
-        assertEquals("date_format", changes.get(5).name);
+        assertEquals("tap_to_copy", changes.get(2).name);
+        assertEquals("clear_clipboard", changes.get(3).name);
+        assertEquals("theme", changes.get(4).name);
+        assertEquals("font_size", changes.get(5).name);
+        assertEquals("date_format", changes.get(6).name);
     }
 
     @Test
