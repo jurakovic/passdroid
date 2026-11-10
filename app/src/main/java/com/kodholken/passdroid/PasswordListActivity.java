@@ -84,6 +84,10 @@ PasswordModelListener {
     private boolean passwordCounterIsVisible = false;
 
     private PasswordAdapter passwordAdapter = null;
+
+    // The text of the search, null while it is closed. A reload of the list
+    // creates a new adapter, which gets it too.
+    private String searchFilter = null;
     
     MenuItem searchMenuItem;
 
@@ -209,8 +213,9 @@ PasswordModelListener {
         searchField.addTextChangedListener(new TextWatcher() {
             @Override
             public void afterTextChanged(Editable arg0) {
+                searchFilter = arg0.toString();
                 if (passwordAdapter != null) {
-                    passwordAdapter.setFilterString(arg0.toString());
+                    passwordAdapter.setFilterString(searchFilter);
                     passwordAdapter.notifyDataSetChanged();
                 }
             }
@@ -233,6 +238,7 @@ PasswordModelListener {
         searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
+                searchFilter = "";
                 passwordCountTextView.setVisibility(View.GONE);
                 searchField.post(new Runnable() {
                     @Override
@@ -257,6 +263,7 @@ PasswordModelListener {
                 if (passwordCounterIsVisible) {
                     passwordCountTextView.setVisibility(View.VISIBLE);
                 }
+                searchFilter = null;
                 passwordAdapter.setFilterString(null);
                 passwordAdapter.notifyDataSetChanged();
 
@@ -467,6 +474,7 @@ PasswordModelListener {
         passwordAdapter = new PasswordAdapter(this, entries,
                                               PreferenceManager.getDefaultSharedPreferences(this).
                                               getBoolean("display_username", true)); 
+        passwordAdapter.setFilterString(searchFilter);
         setListAdapter(passwordAdapter); 
 
         updateTitlebar();
