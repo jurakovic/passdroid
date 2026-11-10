@@ -40,11 +40,13 @@ releasing.
 
 - A single-module Android app in **Java**, on the plain platform classes
   (`Activity`, `ListActivity`, `PreferenceActivity`, `SQLiteOpenHelper`). No
-  AndroidX except CameraX for the QR scanner, and the AndroidX libraries it
-  needs. No dependency injection, no Kotlin in the app code.
+  AndroidX except CameraX for the QR scanner and the AndroidX libraries it
+  needs, of which the app uses androidx.core (`ContextCompat`) directly. No
+  dependency injection, no Kotlin in the app code.
 - `minSdk` 24 (Android 7.0), `compileSdk` and `targetSdk` 37 (Android 17).
 - Dependencies: ZXing core (QR decoding and encoding), CameraX (camera
-  preview and frames). Tests: JUnit 4 and BouncyCastle.
+  preview and frames), androidx.core (receivers that are not exported on
+  every Android version). Tests: JUnit 4 and BouncyCastle.
 - Java package and namespace `com.kodholken.passdroid`, the package of the
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
@@ -172,8 +174,9 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 `TimeoutActivity`. Each:
 
 - sets `FLAG_SECURE` on its window,
-- registers a not exported receiver for the timeout broadcast, which logs
-  out and finishes the activity,
+- registers a receiver for the timeout broadcast that is not exported on any
+  Android version (see [Android platform details](#android-platform-details)),
+  which logs out and finishes the activity,
 - applies the theme and recreates itself when the theme setting changed,
 - keeps its content clear of the system bars (`Utils.applySystemBarInsets()`),
 - counts resumes and pauses in the session. When the count drops to 0, the
@@ -748,8 +751,13 @@ Other settings:
   `importantForAutofill="noExcludeDescendants"`.
 - The password, 2FA secret, 2FA code and generated password views have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
-- Only `MainActivity` is exported. The timeout receivers are registered at
-  runtime as not exported, the clipboard receiver is declared with
+- Only `MainActivity` is exported. The timeout and screen off receivers are
+  registered at runtime as not exported, with
+  `ContextCompat.registerReceiver()` (`Utils.registerNotExportedReceiver()`):
+  since Android 13 with `RECEIVER_NOT_EXPORTED`, before with the signature
+  permission `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
+  which AndroidX declares in the manifest. Either way only the app and the
+  system can send to them. The clipboard receiver is declared with
   `exported="false"`.
 
 ## Security

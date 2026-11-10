@@ -77,6 +77,11 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$cameraxVersion"
     implementation "androidx.camera:camera-view:$cameraxVersion"
 
+    // ContextCompat.registerReceiver(), which keeps runtime receivers
+    // unexported before Android 13 too, see Utils.registerNotExportedReceiver.
+    // CameraX alone brings an older version.
+    implementation 'androidx.core:core:1.9.0'
+
     testImplementation 'junit:junit:4.13.2'
     // Earlier versions encrypted with the platform's Bouncy Castle provider
     // ("BC"). The tests check that the default provider the app uses now
