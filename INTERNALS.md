@@ -87,8 +87,11 @@ Point `ANDROID_HOME` or `sdk.dir` in `local.properties` to the SDK.
 
 The "Build" workflow, `.github/workflows/build.yml`, runs on every push and
 pull request. It installs platform `android-37.0` and build tools 36.0.0,
-runs `testDebugUnitTest lintDebug assembleDebug assembleRelease` with the
-default version, and uploads the debug APK. The release build is there to
+runs `testDebugUnitTest lintDebug assembleDebug assembleRelease`, and
+uploads the debug APK. The version is `<next release>-build.<run number>`,
+e.g. 3.0.1-build.42: the next release is computed from the tags as in
+[Releasing](#releasing) (`publish.sh version -p false`), so the checkout
+fetches them. The version code is 1. The release build is there to
 check that R8 keeps what the app needs. The debug APK is signed with a debug
 key generated for each run, so the debug APKs of different runs can't be
 installed over each other. Releases are made with the "Publish" workflow,
@@ -1206,7 +1209,8 @@ The work is done by `publish.sh`, which runs locally as well, see
    version has a `-`.
 
 The "Step" switches turn off building, packaging or releasing, e.g. to sign
-an APK for testing without a release; releasing needs the other two.
+an APK for testing without a release; packaging needs building, and
+releasing needs both.
 "Source branch" builds another branch with the `publish.sh` of the branch
 the workflow runs from. Runs don't overlap (`concurrency`), so two runs
 can't pick the same version. The run summary shows the version code, the
