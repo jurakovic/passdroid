@@ -57,8 +57,9 @@ original Passdroid](#moving-from-the-original-passdroid) if you used it.
 ### Entries
 
 Each entry has a **system** (the name of the service, required), **email**,
-**username**, **password**, **2FA secret**, **note**, **URL** and **date**.
-Every field is encrypted.
+**username**, **password**, **2FA secret**, **URL**, **date** and **note**,
+in that order. The note comes last and can have several lines. Every field
+is encrypted.
 
 - The list is sorted by system and shows the username, or the email if there
   is no username, unless "Display username" is off. Search matches the

@@ -195,24 +195,6 @@
     </LinearLayout>
 
     <TextView
-      android:id="@+id/note_title"
-      android:visibility="gone"
-      android:paddingTop="10dip"
-      android:textColor="@color/panel_text_secondary"
-      android:text="@string/note"
-      android:textSize="13sp"
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
-
-    <TextView
-      android:visibility="gone"
-      android:id="@+id/note"
-      android:background="?android:attr/selectableItemBackground"
-      android:textSize="18sp"
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
-
-    <TextView
       android:id="@+id/url_title"
       android:visibility="gone"
       android:paddingTop="10dip"
@@ -245,6 +227,24 @@
       android:visibility="gone"
       android:id="@+id/date"
       android:singleLine="true"
+      android:textSize="18sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <TextView
+      android:id="@+id/note_title"
+      android:visibility="gone"
+      android:paddingTop="10dip"
+      android:textColor="@color/panel_text_secondary"
+      android:text="@string/note"
+      android:textSize="13sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <TextView
+      android:visibility="gone"
+      android:id="@+id/note"
+      android:background="?android:attr/selectableItemBackground"
       android:textSize="18sp"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
