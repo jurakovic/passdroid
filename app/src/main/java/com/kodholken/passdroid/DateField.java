@@ -10,6 +10,7 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.preference.PreferenceManager;
 import android.text.format.DateFormat;
 import android.view.View;
 import android.widget.DatePicker;
@@ -20,8 +21,8 @@ import android.widget.TimePicker;
  * The date of an entry, e.g. when the account was created. The date is stored
  * as local time without a time zone, so it shows the same time after the time
  * zone changes: "yyyy-MM-ddTHH:mm", or "yyyy-MM-dd" for a date without a
- * time. It is shown in the format of the device, without a time if it has
- * none.
+ * time. It is shown in the format of the device, or as "yyyy-MM-dd HH:mm"
+ * with the date format setting, without a time if it has none.
  *
  * On the add and edit screens a DateField object lets the user pick the date
  * and, optionally, the time, or clear it.
@@ -177,11 +178,18 @@ public class DateField {
     }
 
     /**
-     * @return the value in the date and time format of the device, the date
-     *         alone if it has no time, or the value as it is if it is not a
-     *         valid value, e.g. from an edited export file.
+     * @return the value in the date format of the setting, the date and time
+     *         format of the device or ISO, the date alone if it has no time,
+     *         or the value as it is if it is not a valid value, e.g. from an
+     *         edited export file.
      */
     public static String format(Context context, String value) {
+        String setting = PreferenceManager.getDefaultSharedPreferences(context).
+            getString(PREFERENCE, "device");
+        if (ISO.equals(setting)) {
+            return formatIso(value);
+        }
+
         Date date = parse(value);
         if (date == null) {
             return value;
@@ -192,5 +200,20 @@ public class DateField {
             text += " " + DateFormat.getTimeFormat(context).format(date);
         }
         return text;
+    }
+
+    /**
+     * @return the value as "yyyy-MM-dd HH:mm", with a 24 hour clock, or
+     *         "yyyy-MM-dd" if it has no time, or the value as it is if it is
+     *         not a valid value.
+     */
+    static String formatIso(String value) {
+        Date date = parse(value);
+        if (date == null) {
+            return value;
+        }
+
+        String pattern = hasTime(value) ? "yyyy-MM-dd HH:mm" : DATE_FORMAT;
+        return new SimpleDateFormat(pattern, Locale.US).format(date);
     }
 }
