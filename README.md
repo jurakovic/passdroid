@@ -170,8 +170,10 @@ on in Settings.
 
 ### Privacy
 
-- **No internet permission.** The only permissions are the camera, for
-  scanning QR codes, and biometrics, for fingerprint unlock.
+- **No internet permission.** The only permissions that give access to
+  anything are the camera, for scanning QR codes, and biometrics, for
+  fingerprint unlock. Android may also list one that only keeps the app's
+  internal messages to the app itself.
 - **Android backup is off**, so the database is not copied to the cloud.
   Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens

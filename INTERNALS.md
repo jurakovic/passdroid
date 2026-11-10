@@ -51,10 +51,16 @@ releasing.
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
   next to the original or published under it.
-- The only permissions are `CAMERA` and `USE_BIOMETRIC`. There is no
-  `INTERNET` permission, and the manifest removes `ACCESS_NETWORK_STATE`,
-  which `androidx.media3`, a dependency of CameraX, declares. Everything
-  stays on the device unless the user exports it.
+- The only permissions are `CAMERA` and `USE_BIOMETRIC`, and the app's own
+  signature permission
+  `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which
+  androidx.core declares and uses so that its receivers are not exported
+  before Android 13, see
+  [Android platform details](#android-platform-details). It grants nothing
+  outside the app. There is no `INTERNET` permission, and the manifest
+  removes `ACCESS_NETWORK_STATE`, which `androidx.media3`, a dependency of
+  CameraX, declares. Everything stays on the device unless the user exports
+  it.
 
 ## Building
 
@@ -980,7 +986,11 @@ Android 9 and later, off by default.
 
 - Permissions: `USE_BIOMETRIC` and `CAMERA`, which is asked for when the QR
   scanner is first opened. **No `INTERNET`.** The manifest removes
-  `ACCESS_NETWORK_STATE`, which a library declares.
+  `ACCESS_NETWORK_STATE`, which a library declares. androidx.core adds the
+  app's own signature permission
+  `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which only
+  keeps the receivers to the app before Android 13 and grants nothing
+  outside it.
 - Only the launcher activity is exported. The receivers are not exported,
   and the timeout alarm is an immutable intent for the app itself.
 - **Android backup is off** (`allowBackup="false"`). Encrypted exports are
