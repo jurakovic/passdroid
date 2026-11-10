@@ -1092,6 +1092,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `PasswordStrengthTest` | Bits and ratings |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
+| `StringResourcesTest` | No line in `res/values*` ends with a backslash, see [Adding a string](#adding-a-string) |
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the
 default provider reads and writes what the BouncyCastle provider wrote. There
@@ -1159,6 +1160,16 @@ Add it to `res/xml/settings.xml`. If it should be exported, add it to
 `SettingsBackup` (the boolean list, or the list map with the array resource
 of its allowed values). Settings that only make sense on one device, like
 fingerprint unlock, are not exported.
+
+### Adding a string
+
+A string in `res/values/strings.xml` may wrap over several lines in the
+source: aapt2 turns each line break, with the spaces around it, into one
+space. Don't end a line with `\`. aapt2 reads it as an escaped line break
+and puts a real one into the text, where the screen would break the line
+mid-sentence. `\n` is the only way to break a line, e.g. `\n\n` at the start
+of a paragraph's line for an empty line before it, as in `about_text`.
+`StringResourcesTest` fails on a line that ends with `\`.
 
 ### Changing a file format
 
