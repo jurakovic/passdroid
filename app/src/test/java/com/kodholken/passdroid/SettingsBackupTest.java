@@ -22,6 +22,7 @@ public class SettingsBackupTest {
         settings.put("theme", "system");
         settings.put("font", "default");
         settings.put("font_size", "normal");
+        settings.put("date_format", "device");
         return settings;
     }
 
@@ -41,6 +42,7 @@ public class SettingsBackupTest {
     @Test
     public void changesAreInTheOrderOfTheSettingsScreen() {
         Map<String, String> imported = new LinkedHashMap<String, String>();
+        imported.put("date_format", "iso");
         imported.put("font_size", "large");
         imported.put("theme", "dark");
         imported.put("clear_clipboard", "false");
@@ -49,12 +51,13 @@ public class SettingsBackupTest {
 
         List<SettingsBackup.Change> changes = SettingsBackup.changes(current(), imported);
 
-        assertEquals(5, changes.size());
+        assertEquals(6, changes.size());
         assertEquals("close_logout", changes.get(0).name);
         assertEquals("screen_off_logout", changes.get(1).name);
         assertEquals("clear_clipboard", changes.get(2).name);
         assertEquals("theme", changes.get(3).name);
         assertEquals("font_size", changes.get(4).name);
+        assertEquals("date_format", changes.get(5).name);
     }
 
     @Test

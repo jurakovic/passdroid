@@ -420,11 +420,13 @@ secret that isn't stored yet: the generated password to
   time.
 - `DateField` stores dates as local time without a time zone,
   `yyyy-MM-ddTHH:mm`, so they show the same time after the time zone changes,
-  and formats them in the device's format. A date without a time is stored
-  as `yyyy-MM-dd` and shown as the date alone; not as 00:00, which is a time
-  that can be picked. Picking a date opens the time picker, whose "No time"
-  stores the date alone, and whose Cancel keeps the time the date had, or
-  none. An older version shows a date without a time as the stored text.
+  and formats them in the device's format, or as `yyyy-MM-dd HH:mm` with the
+  date format setting (`format()`, which all dates are shown through). A
+  date without a time is stored as `yyyy-MM-dd` and shown as the date alone;
+  not as 00:00, which is a time that can be picked. Picking a date opens the
+  time picker, whose "No time" stores the date alone, and whose Cancel keeps
+  the time the date had, or none. An older version shows a date without a
+  time as the stored text.
 
 ## Clipboard
 
@@ -506,6 +508,7 @@ UTF-8 encoded:
   <settings>
     <setting name="clear_clipboard">true</setting>
     <setting name="close_logout">true</setting>
+    <setting name="date_format">device</setting>
     <setting name="display_username">true</setting>
     <setting name="font">default</setting>
     <setting name="font_size">normal</setting>
@@ -705,6 +708,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` | yes |
 | `font` | `default` (`monospace`) | `FontSetting` | yes |
 | `font_size` | `normal` (`small`, `large`) | `FontSetting` | yes |
+| `date_format` | `device` (`iso`) | `DateField.format()` | yes |
 | `biometric_unlock` | not persisted | `SettingsActivity` | no |
 | `passwordLength`, `passwordCharset` | 16, 0 | the generator | no |
 
@@ -1102,7 +1106,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
 | `SessionTest` | Both kinds of logout wipe the key |
-| `DateFieldTest` | Dates with and without a time, invalid values |
+| `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 | `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored |
 | `StringResourcesTest` | No line in `res/values*` ends with a backslash, see [Adding a string](#adding-a-string) |

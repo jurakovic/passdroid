@@ -43,6 +43,17 @@ public class DateFieldTest {
     }
 
     @Test
+    public void isoFormat() {
+        assertEquals("2026-10-25 14:30", DateField.formatIso("2026-10-25T14:30"));
+        assertEquals("2026-10-25 00:00", DateField.formatIso("2026-10-25T00:00"));
+        assertEquals("2026-10-25", DateField.formatIso("2026-10-25"));
+
+        // Invalid values come back as they are
+        assertEquals("25.10.2026", DateField.formatIso("25.10.2026"));
+        assertEquals("", DateField.formatIso(""));
+    }
+
+    @Test
     public void toValue() {
         Date date = date(2026, 1, 5, 9, 7);
         assertEquals("2026-01-05T09:07", DateField.toValue(date, true));
