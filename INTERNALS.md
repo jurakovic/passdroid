@@ -790,8 +790,9 @@ Other settings:
   `ContextCompat.registerReceiver()` (`Utils.registerNotExportedReceiver()`):
   since Android 13 with `RECEIVER_NOT_EXPORTED`, before with the signature
   permission `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
-  which AndroidX declares in the manifest. Either way only the app and the
-  system can send to them. The clipboard receiver is declared with
+  which AndroidX declares in the manifest. So only the app and the system
+  can send to them, and before Android 13 also apps signed with the same
+  key. The clipboard receiver is declared with
   `exported="false"`.
 
 ## Security
@@ -1000,9 +1001,9 @@ Android 9 and later, off by default.
   scanner is first opened. **No `INTERNET`.** The manifest removes
   `ACCESS_NETWORK_STATE`, which a library declares. androidx.core adds the
   app's own signature permission
-  `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which only
-  keeps the receivers to the app before Android 13 and grants nothing
-  outside it.
+  `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which before
+  Android 13 keeps the receivers to the app and apps signed with its key,
+  and grants nothing else.
 - Only the launcher activity is exported. The receivers are not exported,
   and the timeout alarm is an immutable intent for the app itself.
 - **Android backup is off** (`allowBackup="false"`). Encrypted exports are
