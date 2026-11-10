@@ -1138,7 +1138,10 @@ release:
   give it a note of several lines, which shows the same on the entry screen
   and after an export and import; view it again, delete it. Copy a password
   with a long press in the list, also while searching.
-- Open the search: the field fills the action bar.
+- Open the search: the field fills the action bar, without an x. Type: the
+  x appears. Tap it: the field is empty and keeps the keyboard, all entries
+  show, and the x is gone. Edit or delete an entry found by a search and go
+  back: the list is still filtered.
 - Open the 2FA codes screen, with "Display username" on and off.
 - Scan a setup QR code with the camera and from a screenshot.
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
