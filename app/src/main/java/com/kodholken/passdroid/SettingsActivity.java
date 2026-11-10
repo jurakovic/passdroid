@@ -33,6 +33,11 @@ import android.preference.Preference.OnPreferenceChangeListener;
 public class SettingsActivity extends TimeoutPreferenceActivity
                               implements OnSharedPreferenceChangeListener {
     private CheckBoxPreference biometricPreference;
+    private boolean resumed;
+    // A setting was changed while another screen was in front, e.g. by an
+    // import. The check boxes and lists of this screen only read their
+    // values when they are created, so it is created again.
+    private boolean stale;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +72,12 @@ public class SettingsActivity extends TimeoutPreferenceActivity
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
+
+        if (stale && !isFinishing()) {
+            recreate();
+            return;
+        }
 
         // Biometric unlock may have been turned off, e.g. after the
         // master password was changed.
@@ -78,6 +89,12 @@ public class SettingsActivity extends TimeoutPreferenceActivity
         biometricPreference.setSummary(enabled || available ?
                                        R.string.biometric_setting_summary :
                                        R.string.biometric_not_available);
+    }
+
+    @Override
+    protected void onPause() {
+        resumed = false;
+        super.onPause();
     }
 
     private void enableBiometricUnlock() {
@@ -114,9 +131,14 @@ public class SettingsActivity extends TimeoutPreferenceActivity
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        updateSummaries();
         Session.getInstance().setNeedReload(true);
 
+        if (!resumed) {
+            stale = true;
+            return;
+        }
+
+        updateSummaries();
         if (ThemeSetting.PREFERENCE.equals(key)) {
             recreate();
         }

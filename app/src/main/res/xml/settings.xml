@@ -24,7 +24,7 @@
 
 <CheckBoxPreference
   android:key="close_logout"
-  android:title="Log out on close"
+  android:title="@string/close_logout_title"
   android:defaultValue="true"
   android:summary="Automatic logout when the application has been in the background for longer than the logout delay." />
 
@@ -45,13 +45,13 @@
 
 <CheckBoxPreference
   android:key="display_username"
-  android:title="Display username"
+  android:title="@string/display_username_title"
   android:defaultValue="true"
   android:summary="Show the username in addition to the system in the list of passwords and of 2FA codes."/>
   
 <CheckBoxPreference
   android:key="clear_clipboard"
-  android:title="Auto clear clipboard"
+  android:title="@string/clear_clipboard_title"
   android:defaultValue="true"
   android:summary="Remove a copied password or 2FA code from the clipboard within a minute, and when the screen is turned off."/>
   
