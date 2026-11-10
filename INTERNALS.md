@@ -1131,7 +1131,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
-| `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored |
+| `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored; every exported setting in `ORDER`, with a title and, for a list, labels |
 | `StringResourcesTest` | No line in `res/values*` ends with a backslash, see [Adding a string](#adding-a-string) |
 
 BouncyCastle (`bcprov-jdk18on`) is only a test dependency, to check that the
