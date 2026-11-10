@@ -13,7 +13,13 @@ VERSION_CODE="auto"
 BUMP_TYPE="patch"
 PREVIEW="auto"
 UNATTENDED="false"
-BASE_VER="3"
+BASE_VER="auto"
+
+# The major version stream: "auto" is the major of the latest release or
+# preview tag, but at least FIRST_MAJOR, where the versions start (they
+# continue those of Passdroid). So a major release, or its first preview,
+# moves the stream on by itself, see latest_major().
+FIRST_MAJOR="3"
 
 BUILD_TOOLS_VERSION="36.0.0"
 UNSIGNED_APK="app/build/outputs/apk/release/app-release-unsigned.apk"
@@ -192,7 +198,15 @@ function read_args() {
         ;;
       "-M" | "--base_ver")
         shift
-        BASE_VER="$1"
+        # Empty is auto, as an empty version is
+        if [ -z "$1" ] || [ "$1" = "auto" ]; then
+            BASE_VER="auto"
+        elif [[ "$1" =~ ^(0|[1-9][0-9]*)$ ]]; then
+            BASE_VER="$1"
+        else
+            invalid_argument "$1" "auto 3 4 ..."
+            exit 1
+        fi
         ;;
       *)
         if is_in_array "$1" "${_command_values[@]}"; then
@@ -221,6 +235,10 @@ function read_args() {
     else
       PREVIEW="false"
     fi
+  fi
+
+  if [ "$BASE_VER" = "auto" ]; then
+    BASE_VER=$(latest_major)
   fi
 
   if [ -z "$VERSION" ] || [ "$VERSION" = "auto" ]; then
@@ -328,7 +346,7 @@ function help() {
   echo "  -c, --version_code <VERSION_CODE>  auto* (number of the GitHub Actions run), 1, 2, 3, ..."
   echo "  -b, --bump_type <BUMP_TYPE>        major, minor, patch*"
   echo "  -p, --preview <PREVIEW>            auto*, true, false"
-  echo "  -M, --base_ver <BASE_VER>          3*, 4, 5, ..."
+  echo "  -M, --base_ver <BASE_VER>          auto*, 3, 4, ..."
   echo "  -u, --unattended <UNATTENDED>      true, false*"
   echo "  -h, --help"
   echo "                                     * Default value"
@@ -337,13 +355,17 @@ function help() {
   echo "passwords are read from KEYSTORE_PASSWORD and KEY_PASSWORD, or asked"
   echo "for, and KEY_ALIAS selects the key if the keystore has several."
   echo ""
+  echo "BASE_VER auto is the major of the latest release or preview tag, at"
+  echo "least $FIRST_MAJOR. A lower one picks an older stream, e.g. for a 3.x fix"
+  echo "after 4.0.0."
+  echo ""
   echo "Examples:"
   echo "  ./publish.sh build -c 42"
   echo "  ./publish.sh build -v 3.1.0 -c 42"
   echo "  KEYSTORE_FILE=~/passdroid-release.jks ./publish.sh package -v 3.1.0 -c 42"
   echo "  ./publish.sh version"
   echo "  ./publish.sh version -b minor"
-  echo "  ./publish.sh version -M 4"
+  echo "  ./publish.sh version -M 3"
 }
 
 function is_in_array() {
@@ -355,6 +377,18 @@ function is_in_array() {
     fi
   done
   return 1
+}
+
+# The major of the highest release or preview tag, at least FIRST_MAJOR
+function latest_major() {
+  local major
+  major=$(git tag --list 'v*' \
+    | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?$' \
+    | sed -E 's/^v0*([0-9]+)\..*/\1/' | sort -n | tail -1)
+  if [ -z "$major" ] || [ "$major" -lt "$FIRST_MAJOR" ]; then
+    major="$FIRST_MAJOR"
+  fi
+  echo "$major"
 }
 
 function invalid_argument() {
