@@ -48,6 +48,12 @@
   android:title="@string/display_username_title"
   android:defaultValue="true"
   android:summary="Show the username in addition to the system in the list of passwords and of 2FA codes."/>
+
+<CheckBoxPreference
+  android:key="tap_to_copy"
+  android:title="@string/tap_to_copy_title"
+  android:defaultValue="true"
+  android:summary="@string/tap_to_copy_summary"/>
   
 <CheckBoxPreference
   android:key="clear_clipboard"
