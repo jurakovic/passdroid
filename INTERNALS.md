@@ -54,8 +54,8 @@ releasing.
 - The only permissions are `CAMERA` and `USE_BIOMETRIC`, and the app's own
   signature permission
   `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which
-  androidx.core declares and uses so that its receivers are not exported
-  before Android 13, see
+  androidx.core declares and uses so that the app's runtime receivers are
+  not exported before Android 13, see
   [Android platform details](#android-platform-details). It grants nothing
   outside the app. There is no `INTERNET` permission, and the manifest
   removes `ACCESS_NETWORK_STATE`, which `androidx.media3`, a dependency of
