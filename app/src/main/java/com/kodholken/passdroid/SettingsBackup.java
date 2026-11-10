@@ -19,11 +19,14 @@ import android.preference.PreferenceManager;
  * device where it was turned on.
  */
 public class SettingsBackup {
-    private static final String [] BOOLEANS = {
+    static final String [] BOOLEANS = {
         "close_logout", "screen_off_logout", "display_username", "clear_clipboard"
     };
 
-    /** All the settings, in the order of the settings screen. */
+    /**
+     * All the settings, in the order of the settings screen. An import only
+     * writes the settings in here, see changes().
+     */
     static final String [] ORDER = {
         "close_logout", "logout_delay", "screen_off_logout", "display_username",
         "clear_clipboard", ThemeSetting.PREFERENCE, FontSetting.PREFERENCE,
@@ -48,7 +51,7 @@ public class SettingsBackup {
      * @return the settings with a list of values, and the array resource with
      *         the values each may have.
      */
-    private static Map<String, Integer> getLists() {
+    static Map<String, Integer> getLists() {
         Map<String, Integer> lists = new LinkedHashMap<String, Integer>();
         lists.put("logout_delay", R.array.logout_delay_values);
         lists.put(ThemeSetting.PREFERENCE, R.array.theme_values);
@@ -62,7 +65,7 @@ public class SettingsBackup {
      * @return the array resource with the labels of each list's values, in
      *         the order of getLists().
      */
-    private static Map<String, Integer> getEntries() {
+    static Map<String, Integer> getEntries() {
         Map<String, Integer> entries = new HashMap<String, Integer>();
         entries.put("logout_delay", R.array.logout_delay_entries);
         entries.put(ThemeSetting.PREFERENCE, R.array.theme_entries);
@@ -73,7 +76,7 @@ public class SettingsBackup {
     }
 
     /** @return the string resource with the title of each setting. */
-    private static Map<String, Integer> getTitles() {
+    static Map<String, Integer> getTitles() {
         Map<String, Integer> titles = new HashMap<String, Integer>();
         titles.put("close_logout", R.string.close_logout_title);
         titles.put("logout_delay", R.string.logout_delay_title);

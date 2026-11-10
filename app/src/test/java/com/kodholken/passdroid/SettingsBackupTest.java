@@ -1,9 +1,11 @@
 package com.kodholken.passdroid;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,14 +92,31 @@ public class SettingsBackupTest {
         assertEquals("monospace", changes.get(0).newValue);
     }
 
+    /**
+     * An import only writes the settings of ORDER, so one that is missing
+     * there would be checked and then left out.
+     */
     @Test
-    public void everySettingHasAPlaceInTheOrder() {
-        for (String name : current().keySet()) {
-            boolean found = false;
-            for (String ordered : SettingsBackup.ORDER) {
-                found |= ordered.equals(name);
-            }
-            assertTrue(name, found);
+    public void everyImportedSettingHasAPlaceInTheOrder() {
+        List<String> order = Arrays.asList(SettingsBackup.ORDER);
+        for (String name : SettingsBackup.BOOLEANS) {
+            assertTrue(name, order.contains(name));
+        }
+        for (String name : SettingsBackup.getLists().keySet()) {
+            assertTrue(name, order.contains(name));
+        }
+        assertEquals(SettingsBackup.BOOLEANS.length + SettingsBackup.getLists().size(),
+                     order.size());
+    }
+
+    /** The import message shows the title of each setting and the labels of the lists. */
+    @Test
+    public void everySettingHasATitleAndLabels() {
+        for (String name : SettingsBackup.ORDER) {
+            assertNotNull(name, SettingsBackup.getTitles().get(name));
+        }
+        for (String name : SettingsBackup.getLists().keySet()) {
+            assertNotNull(name, SettingsBackup.getEntries().get(name));
         }
     }
 
