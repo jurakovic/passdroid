@@ -256,16 +256,13 @@ public class ShowActivity extends SherlockTimeoutActivity {
     }
 
     /**
-     * Set up copying the values to the clipboard with a click. The password
-     * and the 2FA secret are copied after a confirmation, which also works
-     * while they are hidden. The other values are copied right away, except
-     * the URL, which opens in the browser, and the date.
-     */
-    /**
-     * A tap copies the system, email, username and note, asks before copying
-     * the password and the 2FA secret, and copies the 2FA code. With "Tap to
-     * copy" off, a long press does the same instead, so a value is not
-     * copied by accident. The setting is read when the entry is opened.
+     * Set up copying the values to the clipboard with a tap, or with a long
+     * press if "Tap to copy" is off, so a value is not copied by accident.
+     * The setting is read when the entry is opened. The system, email,
+     * username, note and 2FA code are copied right away. The password and
+     * the 2FA secret are copied after a confirmation, which also works while
+     * they are hidden. The URL opens in the browser, and the date is not
+     * copied.
      */
     private void setupClipboardActions() {
         boolean tap = PreferenceManager.getDefaultSharedPreferences(this).
