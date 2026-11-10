@@ -30,7 +30,7 @@ import android.widget.TimePicker;
 public class DateField {
     /** The setting of the date format, "device" or ISO */
     public static final String PREFERENCE = "date_format";
-    public static final String ISO = "iso";
+    private static final String ISO = "iso";
 
     private static final String FORMAT = "yyyy-MM-dd'T'HH:mm";
     private static final String DATE_FORMAT = "yyyy-MM-dd";
