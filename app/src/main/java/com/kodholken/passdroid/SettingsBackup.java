@@ -64,7 +64,7 @@ public class SettingsBackup {
 
     /**
      * @return the array resource with the labels of each list's values, in
-     *         the order of getLists().
+     *         the order of its values array.
      */
     static Map<String, Integer> getEntries() {
         Map<String, Integer> entries = new HashMap<String, Integer>();
