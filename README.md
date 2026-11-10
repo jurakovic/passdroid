@@ -67,7 +67,9 @@ is encrypted.
 - A long press on an entry in the list asks whether to copy its password.
 - On the entry screen a tap on the system, email, username or note copies
   it. The password and the 2FA secret are hidden behind an eye button and ask
-  before they are copied. The URL opens in the browser.
+  before they are copied. The URL opens in the browser. With "Tap to copy"
+  off in Settings, a long press copies instead, so a tap never copies by
+  accident.
 - The date is set to the time the entry is added, e.g. to record when an
   account was created, and can be changed or cleared. Its time is optional:
   "No time" in the time picker keeps the date alone.

@@ -418,7 +418,10 @@ secret that isn't stored yet: the generated password to
   its "source" mode: hidden as `********` (so the length doesn't show), and
   decrypted from the session key only while visible or when copied. Taps on
   the system, email, username and note copy them as plain text; the password
-  and the secret ask first.
+  and the secret ask first. With `tap_to_copy` off, a long press does all of
+  this instead of a tap (`setupClipboardActions()`, read when the entry is
+  opened). The 2FA codes screen and the generator copy with a tap either
+  way.
 - **`EditActivity`**: works on a fully decrypted copy (`decryptedCopy()`),
   encrypts all fields again on save and updates the row. The system name is
   required, as on `AddActivity`.
@@ -520,6 +523,7 @@ UTF-8 encoded:
     <setting name="font_size">normal</setting>
     <setting name="logout_delay">5</setting>
     <setting name="screen_off_logout">true</setting>
+    <setting name="tap_to_copy">true</setting>
     <setting name="theme">system</setting>
   </settings>
 </passdroid>
@@ -710,6 +714,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `logout_delay` | `5` (seconds: 5, 30, 60, 300) | `Session.getTimeout()` | yes |
 | `screen_off_logout` | `true` | `Session.screenOff()`, `clearTimeoutTimer()` | yes |
 | `display_username` | `true` | the password list and the 2FA codes screen | yes |
+| `tap_to_copy` | `true` | `ShowActivity` | yes |
 | `clear_clipboard` | `true` | `ClipboardClearReceiver` | yes |
 | `theme` | `system` (`light`, `dark`) | `ThemeSetting` | yes |
 | `font` | `default` (`monospace`) | `FontSetting` | yes |
@@ -1147,7 +1152,9 @@ release:
 - Open an entry: show and copy the password and the 2FA secret. Edit it and
   give it a note of several lines, which shows the same on the entry screen
   and after an export and import; view it again, delete it. Copy a password
-  with a long press in the list, also while searching.
+  with a long press in the list, also while searching. Turn "Tap to copy"
+  off and open an entry: a tap copies nothing, a long press copies, asking
+  first for the password and the 2FA secret; the URL still opens with a tap.
 - Open the search: the field fills the action bar, without an x. Type: the
   x appears. Tap it: the field is empty and keeps the keyboard, all entries
   show, and the x is gone. Edit or delete an entry found by a search and go
