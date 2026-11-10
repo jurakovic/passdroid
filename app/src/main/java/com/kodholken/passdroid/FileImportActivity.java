@@ -22,6 +22,7 @@ package com.kodholken.passdroid;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
@@ -246,10 +247,12 @@ public class FileImportActivity extends SherlockTimeoutActivity {
     private void importUnencrypted() {
         PasswordModel model = PasswordModel.getInstance(this);
         if (model.setPasswords(fileImporter.getPasswordEntries())) {
+            String settings = importSettings();
             deleteFileDialog(getString(R.string.success),
                              fileImporter.getPasswordEntries().length +
-                             " entries imported." + importSettings() +
-                             " Do you want to delete the imported file from the device?");
+                             " entries imported." + settings +
+                             (settings.isEmpty() ? " " : "\n\n") +
+                             "Do you want to delete the imported file from the device?");
         } else {
             showDialog(getString(R.string.failure), getString(R.string.import_failed));
         }
@@ -260,15 +263,22 @@ public class FileImportActivity extends SherlockTimeoutActivity {
      * settings, like the exports of Passdroid 2.3 and earlier, keep the
      * current settings.
      *
-     * @return text for the message about the import.
+     * @return text for the message about the import: the settings that
+     *         changed, after an empty line, or nothing if none did.
      */
     private String importSettings() {
         Map<String, String> settings = fileImporter.getSettings();
-        if (settings == null || SettingsBackup.apply(this, settings).isEmpty()) {
+        if (settings == null) {
             return "";
         }
 
-        return " " + getString(R.string.import_settings_done);
+        List<SettingsBackup.Change> changes = SettingsBackup.apply(this, settings);
+        if (changes.isEmpty()) {
+            return "";
+        }
+
+        return "\n\n" + getString(R.string.import_settings_changed) + "\n" +
+               SettingsBackup.describe(this, changes);
     }
 
     /**
