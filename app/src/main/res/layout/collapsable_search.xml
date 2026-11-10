@@ -14,9 +14,21 @@
     <EditText
         android:imeOptions="flagNoPersonalizedLearning"
         android:id="@+id/search_field"
-        android:layout_width="fill_parent"
+        android:layout_width="0dip"
         android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:hint="@string/options_search"
         android:singleLine="true"
         android:inputType="text|textNoSuggestions"/>
+
+    <!-- Shown while the field has text, see PasswordListActivity -->
+    <ImageButton
+        android:id="@+id/search_clear"
+        android:layout_width="48dip"
+        android:layout_height="48dip"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="?android:attr/textColorSecondary"
+        android:src="@drawable/ic_clear"
+        android:contentDescription="@string/clear_search"
+        android:visibility="gone"/>
 </com.kodholken.passdroid.FullWidthLayout>

@@ -209,10 +209,21 @@ PasswordModelListener {
         .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS | MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
 
         final EditText searchField = (EditText) searchMenuItem.getActionView().findViewById(R.id.search_field);
+        final View searchClear = searchMenuItem.getActionView().findViewById(R.id.search_clear);
+
+        // Empties the field and keeps the search open
+        searchClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                searchField.setText("");
+                searchField.requestFocus();
+            }
+        });
 
         searchField.addTextChangedListener(new TextWatcher() {
             @Override
             public void afterTextChanged(Editable arg0) {
+                searchClear.setVisibility(arg0.length() > 0 ? View.VISIBLE : View.GONE);
                 searchFilter = arg0.toString();
                 if (passwordAdapter != null) {
                     passwordAdapter.setFilterString(searchFilter);
