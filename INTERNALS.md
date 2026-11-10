@@ -420,7 +420,11 @@ secret that isn't stored yet: the generated password to
   time.
 - `DateField` stores dates as local time without a time zone,
   `yyyy-MM-ddTHH:mm`, so they show the same time after the time zone changes,
-  and formats them in the device's format.
+  and formats them in the device's format. A date without a time is stored
+  as `yyyy-MM-dd` and shown as the date alone; not as 00:00, which is a time
+  that can be picked. Picking a date opens the time picker, whose "No time"
+  stores the date alone, and whose Cancel keeps the time the date had, or
+  none. An older version shows a date without a time as the stored text.
 
 ## Clipboard
 
@@ -1098,6 +1102,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
 | `SessionTest` | Both kinds of logout wipe the key |
+| `DateFieldTest` | Dates with and without a time, invalid values |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 | `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored |
 | `StringResourcesTest` | No line in `res/values*` ends with a backslash, see [Adding a string](#adding-a-string) |
@@ -1135,6 +1140,9 @@ release:
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
   same codes.
 - Edit an entry, clear the system name and save: it is refused.
+- Pick the date of an entry, then "No time" in the time picker: the editor
+  and the entry screen show the date alone. Pick a new date and cancel the
+  time picker: the time the date had stays, or no time if it had none.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
   file again.
 - Set up or change the master password with fewer than 12 characters: the
