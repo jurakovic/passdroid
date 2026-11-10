@@ -187,6 +187,8 @@ would like to transfer this entry to</string>
 <string name="date">Date</string>
 <string name="date_not_set">Not set</string>
 <string name="clear_date">Clear date</string>
+<!-- A button of the time picker that stores the picked date without a time -->
+<string name="date_no_time">No time</string>
 
 <!-- 2FA codes screen -->
 <string name="totp_list_title">2FA codes</string>
