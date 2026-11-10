@@ -120,7 +120,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
-| Generator | `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
+| Generator | `PasswordGenerator`, `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
 | Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
 
@@ -689,12 +689,19 @@ is the system, followed by the username (or the email) in parentheses if
 
 ## Password generator
 
-- `GeneratePasswordActivity` picks every character uniformly with
-  `SecureRandom` from one of four character sets: letters and digits (62),
-  letters (52), digits (10), or letters, digits and `!#@%&/()?+-_:;*=$`
-  (79). The length is 1 to 99, 16 by default. The length and the set are
-  stored in the preferences `passwordLength` and `passwordCharset` when a
-  password is generated.
+- `PasswordGenerator` picks every character uniformly with `SecureRandom`
+  from one of four character sets: letters and digits (62), letters (52),
+  digits (10), or letters, digits and `!#@%&/()?+-_:;*=$` (79), into a
+  `char[]` that is wiped afterwards. The length is 1 to 99, 16 by default.
+  `GeneratePasswordActivity` stores the length and the set in the
+  preferences `passwordLength` and `passwordCharset` when it generates a
+  password.
+- **Quick generation**: "Generate password" on the add and edit screens
+  generates with the stored length and set (`generateWithStoredSettings()`)
+  without opening the generator, which the button next to it opens. It asks
+  before replacing a password it didn't put in itself, such as the stored
+  one or a typed one, and shows the field afterwards, as it does for the
+  generator's result.
 - **Strength**: `PasswordStrength.getBits()` = ⌊length × log₂(set size)⌋,
   rated very weak below 40 bits, weak from 40, fair from 65, good from 75,
   excellent from 100. The bar is full at 100 bits. The formula is only
@@ -1120,6 +1127,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
+| `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
@@ -1175,6 +1183,11 @@ release:
 - Turn fingerprint unlock on and off, log in with it.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the rating and the bar follow.
+- On the add screen, "Generate password" fills in a password of the stored
+  length and set without the generator, and again without asking; a typed
+  password asks first. On the edit screen the first tap asks, and the new
+  password is shown. The button next to it opens the generator, whose
+  result is shown too and whose settings the next tap uses.
 - The keyboard offers no suggestions learned from notes, and no autofill
   service offers to save the master password.
 - Install the new APK over the previous release: the entries are there
