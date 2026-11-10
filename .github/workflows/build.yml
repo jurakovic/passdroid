@@ -1,8 +1,10 @@
 name: Build
 
 # Runs the tests and lint and builds the APKs for every push and pull request.
-# The version is the default of local builds, see app/build.gradle. Releases
-# are made with the Publish workflow, see publish.yml.
+# The version is the next release computed from the tags, see publish.sh,
+# with the run number: <next release>-build.<run number>, e.g. 3.0.1-build.42.
+# The version code is 1. Releases are made with the Publish workflow, see
+# publish.yml.
 #
 # The debug APK is uploaded for testing. It is signed with a debug key that
 # is generated for each run, so it can not update the APK of another run.
@@ -26,6 +28,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The tags, to compute the version
+          fetch-depth: 0
+
+      - name: Compute version
+        run: |
+          if ! NEXT=$(./publish.sh version -p false); then
+            echo "$NEXT"
+            echo "::error::Could not compute the version"
+            exit 1
+          fi
+          echo "VERSION=$NEXT-build.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
@@ -43,7 +57,10 @@ jobs:
       # The release build checks that shrinking the code keeps what the app
       # needs
       - name: Build and test
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease -PversionName="$VERSION"
+
+      - name: Summary
+        run: echo "### Passdroid++ $VERSION" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
