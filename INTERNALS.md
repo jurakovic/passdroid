@@ -1178,9 +1178,13 @@ The work is done by `publish.sh`, which runs locally as well, see
   number picks an older stream, e.g. for a 3.x fix after 4.0.0. Run from
   master, the version is the next release, e.g. 3.2.1 after 3.2.0. Run from
   another branch, or with "Preview", it is the next preview, e.g.
-  3.2.1-preview.1, then 3.2.1-preview.2, published as a pre-release. With
-  no tag in the stream it is `<base_ver>.0.0`. "Version" sets the version
-  directly. An existing tag is an error.
+  3.2.1-preview.1, then 3.2.1-preview.2, published as a pre-release. While
+  a preview is open (ahead of the latest release), a bump it covers
+  continues it and a bump past it starts a new version from the latest
+  release: after 3.0.0 and 3.0.1-preview.2, patch gives 3.0.1 (or
+  3.0.1-preview.3 from another branch), minor gives 3.1.0 (or
+  3.1.0-preview.1). With no tag in the stream it is `<base_ver>.0.0`.
+  "Version" sets the version directly. An existing tag is an error.
 - **Version code**: the number of the workflow run, or the "Version code"
   input. Keep the file name `publish.yml`: renaming it starts the run numbers
   at 1 again, and Android doesn't install an update with a lower version

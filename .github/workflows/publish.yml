@@ -6,8 +6,10 @@ name: Publish
 # - The version is computed from the latest tag of the current major
 #   version (v3.x.y until there is a v4 tag): master gives the next release
 #   (3.0.1), other branches the next preview (3.0.1-preview.1). Major version
-#   stream picks an older major, Bump Type the part that is increased;
-#   Version overrides it all.
+#   stream picks an older major, Bump Type the part that is increased; an
+#   open preview continues unless Bump Type goes past it (after
+#   3.0.1-preview.2, patch gives 3.0.1, minor 3.1.0). Version overrides it
+#   all.
 # - The version code is the number of the run of this workflow, which only
 #   grows. Renaming this file starts it at 1 again, and Android does not
 #   install an update with a lower version code, so keep the name.
@@ -60,7 +62,7 @@ on:
         default: 'auto'
         type: string
       bump_type:
-        description: 'Bump Type (ignored when version is explicit)'
+        description: 'Bump Type (ignored when version is explicit; continues an open preview it does not pass)'
         required: false
         default: 'patch'
         type: choice
