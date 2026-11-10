@@ -181,7 +181,7 @@ on in Settings.
 
 - Android 7.0 or later. Fingerprint unlock needs Android 9 or later. A camera
   is optional.
-- Passdroid++ is not on Google Play. Download `passdroid-<version>.apk` from
+- Passdroid++ is not on Google Play. Download `Passdroid_v<version>.apk` from
   the [releases](https://github.com/jurakovic/passdroid/releases) and open it
   on the phone. The first time, Android asks you to allow installing apps
   from the browser or the file manager.

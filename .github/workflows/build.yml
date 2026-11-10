@@ -6,8 +6,9 @@ name: Build
 # The version code is 1. Releases are made with the Publish workflow, see
 # publish.yml.
 #
-# The debug APK is uploaded for testing. It is signed with a debug key that
-# is generated for each run, so it can not update the APK of another run.
+# The debug APK is uploaded for testing, as Passdroid_v<version>_debug.apk,
+# not zipped. It is signed with a debug key that is generated for each run,
+# so it can not update the APK of another run.
 on:
   push:
     branches: ['**']
@@ -62,8 +63,15 @@ jobs:
       - name: Summary
         run: echo "### Passdroid++ $VERSION" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Name the debug APK
+        run: |
+          mkdir -p app/build/ci
+          cp app/build/outputs/apk/debug/app-debug.apk "app/build/ci/Passdroid_v${VERSION}_debug.apk"
+
+      # Uploaded as it is, so it downloads as the APK. The artifact is named
+      # after the file.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: passdroid-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/ci/Passdroid_v${{ env.VERSION }}_debug.apk
+          archive: false
           if-no-files-found: error

@@ -65,7 +65,7 @@ function package() {
   local apksigner="$build_tools/apksigner"
   local aapt2="$build_tools/aapt2"
   local release_path="release"
-  local apk_name="passdroid-${VERSION}.apk"
+  local apk_name="Passdroid_v${VERSION}.apk"
 
   if [ ! -x "$apksigner" ]; then
     echo "Error. apksigner not found: $apksigner"
