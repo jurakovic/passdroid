@@ -33,6 +33,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -260,39 +261,69 @@ public class ShowActivity extends SherlockTimeoutActivity {
      * while they are hidden. The other values are copied right away, except
      * the URL, which opens in the browser, and the date.
      */
+    /**
+     * A tap copies the system, email, username and note, asks before copying
+     * the password and the 2FA secret, and copies the 2FA code. With "Tap to
+     * copy" off, a long press does the same instead, so a value is not
+     * copied by accident. The setting is read when the entry is opened.
+     */
     private void setupClipboardActions() {
-        OnClickListener copyText = new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Utils.copyToClipboard(ShowActivity.this,
-                                      ((TextView) v).getText().toString());
-            }
-        };
+        boolean tap = PreferenceManager.getDefaultSharedPreferences(this).
+            getBoolean("tap_to_copy", true);
 
         for (int id : new int [] { R.id.system, R.id.email, R.id.username, R.id.note }) {
-            findViewById(id).setOnClickListener(copyText);
+            final TextView view = (TextView) findViewById(id);
+            setCopyAction(view, tap, new Runnable() {
+                @Override
+                public void run() {
+                    Utils.copyToClipboard(ShowActivity.this, view.getText().toString());
+                }
+            });
         }
 
-        findViewById(R.id.password).setOnClickListener(new OnClickListener() {
+        setCopyAction(findViewById(R.id.password), tap, new Runnable() {
             @Override
-            public void onClick(View v) {
+            public void run() {
                 confirmCopy("Copy the password to clipboard?", password);
             }
         });
 
-        findViewById(R.id.totp).setOnClickListener(new OnClickListener() {
+        setCopyAction(findViewById(R.id.totp), tap, new Runnable() {
             @Override
-            public void onClick(View v) {
+            public void run() {
                 confirmCopy(getString(R.string.copy_totp_secret), totpSecret);
             }
         });
 
-        findViewById(R.id.totp_code_row).setOnClickListener(new OnClickListener() {
+        setCopyAction(findViewById(R.id.totp_code_row), tap, new Runnable() {
             @Override
-            public void onClick(View v) {
+            public void run() {
                 copyTotpCode();
             }
         });
+    }
+
+    /**
+     * Run the action on a tap on the view, or on a long press if tap is
+     * false.
+     */
+    private static void setCopyAction(View view, boolean tap, final Runnable action) {
+        if (tap) {
+            view.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    action.run();
+                }
+            });
+        } else {
+            view.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    action.run();
+                    return true;
+                }
+            });
+        }
     }
 
     /**
