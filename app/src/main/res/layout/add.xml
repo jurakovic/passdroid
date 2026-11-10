@@ -146,20 +146,6 @@
 
     <TextView
       android:paddingTop="10dip"
-      android:text="@string/note"
-      android:textSize="13sp"
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
-    
-    <EditText
-      android:imeOptions="flagNoPersonalizedLearning"
-      android:id="@+id/note"
-      android:inputType="textCapSentences"
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
-    
-    <TextView
-      android:paddingTop="10dip"
       android:text="@string/url"
       android:textSize="13sp"
       android:layout_width="fill_parent"
@@ -209,6 +195,23 @@
         android:src="@drawable/ic_clear"
         android:contentDescription="@string/clear_date"/>
     </LinearLayout>
+
+    <TextView
+      android:paddingTop="10dip"
+      android:text="@string/note"
+      android:textSize="13sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
+
+    <!-- Grows with its text; the screen scrolls -->
+    <EditText
+      android:imeOptions="flagNoPersonalizedLearning"
+      android:id="@+id/note"
+      android:inputType="textCapSentences|textMultiLine"
+      android:minLines="3"
+      android:gravity="top|start"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"/>
     
     <Button
       android:id="@+id/save_button"
