@@ -6,6 +6,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:paddingTop="2dip"
     android:paddingRight="2dip"
     android:focusable="true"
