@@ -30,7 +30,7 @@ public class SettingsBackup {
     static final String [] ORDER = {
         "close_logout", "logout_delay", "screen_off_logout", "display_username",
         "clear_clipboard", ThemeSetting.PREFERENCE, FontSetting.PREFERENCE,
-        FontSetting.SIZE_PREFERENCE
+        FontSetting.SIZE_PREFERENCE, DateField.PREFERENCE
     };
 
     /** A setting that an import changed. */
@@ -57,6 +57,7 @@ public class SettingsBackup {
         lists.put(ThemeSetting.PREFERENCE, R.array.theme_values);
         lists.put(FontSetting.PREFERENCE, R.array.font_values);
         lists.put(FontSetting.SIZE_PREFERENCE, R.array.font_size_values);
+        lists.put(DateField.PREFERENCE, R.array.date_format_values);
         return lists;
     }
 
@@ -70,6 +71,7 @@ public class SettingsBackup {
         entries.put(ThemeSetting.PREFERENCE, R.array.theme_entries);
         entries.put(FontSetting.PREFERENCE, R.array.font_entries);
         entries.put(FontSetting.SIZE_PREFERENCE, R.array.font_size_entries);
+        entries.put(DateField.PREFERENCE, R.array.date_format_entries);
         return entries;
     }
 
@@ -84,6 +86,7 @@ public class SettingsBackup {
         titles.put(ThemeSetting.PREFERENCE, R.string.theme_title);
         titles.put(FontSetting.PREFERENCE, R.string.font_title);
         titles.put(FontSetting.SIZE_PREFERENCE, R.string.font_size_title);
+        titles.put(DateField.PREFERENCE, R.string.date_format_title);
         return titles;
     }
 

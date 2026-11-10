@@ -166,6 +166,7 @@ on in Settings.
 - The values of the entries can use a monospace font (Roboto Mono), which
   makes characters like 0 and O or l and 1 easier to tell apart, in a small,
   normal or large size. Text follows the system font size.
+- Dates in the format of the device, or as year-month-day (2026-10-25 14:30).
 
 ### Privacy
 

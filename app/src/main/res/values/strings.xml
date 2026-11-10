@@ -43,6 +43,7 @@ so they cannot be read without it.
 <string name="theme_title">Theme</string>
 <string name="font_title">Font</string>
 <string name="font_size_title">Font size</string>
+<string name="date_format_title">Date format</string>
 <string name="show_password">Show password</string>
 <string name="hide_password">Hide password</string>
 <string name="close_logout_title">Log out on close</string>
