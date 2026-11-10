@@ -1209,7 +1209,8 @@ The work is done by `publish.sh`, which runs locally as well, see
    version has a `-`.
 
 The "Step" switches turn off building, packaging or releasing, e.g. to sign
-an APK for testing without a release; releasing needs the other two.
+an APK for testing without a release; packaging needs building, and
+releasing needs both.
 "Source branch" builds another branch with the `publish.sh` of the branch
 the workflow runs from. Runs don't overlap (`concurrency`), so two runs
 can't pick the same version. The run summary shows the version code, the

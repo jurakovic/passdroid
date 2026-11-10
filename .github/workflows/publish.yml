@@ -127,6 +127,10 @@ jobs:
           INPUT_BASE_VER: ${{ inputs.base_ver }}
           INPUT_PREVIEW: ${{ inputs.preview }}
         run: |
+          if [ "$INPUT_PACKAGE" = true ] && [ "$INPUT_BUILD" != true ]; then
+            echo "::error::Step 2 (Package) needs step 1 (Build)"
+            exit 1
+          fi
           if [ "$INPUT_RELEASE" = true ] && { [ "$INPUT_BUILD" != true ] || [ "$INPUT_PACKAGE" != true ]; }; then
             echo "::error::Step 3 (Release) needs steps 1 (Build) and 2 (Package)"
             exit 1
