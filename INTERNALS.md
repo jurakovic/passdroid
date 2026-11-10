@@ -1345,7 +1345,9 @@ Limitations:
 - The pure Java PBKDF2 of Android 7.0–7.1 hashes the HMAC pads again in
   every iteration, which makes it about twice as slow as needed.
 - A progress dialog that is open while the screen rotates is lost with its
-  result; the user has to repeat the action.
+  result; the user has to repeat the action. The same goes for the date and
+  time pickers of `DateField`: a date picked before the screen rotates while
+  the time picker is open is lost, since only the time picker stores it.
 - The 2FA codes screen redraws the bar 20 times a second and computes all
   codes again every second.
 - Two loops read a whole stream, `FileImporter.readAll()` and
