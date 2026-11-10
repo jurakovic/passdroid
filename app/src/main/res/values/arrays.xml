@@ -59,6 +59,17 @@
 	  <item>large</item>
 	</string-array>
 
+	<!-- See DateField -->
+	<string-array name="date_format_entries">
+	  <item>Device default</item>
+	  <item>Year-month-day (2026-10-25)</item>
+	</string-array>
+
+	<string-array name="date_format_values" translatable="false">
+	  <item>device</item>
+	  <item>iso</item>
+	</string-array>
+
 	<!-- See PasswordStrength -->
 	<string-array name="strength_ratings">
 	  <item>very weak</item>

@@ -79,4 +79,12 @@
   android:entryValues="@array/font_size_values"
   android:defaultValue="normal"/>
 
+<ListPreference
+  android:key="date_format"
+  android:title="@string/date_format_title"
+  android:summary="%s"
+  android:entries="@array/date_format_entries"
+  android:entryValues="@array/date_format_values"
+  android:defaultValue="device"/>
+
 </PreferenceScreen>
