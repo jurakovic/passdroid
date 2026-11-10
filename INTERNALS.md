@@ -88,14 +88,14 @@ Point `ANDROID_HOME` or `sdk.dir` in `local.properties` to the SDK.
 The "Build" workflow, `.github/workflows/build.yml`, runs on every push and
 pull request. It installs platform `android-37.0` and build tools 36.0.0,
 runs `testDebugUnitTest lintDebug assembleDebug assembleRelease`, and
-uploads the debug APK. The version is `<next release>-build.<run number>`,
-e.g. 3.0.1-build.42: the next release is computed from the tags as in
-[Releasing](#releasing) (`publish.sh version -p false`), so the checkout
-fetches them. The version code is 1. The release build is there to
-check that R8 keeps what the app needs. The debug APK is signed with a debug
-key generated for each run, so the debug APKs of different runs can't be
-installed over each other. Releases are made with the "Publish" workflow,
-see [Releasing](#releasing).
+uploads the debug APK, not zipped, as `Passdroid_v<version>_debug.apk`. The
+version is `<next release>-build.<run number>`, e.g. 3.0.1-build.42: the
+next release is computed from the tags as in [Releasing](#releasing)
+(`publish.sh version -p false`), so the checkout fetches them. The version
+code is 1. The release build is there to check that R8 keeps what the app
+needs. The debug APK is signed with a debug key generated for each run, so
+the debug APKs of different runs can't be installed over each other.
+Releases are made with the "Publish" workflow, see [Releasing](#releasing).
 
 ## Source layout
 
@@ -1199,7 +1199,7 @@ The work is done by `publish.sh`, which runs locally as well, see
    assembleRelease` with that version.
 2. **Package** (`publish.sh package`): checks with `aapt2` that the unsigned
    APK has that version, signs it with `apksigner` (v2 and v3, no v4 file),
-   verifies it, and writes `release/passdroid-<version>.apk` and
+   verifies it, and writes `release/Passdroid_v<version>.apk` and
    `release/checksums.txt`. Without the signing secrets the run fails:
    Android never installs an unsigned APK.
 3. **Release**, in a second job, the only one with write access: tags the

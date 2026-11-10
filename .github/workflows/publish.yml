@@ -201,7 +201,7 @@ jobs:
         if: ${{ inputs.package }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: passdroid-${{ env.VERSION }}
+          name: Passdroid_v${{ env.VERSION }}
           path: release/*
           if-no-files-found: error
 
@@ -231,7 +231,7 @@ jobs:
       - name: Download All Artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: passdroid-${{ needs.build.outputs.version }}
+          name: Passdroid_v${{ needs.build.outputs.version }}
           path: release
 
       - name: Git Tag
@@ -250,6 +250,6 @@ jobs:
           esac
           gh release create "v$VERSION" release/* \
             --verify-tag \
-            --title "Passdroid++ $VERSION" \
+            --title "v$VERSION" \
             --generate-notes \
             "${prerelease[@]}"
