@@ -31,6 +31,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteFullException;
 import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
@@ -180,6 +181,17 @@ public class Utils {
 
         String name = uri.getLastPathSegment();
         return name != null ? name : uri.toString();
+    }
+
+    /**
+     * @return why writing to the database failed, for a message such as
+     *         R.string.entry_not_saved.
+     */
+    public static String describeWriteError(Context context, Exception ex) {
+        if (ex instanceof SQLiteFullException) {
+            return context.getString(R.string.error_storage_full);
+        }
+        return ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
     }
 
     /**

@@ -226,12 +226,16 @@ public class PasswordEntry {
         return encrypt(key, decrypted);
     }
 
+    /**
+     * @return the encrypted value, or null if it can't be encrypted, e.g.
+     *         without a key.
+     */
     private String encrypt(byte [] key, String clear) {
         byte [] encrypted;
         byte [] complete;
 
-        SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
         try {
+            SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
             SecureRandom rnd = new SecureRandom();
             Cipher cipher = Cipher.getInstance(CBC);
 
@@ -346,6 +350,25 @@ public class PasswordEntry {
 
     private static boolean isDecrypted(String encrypted, String decrypted) {
         return encrypted == null || decrypted != null;
+    }
+
+    /**
+     * @return after encryptAll(), false if a field with a value wasn't
+     *         encrypted, so the entry must not be stored.
+     */
+    public boolean isEncrypted() {
+        return isEncrypted(decSystem, encSystem) &&
+               isEncrypted(decUsername, encUsername) &&
+               isEncrypted(decPassword, encPassword) &&
+               isEncrypted(decNote, encNote) &&
+               isEncrypted(decUrl, encUrl) &&
+               isEncrypted(decEmail, encEmail) &&
+               isEncrypted(decTotp, encTotp) &&
+               isEncrypted(decDate, encDate);
+    }
+
+    private static boolean isEncrypted(String decrypted, String encrypted) {
+        return decrypted == null || encrypted != null;
     }
 
     private String decryptZeroIv(byte [] key, String encrypted) {
