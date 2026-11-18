@@ -121,6 +121,10 @@ public class PasswordModel {
             stmt.execute();
             for (PasswordEntry entry : passwords) {
                 entry.encryptAll(key);
+                if (!entry.isEncrypted()) {
+                    // Rolled back below, the entries stay as they were
+                    throw new SQLException("Encryption failed");
+                }
 
                 long id = db.insertOrThrow("data", null,
                                            PasswordData.getValues(entry));

@@ -279,6 +279,11 @@ public class DbMigration {
 
             for (i = 0; i < passwords.length; i++) {
                 passwords[i].encryptAll(newKey);
+                if (!passwords[i].isEncrypted()) {
+                    // Rolled back below, the old key stays
+                    throw new SQLiteException("Failed to encrypt entry " +
+                                              passwords[i].getId());
+                }
                 db.update("data", PasswordData.getValues(passwords[i]),
                           "id=" + passwords[i].getId(), null);
             }
