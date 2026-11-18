@@ -414,8 +414,9 @@ fails the padding check. An entry with such a field is **damaged**.
   when the entries change. The list removes itself in `onDestroy()`, since
   the model outlives it.
 
-Screens that change entries write to the database directly and set
-`Session.setNeedReload(true)`, which makes the list reload in `onResume()`.
+Screens that change entries write to the database directly and, once the
+write succeeded, set `Session.setNeedReload(true)`, which makes the list
+reload in `onResume()`.
 
 ## Screens and data flow
 
@@ -448,11 +449,11 @@ secret that isn't stored yet: the generated password to
   required, as on `AddActivity`.
 - **`AddActivity`**: inserts a new row. The date defaults to the current
   time.
-- A save on the add and edit screens, and a delete on the entry screen,
-  count only with the session key, every field encrypted
-  (`PasswordEntry.isEncrypted()`) and exactly one row written. Otherwise
-  the add and edit screens stay open with what was typed and say why the
-  entry wasn't saved, e.g. "the storage is full"
+- A save on the add and edit screens counts only with the session key,
+  every field encrypted (`PasswordEntry.isEncrypted()`) and exactly one row
+  written; a delete on the entry screen only if exactly one row was
+  deleted. Otherwise the add and edit screens stay open with what was typed
+  and say why the entry wasn't saved, e.g. "the storage is full"
   (`Utils.describeWriteError()`), and the entry screen says why it wasn't
   deleted. The list reloads only after a success. An import and a master
   password change check `isEncrypted()` too, inside their transaction, so a
