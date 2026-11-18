@@ -119,7 +119,8 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         for (PasswordEntry entry : PasswordModel.getInstance(this).getPasswords()) {
             String secret = entry.decryptTotp(key);
             if (secret != null && secret.length() > 0) {
-                codes.add(new Code(entry, Totp.parse(secret), showAccount));
+                codes.add(new Code(entry, Utils.systemName(this, entry),
+                                   Totp.parse(secret), showAccount));
             }
         }
 
@@ -134,10 +135,11 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         final Totp totp;  // null if the secret is not valid
 
         /**
+         * @param system      the name to show, see Utils.systemName().
          * @param showAccount true to show the username, or the email if there
          *                    is none, after the system.
          */
-        Code(PasswordEntry entry, Totp totp, boolean showAccount) {
+        Code(PasswordEntry entry, String system, Totp totp, boolean showAccount) {
             this.entry = entry;
             this.totp = totp;
 
@@ -148,8 +150,7 @@ public class TotpListActivity extends SherlockTimeoutActivity {
             }
 
             title = account != null && account.length() > 0 ?
-                    entry.getDecSystem() + " (" + account + ")" :
-                    entry.getDecSystem();
+                    system + " (" + account + ")" : system;
         }
     }
 

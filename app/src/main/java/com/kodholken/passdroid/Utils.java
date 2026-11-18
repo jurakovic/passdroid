@@ -182,6 +182,15 @@ public class Utils {
         return name != null ? name : uri.toString();
     }
 
+    /**
+     * @return the system of an entry to show, or a placeholder if it could
+     *         not be decrypted.
+     */
+    public static String systemName(Context context, PasswordEntry entry) {
+        String system = entry.getDecSystem();
+        return system != null ? system : context.getString(R.string.entry_cant_decrypt);
+    }
+
     public static void debug(String message) {
         Log.d("Passdroid", message);
     }

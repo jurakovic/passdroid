@@ -20,6 +20,7 @@
 package com.kodholken.passdroid;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 import android.content.Context;
 import android.graphics.Typeface;
@@ -30,6 +31,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 public class PasswordAdapter extends BaseAdapter {
+    private final Context context;
     private LayoutInflater mInflater;
     private PasswordEntry [] hits;
     private PasswordEntry [] entries;
@@ -40,6 +42,7 @@ public class PasswordAdapter extends BaseAdapter {
         this.entries = entries;
         this.hits = entries;
         this.showUsername = showUsername;
+        this.context = context;
         mInflater = LayoutInflater.from(context);
     }
 
@@ -70,7 +73,9 @@ public class PasswordAdapter extends BaseAdapter {
             return;
         }
         
-        filter = s.toLowerCase();
+        // Without the default locale, in which e.g. a Turkish "I" doesn't
+        // lower-case to "i"
+        filter = s.toLowerCase(Locale.ROOT);
         
         for (PasswordEntry entry : entries) {
             if (filter == null || filter.equals("") ||
@@ -89,7 +94,7 @@ public class PasswordAdapter extends BaseAdapter {
     }
 
     private static boolean contains(String value, String filter) {
-        return value != null && value.toLowerCase().contains(filter);
+        return value != null && value.toLowerCase(Locale.ROOT).contains(filter);
     }
 
     /**
@@ -124,7 +129,7 @@ public class PasswordAdapter extends BaseAdapter {
         }
 
         // Bind the data efficiently with the holder.
-        holder.system.setText(hits[position].getDecSystem());
+        holder.system.setText(Utils.systemName(context, hits[position]));
 
         // The email is shown for entries without a username
         String username = hits[position].getDecUsername();
