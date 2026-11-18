@@ -429,7 +429,6 @@ public class ShowActivity extends SherlockTimeoutActivity {
                 new DialogInterface.OnClickListener() { 
             public void onClick(DialogInterface dialog, int which) {
                 deletePassword();
-                Session.getInstance().setNeedReload(true);
             }
         });
 
@@ -442,18 +441,40 @@ public class ShowActivity extends SherlockTimeoutActivity {
         alertDialog.show();
     }
 
-    private void deletePassword() {
-        PasswordData passwordData = new PasswordData(this);
-        SQLiteDatabase db = passwordData.getWritableDatabase();
-
+    /**
+     * Delete the entry and close the screen, or show why it failed.
+     *
+     * @return true if the entry was deleted.
+     */
+    private boolean deletePassword() {
+        int rows;
+        SQLiteDatabase db = null;
         try {
-            db.delete("data", "id=" + entry.getId(), null);
+            db = new PasswordData(this).getWritableDatabase();
+            rows = db.delete("data", "id=" + entry.getId(), null);
         } catch (SQLException ex) {
             ex.printStackTrace();
+            showNotDeleted(Utils.describeWriteError(this, ex));
+            return false;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
         }
-        db.close();
 
+        if (rows != 1) {
+            showNotDeleted(getString(R.string.error_entry_not_found));
+            return false;
+        }
+
+        Session.getInstance().setNeedReload(true);
         finish();
+        return true;
+    }
+
+    private void showNotDeleted(String reason) {
+        Utils.alertDialog(this, getString(R.string.failure),
+                          getString(R.string.entry_not_deleted, reason));
     }
     
     // Only called before Android 13. Later versions use the default back

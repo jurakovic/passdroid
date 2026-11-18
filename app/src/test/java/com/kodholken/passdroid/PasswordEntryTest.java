@@ -279,6 +279,26 @@ public class PasswordEntryTest {
         assertTrue(entry.listFieldsDecrypted());
     }
 
+    @Test
+    public void isEncryptedAfterEncryptingWithAKey() {
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = new PasswordEntry();
+        entry.setDecSystem("Mail");
+        entry.setDecUsername("alice");
+        entry.setDecPassword("secret");
+        entry.setDecDate("2026-10-25");
+        // No email, 2FA secret, note or URL
+
+        entry.encryptAll(key);
+        assertTrue(entry.isEncrypted());
+        assertNull(entry.getEncNote());
+
+        // Without a key nothing is encrypted, and nothing throws
+        entry.encryptAll(null);
+        assertNull(entry.getEncPassword());
+        assertFalse(entry.isEncrypted());
+    }
+
     private static PasswordEntry listEntry(long id, String system, String username) {
         PasswordEntry entry = new PasswordEntry();
         entry.setId(id);

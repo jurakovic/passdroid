@@ -217,6 +217,13 @@ would like to transfer this entry to</string>
 <string name="entry_cant_decrypt">(can\'t decrypt)</string>
 <!-- Above the fields of an entry with a field that can't be decrypted -->
 <string name="entry_damaged">Some fields of this entry can\'t be decrypted. Copy what you need and delete the entry.</string>
+<!-- %s is the reason, e.g. error_storage_full -->
+<string name="entry_not_saved">The entry was not saved: %s. Your changes are still here.</string>
+<string name="entry_not_deleted">The entry was not deleted: %s.</string>
+<string name="error_storage_full">the storage is full</string>
+<string name="error_logged_out">you have been logged out</string>
+<string name="error_not_encrypted">it could not be encrypted</string>
+<string name="error_entry_not_found">the entry no longer exists</string>
 
 <!-- 2FA codes screen -->
 <string name="totp_list_title">2FA codes</string>

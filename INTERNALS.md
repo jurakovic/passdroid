@@ -411,8 +411,9 @@ fails the padding check. An entry with such a field is **damaged**.
   when the entries change. The list removes itself in `onDestroy()`, since
   the model outlives it.
 
-Screens that change entries write to the database directly and set
-`Session.setNeedReload(true)`, which makes the list reload in `onResume()`.
+Screens that change entries write to the database directly and, once the
+write succeeded, set `Session.setNeedReload(true)`, which makes the list
+reload in `onResume()`.
 
 ## Screens and data flow
 
@@ -445,6 +446,15 @@ secret that isn't stored yet: the generated password to
   required, as on `AddActivity`.
 - **`AddActivity`**: inserts a new row. The date defaults to the current
   time.
+- A save on the add and edit screens counts only with the session key,
+  every field encrypted (`PasswordEntry.isEncrypted()`) and exactly one row
+  written; a delete on the entry screen only if exactly one row was
+  deleted. Otherwise the add and edit screens stay open with what was typed
+  and say why the entry wasn't saved, e.g. "the storage is full"
+  (`Utils.describeWriteError()`), and the entry screen says why it wasn't
+  deleted. The list reloads only after a success. An import and a master
+  password change check `isEncrypted()` too, inside their transaction, so a
+  failure rolls back.
 - `DateField` stores dates as local time without a time zone,
   `yyyy-MM-ddTHH:mm`, so they show the same time after the time zone changes,
   and formats them in the device's format, or as `yyyy-MM-dd HH:mm` with the
@@ -1157,7 +1167,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 |---|---|
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); cleartext in UTF-8; an entry without a system refused, a field that didn't decrypt left out; invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
-| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields; damaged fields (`canDecrypt()`, `isDecrypted()`), the list order with damaged entries and no username, the same order in a Turkish locale |
+| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields; damaged fields (`canDecrypt()`, `isDecrypted()`), `isEncrypted()` with and without a key, the list order with damaged entries and no username, the same order in a Turkish locale |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
@@ -1212,6 +1222,13 @@ release:
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
   same codes.
 - Edit an entry, clear the system name and save: it is refused.
+- In a debug build, open an entry's edit screen and change the password,
+  then make the database read-only with
+  `adb shell run-as com.jurakovic.passdroid chmod 400 databases/password.db`.
+  Save: a message says the entry wasn't saved, and the screen keeps the
+  change. Delete on the entry screen: its message, and the entry stays. The
+  same on the add screen. After `chmod 600` again, Save closes the screen
+  and the entry screen shows the change.
 - Damage two entries of a test vault in a debug build: in
   `adb shell run-as com.jurakovic.passdroid sqlite3 databases/password.db`,
   replace the fifth character from the end of one entry's `system` and of
@@ -1251,12 +1268,16 @@ release:
 ### Adding a field to entries
 
 1. `PasswordEntry`: the `enc`/`dec` fields with getters and setters,
-   `decryptAll()`, `encryptAll()`, `decryptedCopy()`, and a `decryptX()`
-   method if it is decrypted on demand.
+   `decryptAll()`, `encryptAll()`, `decryptedCopy()`, `decryptListFields()`
+   if the list shows or searches it, and a `decryptX()` method if it is
+   decrypted on demand.
 2. `PasswordData`: `COLUMNS`, `onCreate()`, `readEntry()`, `getValues()`.
 3. `Constants.DBVERSION` + 1, and an `ALTER TABLE` step in
    `DbMigration.handleDatabaseUpgrade()`.
-4. `DbMigration.isDecrypted()`, so a password change checks the field too.
+4. `PasswordEntry.isDecrypted()`, `canDecrypt()` and `isEncrypted()`, so a
+   password change, the entry screen, the export and saves check the field
+   too. For a field the list shows, also `listFieldsDecrypted()`, which the
+   tests check after `decryptListFields()`.
 5. `FileExporter.createXmlTree()` and `FileImporter`'s `parseSystemNode()`.
    Old files must still import without it. Increase
    `FileExporter.FORMAT_VERSION`, so earlier versions refuse the files
