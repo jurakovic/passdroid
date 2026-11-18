@@ -112,8 +112,6 @@ public class EditActivity extends SherlockTimeoutActivity {
             @Override
             public void onClick(View v) {
                 updatePassword();
-                Session.getInstance().setNeedReload(true);
-                Utils.debug("Save Clicked");
             }
         });
 
@@ -126,13 +124,25 @@ public class EditActivity extends SherlockTimeoutActivity {
         outState.putString(STATE_DATE, date.getValue());
     }
 
-    private void updatePassword() {
+    /**
+     * Store the changes and close the screen, or show why they weren't
+     * stored and keep them.
+     *
+     * @return true if the entry was saved.
+     */
+    private boolean updatePassword() {
         String system   = ((TextView) findViewById(R.id.system)).getText().toString();
         // We require a valid system name, as when adding the entry
         if (system.matches("^\\s*$")) {
             Utils.alertDialog(this, "Empty system name",
             "Please enter a system name before saving the password.");
-            return;
+            return false;
+        }
+
+        byte [] key = Session.getInstance().getKey();
+        if (!Session.getInstance().isLoggedIn() || key == null) {
+            showNotSaved(getString(R.string.error_logged_out));
+            return false;
         }
 
         String email    = ((TextView) findViewById(R.id.email)).getText().toString();
@@ -152,22 +162,43 @@ public class EditActivity extends SherlockTimeoutActivity {
         entry.setDecNote(note);
         entry.setDecUrl(url);
         entry.setDecDate(date);
-        entry.encryptAll(Session.getInstance().getKey());
+        entry.encryptAll(key);
+        if (!entry.isEncrypted()) {
+            showNotSaved(getString(R.string.error_not_encrypted));
+            return false;
+        }
 
-        PasswordData passwordData = new PasswordData(this);
-        SQLiteDatabase db = passwordData.getWritableDatabase();
-
+        int rows;
+        SQLiteDatabase db = null;
         try {
-            db.update("data", PasswordData.getValues(entry), "id=" + passwordId, null);
+            db = new PasswordData(this).getWritableDatabase();
+            rows = db.update("data", PasswordData.getValues(entry), "id=" + passwordId, null);
         } catch (SQLException ex) {
             ex.printStackTrace();
+            showNotSaved(Utils.describeWriteError(this, ex));
+            return false;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
         }
-        db.close();
+
+        if (rows != 1) {
+            // E.g. replaced by an import meanwhile
+            showNotSaved(getString(R.string.error_entry_not_found));
+            return false;
+        }
 
         // ShowActivity shows the changes
         setResult(RESULT_OK);
-
+        Session.getInstance().setNeedReload(true);
         finish();
+        return true;
+    }
+
+    private void showNotSaved(String reason) {
+        Utils.alertDialog(this, getString(R.string.failure),
+                          getString(R.string.entry_not_saved, reason));
     }
 
     private void setupGenerateButton() {
@@ -257,7 +288,6 @@ public class EditActivity extends SherlockTimeoutActivity {
         }
 
         updatePassword();
-        Session.getInstance().setNeedReload(true);
         return true;
     }
 }

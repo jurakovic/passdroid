@@ -94,13 +94,16 @@ public class AddActivity extends SherlockTimeoutActivity {
         outState.putString(STATE_DATE, date.getValue());
     }
 
+    /**
+     * Store the new entry and close the screen, or show why it failed and
+     * keep what was typed.
+     */
     private void addPassword() {
-        long id = -1;
         EditText v;
 
-        if (!Session.getInstance().isLoggedIn()) {
-            Utils.alertDialog(getParent(), "Failure",
-            "Adding new entry failed due to session timeout.");
+        byte [] key = Session.getInstance().getKey();
+        if (!Session.getInstance().isLoggedIn() || key == null) {
+            showNotSaved(getString(R.string.error_logged_out));
             return;
         }
 
@@ -129,24 +132,33 @@ public class AddActivity extends SherlockTimeoutActivity {
         entry.setDecUrl(v.getText().toString());
         entry.setDecDate(date.getValue());
 
-        entry.encryptAll(Session.getInstance().getKey());
+        entry.encryptAll(key);
+        if (!entry.isEncrypted()) {
+            showNotSaved(getString(R.string.error_not_encrypted));
+            return;
+        }
 
-        PasswordData passwordData = new PasswordData(this);
-        SQLiteDatabase db = passwordData.getWritableDatabase();
-
+        SQLiteDatabase db = null;
         try {
-            id = db.insertOrThrow("data", null, PasswordData.getValues(entry));
+            db = new PasswordData(this).getWritableDatabase();
+            db.insertOrThrow("data", null, PasswordData.getValues(entry));
         } catch (SQLException ex) {
             ex.printStackTrace();
+            showNotSaved(Utils.describeWriteError(this, ex));
+            return;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
         }
-        db.close();
 
-        if (id == -1) {
-            Utils.alertDialog(this, "Failure", "Adding new entry failed.");
-        } else {
-            Session.getInstance().setNeedReload(true);
-            finish();
-        }
+        Session.getInstance().setNeedReload(true);
+        finish();
+    }
+
+    private void showNotSaved(String reason) {
+        Utils.alertDialog(this, getString(R.string.failure),
+                          getString(R.string.entry_not_saved, reason));
     }
 
     private void setupGenerateButton() {
