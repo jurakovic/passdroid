@@ -422,7 +422,7 @@ public class ShowActivity extends SherlockTimeoutActivity {
     private void confirmDelete() {
         AlertDialog alertDialog = new AlertDialog.Builder(this).create();
         alertDialog.setTitle("Confirm delete");
-        alertDialog.setMessage("Are your sure you want to delete " +
+        alertDialog.setMessage("Are you sure you want to delete " +
                                Utils.systemName(this, entry) + "?");
 
         alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
