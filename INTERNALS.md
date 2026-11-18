@@ -1277,14 +1277,16 @@ release:
 ### Adding a field to entries
 
 1. `PasswordEntry`: the `enc`/`dec` fields with getters and setters,
-   `decryptAll()`, `encryptAll()`, `decryptedCopy()`, and a `decryptX()`
-   method if it is decrypted on demand.
+   `decryptAll()`, `encryptAll()`, `decryptedCopy()`, `decryptListFields()`
+   if the list shows or searches it, and a `decryptX()` method if it is
+   decrypted on demand.
 2. `PasswordData`: `COLUMNS`, `onCreate()`, `readEntry()`, `getValues()`.
 3. `Constants.DBVERSION` + 1, and an `ALTER TABLE` step in
    `DbMigration.handleDatabaseUpgrade()`.
-4. `PasswordEntry.isDecrypted()`, `canDecrypt()` and `isEncrypted()`, and
-   `listFieldsDecrypted()` for a field the list shows, so a password change,
-   the entry screen, the export and saves check the field too.
+4. `PasswordEntry.isDecrypted()`, `canDecrypt()` and `isEncrypted()`, so a
+   password change, the entry screen, the export and saves check the field
+   too. For a field the list shows, also `listFieldsDecrypted()`, which the
+   tests check after `decryptListFields()`.
 5. `FileExporter.createXmlTree()` and `FileImporter`'s `parseSystemNode()`.
    Old files must still import without it. Increase
    `FileExporter.FORMAT_VERSION`, so earlier versions refuse the files
