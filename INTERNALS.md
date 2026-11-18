@@ -1277,7 +1277,9 @@ release:
 2. `PasswordData`: `COLUMNS`, `onCreate()`, `readEntry()`, `getValues()`.
 3. `Constants.DBVERSION` + 1, and an `ALTER TABLE` step in
    `DbMigration.handleDatabaseUpgrade()`.
-4. `DbMigration.isDecrypted()`, so a password change checks the field too.
+4. `PasswordEntry.isDecrypted()`, `canDecrypt()` and `isEncrypted()`, and
+   `listFieldsDecrypted()` for a field the list shows, so a password change,
+   the entry screen, the export and saves check the field too.
 5. `FileExporter.createXmlTree()` and `FileImporter`'s `parseSystemNode()`.
    Old files must still import without it. Increase
    `FileExporter.FORMAT_VERSION`, so earlier versions refuse the files
