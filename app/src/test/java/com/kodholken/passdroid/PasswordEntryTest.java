@@ -1,11 +1,15 @@
 package com.kodholken.passdroid;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Provider;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Locale;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -215,5 +219,138 @@ public class PasswordEntryTest {
         assertNull(entry.getDecEmail());
         assertNull(entry.decryptTotp(key));
         assertNull(entry.decryptDate(key));
+    }
+
+    /**
+     * Damage a stored value as one changed byte does. The byte before the
+     * last block is changed, which changes the last byte of the padding
+     * (CBC) to one that is never valid, so the value never decrypts.
+     */
+    private static String damage(String encrypted) throws Base64Exception {
+        byte [] complete = Base64.decode(encrypted);
+        complete[complete.length - 17] ^= (byte) 0x80;
+        return Base64.encode(complete);
+    }
+
+    @Test
+    public void damagedSystemIsNullInTheList() throws Exception {
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = encryptedEntry(key);
+        entry.setEncSystem(damage(entry.getEncSystem()));
+
+        entry.decryptListFields(key);
+
+        assertNull(entry.getDecSystem());
+        assertEquals("alice", entry.getDecUsername());
+        assertFalse(entry.listFieldsDecrypted());
+        assertFalse(entry.canDecrypt(key));
+    }
+
+    @Test
+    public void canDecryptFindsADamagedPassword() throws Exception {
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = encryptedEntry(key);
+        entry.decryptListFields(key);
+        assertTrue(entry.listFieldsDecrypted());
+        assertTrue(entry.canDecrypt(key));
+
+        entry.setEncPassword(damage(entry.getEncPassword()));
+
+        // The list fields still decrypt, the password doesn't
+        assertTrue(entry.listFieldsDecrypted());
+        assertFalse(entry.canDecrypt(key));
+        assertNull(entry.decryptPassword(key));
+        assertFalse(entry.decryptedCopy(key).isDecrypted());
+    }
+
+    @Test
+    public void canDecryptAnEntryWithoutTheNewerFields() {
+        byte [] key = randomBytes(32);
+        PasswordEntry entry = encryptedEntry(key);
+        entry.setEncEmail(null);
+        entry.setEncTotp(null);
+        entry.setEncDate(null);
+        entry.setEncNote(null);
+        entry.setEncUrl(null);
+
+        assertTrue(entry.canDecrypt(key));
+        assertTrue(entry.decryptedCopy(key).isDecrypted());
+        entry.decryptListFields(key);
+        assertTrue(entry.listFieldsDecrypted());
+    }
+
+    private static PasswordEntry listEntry(long id, String system, String username) {
+        PasswordEntry entry = new PasswordEntry();
+        entry.setId(id);
+        entry.setDecSystem(system);
+        entry.setDecUsername(username);
+        return entry;
+    }
+
+    private static String describe(PasswordEntry [] entries) {
+        StringBuilder text = new StringBuilder();
+        for (PasswordEntry entry : entries) {
+            text.append(entry.getDecSystem()).append('/')
+                .append(entry.getDecUsername()).append('/')
+                .append(entry.getId()).append(' ');
+        }
+        return text.toString().trim();
+    }
+
+    @Test
+    public void sortsDamagedEntriesAndNullUsernames() {
+        PasswordEntry [] entries = {
+            listEntry(1, "mail", "bob"),
+            listEntry(2, null, "alice"),
+            listEntry(3, "Bank", null),
+            listEntry(4, "Mail", null),
+            listEntry(5, "bank", "alice"),
+            listEntry(6, null, null),
+            listEntry(7, "Mail", "Alice"),
+            listEntry(8, "Bank", null),
+        };
+
+        Arrays.sort(entries, PasswordEntry.LIST_ORDER);
+
+        // Damaged first, then by system and username ignoring case; the
+        // exact values and the id break ties
+        assertEquals("null/null/6 null/alice/2 " +
+                     "Bank/null/3 Bank/null/8 bank/alice/5 " +
+                     "Mail/null/4 Mail/Alice/7 mail/bob/1",
+                     describe(entries));
+    }
+
+    @Test
+    public void orderDoesNotDependOnTheLocale() {
+        String [] systems = { "ja", "Ia", "ia", "I", "i", "ı", "İ", "Ja" };
+        Locale locale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.ROOT);
+            String root = describe(sorted(systems));
+
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals(root, describe(sorted(systems)));
+
+            // Consistent for every pair
+            PasswordEntry [] entries = sorted(systems);
+            for (PasswordEntry a : entries) {
+                for (PasswordEntry b : entries) {
+                    assertEquals(a.getDecSystem() + " " + b.getDecSystem(),
+                                 Integer.signum(PasswordEntry.LIST_ORDER.compare(a, b)),
+                                 -Integer.signum(PasswordEntry.LIST_ORDER.compare(b, a)));
+                }
+            }
+        } finally {
+            Locale.setDefault(locale);
+        }
+    }
+
+    private static PasswordEntry [] sorted(String [] systems) {
+        PasswordEntry [] entries = new PasswordEntry[systems.length];
+        for (int i = 0; i < systems.length; i++) {
+            entries[i] = listEntry(i, systems[i], "");
+        }
+        Arrays.sort(entries, PasswordEntry.LIST_ORDER);
+        return entries;
     }
 }

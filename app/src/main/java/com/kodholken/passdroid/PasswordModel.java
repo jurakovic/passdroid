@@ -191,6 +191,6 @@ public class PasswordModel {
         cur.close();
         db.close();
 
-        Arrays.sort(passwords);
+        Arrays.sort(passwords, PasswordEntry.LIST_ORDER);
     }
 }

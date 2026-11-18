@@ -367,17 +367,35 @@ base64( IV (16 random bytes) || AES-256-CBC-PKCS7(key, IV, UTF-8 value) )
 - Legacy formats, only read for the migrations above: AES-ECB, and CBC with
   a zero IV; both with 2 random bytes in front of the value.
 
-`decrypt()` returns `null` when a value can't be decrypted.
-`DbMigration.changeKey()` uses that to refuse re-encrypting a database with
-the wrong key.
+`decrypt()` returns `null` when a value can't be decrypted: with the wrong
+key, or when the stored value is damaged, since one changed byte usually
+fails the padding check. An entry with such a field is **damaged**.
+
+- `isDecrypted()` tells whether every stored field of a decrypted copy has
+  a value. `DbMigration.changeKey()` uses it to refuse re-encrypting a
+  database with the wrong key, or with a damaged entry.
+- `canDecrypt()` checks every stored field of an entry without creating a
+  string of any value: it decrypts into byte arrays and wipes them. The
+  entry screen uses it to find a damaged entry, so the password and the
+  2FA secret are still only decrypted when they are shown or copied.
 
 ## Loading entries
 
 `PasswordModel` is a process-wide singleton over the `data` table.
 
 - `getPasswords()` loads all rows on first use and decrypts **only the list
-  fields**: system, username and email (`decryptListFields()`). The entries
-  are sorted by system (case-insensitive), then username.
+  fields**: system, username and email (`decryptListFields()`). Every row
+  is loaded, also a damaged one, and the entries are sorted with
+  `PasswordEntry.LIST_ORDER`: those whose system didn't decrypt first, then
+  by system and by username, ignoring case. Case is ignored without a
+  locale (`String.CASE_INSENSITIVE_ORDER`), so the order is the same in
+  every language, e.g. Turkish, and consistent; the search lower-cases with
+  `Locale.ROOT` for the same reason.
+- An entry whose system didn't decrypt is shown as "(can't decrypt)"
+  (`Utils.systemName()`) in the list and on the 2FA codes screen. On the
+  entry screen a damaged entry shows what did decrypt below a notice, and
+  has no Edit, since saving would replace the damaged values with empty
+  ones; it can be deleted.
 - The password, 2FA secret, note, URL and date stay encrypted in the
   `PasswordEntry` objects. Screens decrypt them when needed with
   `decryptPassword()` etc. and don't keep the result, except the screen that
@@ -1124,7 +1142,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 |---|---|
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
-| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields |
+| `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields; damaged fields (`canDecrypt()`, `isDecrypted()`), the list order with damaged entries and no username, the same order in a Turkish locale |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
@@ -1173,6 +1191,17 @@ release:
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
   same codes.
 - Edit an entry, clear the system name and save: it is refused.
+- Damage two entries of a test vault in a debug build: in
+  `adb shell run-as com.jurakovic.passdroid sqlite3 databases/password.db`,
+  replace the fifth character from the end of one entry's `system` and of
+  another's `password` with a different one (e.g. `A` with `z`). That
+  character is in the last block and fully used, while the low bits of the
+  one before a trailing `=` are ignored, so changing that one may change
+  nothing. Log in: the list loads with "(can't decrypt)" first. Both
+  entries open with the notice and without Edit, show what did decrypt, and
+  can be deleted. A search still finds the other entries, also typed with
+  "I" or "i". (About once in 256 the damaged value still passes the padding
+  check and shows as garbage; then change another character.)
 - Pick the date of an entry, then "No time" in the time picker: the editor
   and the entry screen show the date alone. Pick a new date and cancel the
   time picker: the time the date had stays, or no time if it had none.
