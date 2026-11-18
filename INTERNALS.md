@@ -191,6 +191,9 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
   `Session.clearTimeoutTimer()` and finishes the activity if the session is
   no longer logged in.
 
+`LoginActivity` doesn't extend one of them, so it sets `FLAG_SECURE`
+itself, first thing in `onCreate()`.
+
 ### The timeout
 
 - `setTimeoutTimer()` records the device sleep time and, if "Log out on
@@ -1005,9 +1008,12 @@ Android 9 and later, off by default.
 
 #### Screens and input
 
-- All screens that show secrets set `FLAG_SECURE`: no screenshots and no
-  content in the recent apps. The 2FA QR code dialog sets it too, since a
-  dialog has its own window.
+- The screens that show secrets, and those where the master password is
+  typed (login, password change, import password), set `FLAG_SECURE`: no
+  screenshots, screen recordings or casts, and no content in the recent
+  apps. A password field shows each typed character for a moment, so a
+  recording of the login screen would give the master password away. The
+  2FA QR code dialog sets it too, since a dialog has its own window.
 - On the entry, login, setup, password change, import password and search
   screens the keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
@@ -1190,6 +1196,9 @@ What the unit tests don't cover, worth checking on a device before a
 release:
 
 - Log in, turn the screen off and on, log in again: no second logout.
+- On the login screen, a screenshot is refused or black, and the recent
+  apps show a blank preview. Logging in with the password and with the
+  fingerprint still works.
 - Export over an existing, longer export file and import it again.
 - In a test vault with a damaged entry (see below), export over a longer
   existing file: Cancel in the damaged entries dialog leaves the file as it

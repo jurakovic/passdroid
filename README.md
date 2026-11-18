@@ -183,7 +183,7 @@ on in Settings.
 - **Android backup is off**, so the database is not copied to the cloud.
   Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens
-  that show your data.
+  that show your data and where you type the master password.
 - On the screens where you type secrets, the keyboard is asked not to learn
   from what you type, and autofill services are kept out.
 - On Android 14 and later, passwords and 2FA codes are hidden from
