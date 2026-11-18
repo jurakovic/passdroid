@@ -1240,11 +1240,15 @@ release:
   and the entry screen shows the change.
 - Damage two entries of a test vault in a debug build: in
   `adb shell run-as com.jurakovic.passdroid sqlite3 databases/password.db`,
-  change one of the last characters (before a trailing `=`) of one entry's
-  `system` and of another's `password`. Log in: the list loads with
-  "(can't decrypt)" first. Both entries open with the notice and without
-  Edit, show what did decrypt, and can be deleted. A search still finds the
-  other entries, also typed with "I" or "i".
+  replace the fifth character from the end of one entry's `system` and of
+  another's `password` with a different one (e.g. `A` with `z`). That
+  character is in the last block and fully used, while the low bits of the
+  one before a trailing `=` are ignored, so changing that one may change
+  nothing. Log in: the list loads with "(can't decrypt)" first. Both
+  entries open with the notice and without Edit, show what did decrypt, and
+  can be deleted. A search still finds the other entries, also typed with
+  "I" or "i". (About once in 256 the damaged value still passes the padding
+  check and shows as garbage; then change another character.)
 - Pick the date of an entry, then "No time" in the time picker: the editor
   and the entry screen show the date alone. Pick a new date and cancel the
   time picker: the time the date had stays, or no time if it had none.
