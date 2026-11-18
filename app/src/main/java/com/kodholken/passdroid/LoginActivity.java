@@ -36,6 +36,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnKeyListener;
 import android.view.Window;
+import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.EditText;
 import android.window.OnBackInvokedCallback;
@@ -63,6 +64,12 @@ public class LoginActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Kept out of screenshots, screen recordings and the recent apps,
+        // like the screens of a session: the master password is typed here,
+        // and a password field shows each typed character for a moment.
+        // This screen doesn't extend a timeout base class, which sets it.
+        getWindow().setFlags(LayoutParams.FLAG_SECURE, LayoutParams.FLAG_SECURE);
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
