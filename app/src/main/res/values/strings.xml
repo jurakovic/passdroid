@@ -124,6 +124,10 @@ longer password made of a few random words is easy to remember and hard to guess
 <string name="encrypt_export">Encrypt the exported file</string>
 <string name="export_successful">Database successfully exported to %s</string>
 <string name="export_cleartext_successful">Database successfully exported to %s. Note that the passwords are NOT ENCRYPTED.</string>
+<!-- %s is the reason. The export is built before the file is opened. -->
+<string name="export_failed_unchanged">Export failed: %s. The file was not changed.</string>
+<!-- %1$s is the file, %2$s the reason -->
+<string name="export_failed_writing">Export failed while writing %1$s: %2$s. The file may be incomplete; export again.</string>
 
 <string name="export_description">This will export the password database to a file of your choice.
 In combination with the import function this can be used to move the
