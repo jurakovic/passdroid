@@ -267,7 +267,7 @@ public class DbMigration {
                 passwords[i] = PasswordData.readEntry(cur);
 
                 passwords[i].decryptAll(oldKey);
-                if (!isDecrypted(passwords[i])) {
+                if (!passwords[i].isDecrypted()) {
                     Utils.error("Failed to decrypt entry " + passwords[i].getId());
                     cur.close();
                     return false;
@@ -304,23 +304,5 @@ public class DbMigration {
         }
 
         return result;
-    }
-
-    /**
-     * @return false if any field of the entry failed to decrypt.
-     */
-    private static boolean isDecrypted(PasswordEntry entry) {
-        return isDecrypted(entry.getEncSystem(), entry.getDecSystem()) &&
-               isDecrypted(entry.getEncUsername(), entry.getDecUsername()) &&
-               isDecrypted(entry.getEncPassword(), entry.getDecPassword()) &&
-               isDecrypted(entry.getEncNote(), entry.getDecNote()) &&
-               isDecrypted(entry.getEncUrl(), entry.getDecUrl()) &&
-               isDecrypted(entry.getEncEmail(), entry.getDecEmail()) &&
-               isDecrypted(entry.getEncTotp(), entry.getDecTotp()) &&
-               isDecrypted(entry.getEncDate(), entry.getDecDate());
-    }
-
-    private static boolean isDecrypted(String encrypted, String decrypted) {
-        return encrypted == null || decrypted != null;
     }
 }

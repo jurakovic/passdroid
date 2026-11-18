@@ -19,17 +19,65 @@
 
 package com.kodholken.passdroid;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Comparator;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class PasswordEntry implements Comparable<PasswordEntry> {
+public class PasswordEntry {
     // PKCS5Padding is the PKCS #7 padding for AES, the same as PKCS7Padding
     // of the Bouncy Castle provider that earlier versions asked for. Android
     // has deprecated asking for that provider.
     private static final String CBC = "AES/CBC/PKCS5Padding";
+
+    /**
+     * The order of the list of entries: those whose system didn't decrypt
+     * first, so they are seen, then by system and by username, ignoring
+     * case, with no username as an empty one. The exact system and username,
+     * then the id, break ties, so the order is total.
+     *
+     * Case is ignored with String.CASE_INSENSITIVE_ORDER, which compares
+     * character by character without a locale. equalsIgnoreCase() and
+     * toLowerCase() in the default locale disagree in a Turkish locale,
+     * where "I" lower-cases to a dotless i: the order was then inconsistent,
+     * which Arrays.sort() may refuse with an exception.
+     */
+    public static final Comparator<PasswordEntry> LIST_ORDER = new Comparator<PasswordEntry>() {
+        @Override
+        public int compare(PasswordEntry a, PasswordEntry b) {
+            String systemA = a.getDecSystem();
+            String systemB = b.getDecSystem();
+            if (systemA == null || systemB == null) {
+                if (systemA != null || systemB != null) {
+                    return systemA == null ? -1 : 1;
+                }
+                // Both null: by username and id
+                systemA = systemB = "";
+            }
+
+            String userA = a.getDecUsername() != null ? a.getDecUsername() : "";
+            String userB = b.getDecUsername() != null ? b.getDecUsername() : "";
+
+            int result = String.CASE_INSENSITIVE_ORDER.compare(systemA, systemB);
+            if (result == 0) {
+                result = String.CASE_INSENSITIVE_ORDER.compare(userA, userB);
+            }
+            if (result == 0) {
+                result = systemA.compareTo(systemB);
+            }
+            if (result == 0) {
+                result = userA.compareTo(userB);
+            }
+            if (result == 0) {
+                result = Long.compare(a.getId(), b.getId());
+            }
+            return result;
+        }
+    };
 
     private long id;
 
@@ -205,29 +253,99 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
         return Base64.encode(complete);
     }
 
+    /**
+     * @return the value, or null if it can't be decrypted, e.g. because the
+     *         stored value is damaged: the fields have no authentication, so
+     *         a damaged byte usually fails the padding check.
+     */
     private String decrypt(byte [] key, String encrypted) {
-        String decrypted;
-        byte [] decBytes;
+        byte [] decBytes = decryptBytes(key, encrypted);
+        if (decBytes == null) {
+            return null;
+        }
 
+        String decrypted = new String(decBytes, StandardCharsets.UTF_8);
+        Arrays.fill(decBytes, (byte) 0);
+        return decrypted;
+    }
+
+    /**
+     * @return the decrypted bytes of a value, or null if it can't be
+     *         decrypted. The caller wipes them.
+     */
+    private static byte [] decryptBytes(byte [] key, String encrypted) {
         try {
             byte [] encBytes = Base64.decode(encrypted);
 
-            SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");  
+            SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
             Cipher cipher = Cipher.getInstance(CBC);
-            
+
             byte [] iv = new byte[16];
             System.arraycopy(encBytes, 0, iv, 0, iv.length);
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
-            decBytes = cipher.doFinal(encBytes, iv.length, encBytes.length - iv.length);
-            decrypted = new String(decBytes, 0, decBytes.length, "UTF8");
+            return cipher.doFinal(encBytes, iv.length, encBytes.length - iv.length);
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
         }
+    }
 
-        return decrypted;
+    /**
+     * Check that every field the entry has can be decrypted, without
+     * creating a string of any value: the values are decrypted into byte
+     * arrays, which are wiped. An entry where one doesn't is damaged.
+     *
+     * @return false if a stored field can't be decrypted.
+     */
+    public boolean canDecrypt(byte [] key) {
+        String [] fields = {
+            encSystem, encUsername, encPassword, encNote, encUrl, encEmail,
+            encTotp, encDate
+        };
+        for (String encrypted : fields) {
+            if (encrypted == null) {
+                continue;
+            }
+
+            byte [] decrypted = decryptBytes(key, encrypted);
+            if (decrypted == null) {
+                return false;
+            }
+            Arrays.fill(decrypted, (byte) 0);
+        }
+        return true;
+    }
+
+    /**
+     * @return for an entry whose fields were decrypted with decryptAll(),
+     *         e.g. a decryptedCopy(), false if any stored field failed to
+     *         decrypt.
+     */
+    public boolean isDecrypted() {
+        return isDecrypted(encSystem, decSystem) &&
+               isDecrypted(encUsername, decUsername) &&
+               isDecrypted(encPassword, decPassword) &&
+               isDecrypted(encNote, decNote) &&
+               isDecrypted(encUrl, decUrl) &&
+               isDecrypted(encEmail, decEmail) &&
+               isDecrypted(encTotp, decTotp) &&
+               isDecrypted(encDate, decDate);
+    }
+
+    /**
+     * @return for an entry whose list fields were decrypted with
+     *         decryptListFields(), false if one of them failed to decrypt.
+     */
+    public boolean listFieldsDecrypted() {
+        return isDecrypted(encSystem, decSystem) &&
+               isDecrypted(encUsername, decUsername) &&
+               isDecrypted(encEmail, decEmail);
+    }
+
+    private static boolean isDecrypted(String encrypted, String decrypted) {
+        return encrypted == null || decrypted != null;
     }
 
     private String decryptZeroIv(byte [] key, String encrypted) {
@@ -376,14 +494,5 @@ public class PasswordEntry implements Comparable<PasswordEntry> {
     }
     public void setDecDate(String decDate) {
         this.decDate = decDate;
-    }
-
-    @Override
-    public int compareTo(PasswordEntry another) {
-        if (getDecSystem().equalsIgnoreCase(another.getDecSystem())) {
-            return this.getDecUsername().compareTo(another.getDecUsername());
-        }
-
-        return getDecSystem().toLowerCase().compareTo(another.getDecSystem().toLowerCase());
     }
 }
