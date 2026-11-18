@@ -15,6 +15,17 @@
     android:padding="10dip"
     android:background="@color/panel_background">
 
+    <!-- Shown for an entry with a field that can't be decrypted -->
+    <TextView
+      android:id="@+id/damaged_notice"
+      android:visibility="gone"
+      android:text="@string/entry_damaged"
+      android:textStyle="bold"
+      android:textSize="15sp"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:paddingBottom="10dip"/>
+
     <TextView
       android:id="@+id/system_title"
       android:text="@string/system"

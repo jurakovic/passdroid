@@ -58,6 +58,9 @@ public class ShowActivity extends SherlockTimeoutActivity {
     private static final int REQUEST_EDIT = 1;
 
     private PasswordEntry entry;  // With the fields of the list decrypted
+    // A stored field can't be decrypted. The entry can't be edited, since
+    // saving would replace the damaged values with empty ones.
+    private boolean damaged;
     private Totp totp;            // null if there is no valid 2FA secret
     private boolean hasTotp;      // The entry has a 2FA secret, maybe invalid
     private PasswordToggle passwordToggle;
@@ -100,6 +103,8 @@ public class ShowActivity extends SherlockTimeoutActivity {
             finish();
             return;
         }
+        // Before the menu is created
+        damaged = !entry.canDecrypt(Session.getInstance().getKey());
 
         this.setContentView(R.layout.show);
         FontSetting.apply(this, R.id.system, R.id.email, R.id.username,
@@ -123,6 +128,9 @@ public class ShowActivity extends SherlockTimeoutActivity {
 
         showEntry();
         setupClipboardActions();
+
+        findViewById(R.id.damaged_notice).setVisibility(damaged ? View.VISIBLE :
+                                                                  View.GONE);
     }
 
     @Override
@@ -222,9 +230,11 @@ public class ShowActivity extends SherlockTimeoutActivity {
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add("Edit")
-            .setIcon(R.drawable.ic_menu_edit)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+        if (!damaged) {
+            menu.add("Edit")
+                .setIcon(R.drawable.ic_menu_edit)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_WITH_TEXT);
+        }
 
         menu.add("Delete")
             .setIcon(R.drawable.ic_menu_delete) 
@@ -412,7 +422,8 @@ public class ShowActivity extends SherlockTimeoutActivity {
     private void confirmDelete() {
         AlertDialog alertDialog = new AlertDialog.Builder(this).create();
         alertDialog.setTitle("Confirm delete");
-        alertDialog.setMessage("Are your sure you want to delete "+entry.getDecSystem()+"?");
+        alertDialog.setMessage("Are your sure you want to delete " +
+                               Utils.systemName(this, entry) + "?");
 
         alertDialog.setButton(AlertDialog.BUTTON1, "Yes",
                 new DialogInterface.OnClickListener() { 
