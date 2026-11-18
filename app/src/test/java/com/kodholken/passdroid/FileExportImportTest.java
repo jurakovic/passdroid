@@ -8,6 +8,8 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -87,6 +89,58 @@ public class FileExportImportTest {
 
         FileImporter importer = new FileImporter(output.toByteArray());
         assertFalse(importer.isEncrypted());
+        importer.parse();
+        assertEntriesEqual(entries, importer.getPasswordEntries());
+    }
+
+    @Test
+    public void entryWithoutSystemIsNotExported() throws Exception {
+        PasswordEntry entry = createEntry(null, "alice", "secret", "", "");
+
+        try {
+            new FileExporter(new ByteArrayOutputStream(), APP_VERSION).
+                exportCleartext(new PasswordEntry [] { entry });
+            fail("An entry without a system was exported");
+        } catch (ExportException ex) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void fieldThatDidNotDecryptIsLeftOut() throws Exception {
+        // What a decrypted copy of an entry with a damaged password has,
+        // when the user exports anyway
+        PasswordEntry entry = createEntry("Mail", "alice@example.com", "alice",
+                                          null, "JBSWY3DPEHPK3PXP", "note",
+                                          "https://example.com", "2026-10-25");
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        new FileExporter(output, APP_VERSION).exportCleartext(new PasswordEntry [] { entry });
+
+        assertFalse(output.toString("UTF-8").contains("<password>"));
+        FileImporter importer = new FileImporter(output.toByteArray());
+        importer.parse();
+        // The other fields are kept; the password imports empty
+        entry.setDecPassword("");
+        assertEntriesEqual(new PasswordEntry [] { entry }, importer.getPasswordEntries());
+    }
+
+    @Test
+    public void cleartextIsUtf8() throws Exception {
+        PasswordEntry [] entries = {
+            createEntry("Zürich ✓ 𝄞", "ü@example.com", "ß", "€ 𝄞", "",
+                        "Zürich ✓ 𝄞", "", "")
+        };
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        new FileExporter(output, APP_VERSION).exportCleartext(entries);
+
+        byte [] file = output.toByteArray();
+        assertTrue(new String(file, StandardCharsets.UTF_8).contains("Zürich ✓ 𝄞"));
+        // Valid UTF-8: decoding and encoding again gives the same bytes
+        assertTrue(Arrays.equals(file, new String(file, StandardCharsets.UTF_8).
+                                       getBytes(StandardCharsets.UTF_8)));
+        FileImporter importer = new FileImporter(file);
         importer.parse();
         assertEntriesEqual(entries, importer.getPasswordEntries());
     }

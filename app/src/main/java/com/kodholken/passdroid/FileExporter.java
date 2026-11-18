@@ -80,7 +80,7 @@ public class FileExporter {
     public void exportCleartext(PasswordEntry [] passwords) throws ExportException {
         String xml = createXmlTree(passwords);
         try {
-            write(xml.getBytes());
+            write(xml.getBytes(StandardCharsets.UTF_8));
         } catch (Exception ex) {
             throw new ExportException(ex.getMessage());
         }
@@ -173,14 +173,21 @@ public class FileExporter {
      * 
      * @param passwords array of passwords.
      * @return String representing the XML tree.
+     * @throws ExportException if an entry has no system name. A caller that
+     *         exports an entry whose system can't be decrypted gives it a
+     *         name first.
      */
-    private String createXmlTree(PasswordEntry [] passwords) {
+    private String createXmlTree(PasswordEntry [] passwords) throws ExportException {
         StringBuilder sb = new StringBuilder();
 
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<passdroid version=\"" + FORMAT_VERSION + "\" app-version=\"" +
                   Utils.escapeXMLChars(appVersion) + "\">\n");
         for (PasswordEntry entry : passwords) {
+            if (entry.getDecSystem() == null) {
+                throw new ExportException("An entry has no system name");
+            }
+
             sb.append("  <system name=\"" +
                       Utils.escapeXMLChars(removeInvalidChars(entry.getDecSystem())) +
                       "\">\n");
@@ -211,6 +218,11 @@ public class FileExporter {
     /**
      * Append an element with a value in a CDATA section, unless the value is
      * null. A "]]>" in the value is split across two CDATA sections.
+     *
+     * A null value is a field the entry doesn't have, which an import leaves
+     * empty. It is also what a decrypted copy has for a stored field that
+     * can't be decrypted, so the caller checks for those first and tells the
+     * user, see PasswordEntry.canDecrypt().
      */
     private static void appendElement(StringBuilder sb, String name, String value) {
         if (value == null) {

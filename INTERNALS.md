@@ -607,11 +607,24 @@ always reads them.
 ### Exporting
 
 `FileExportActivity` asks for a file with `ACTION_CREATE_DOCUMENT` (the
-Storage Access Framework, no storage permission), opens it with mode `"wt"`
-so an existing file is truncated, and writes the XML of
-`PasswordModel.getDecryptedPasswords()`, encrypted or not. The stream is
-closed before success is reported, since some document providers only store
-the data then.
+Storage Access Framework, no storage permission). It builds the whole file
+in memory first, the XML of `PasswordModel.getDecryptedPasswords()`,
+encrypted or not, and only then opens the file with mode `"wt"`, which
+truncates an existing one, and writes it. So an export that fails while
+decrypting or encrypting leaves the file, e.g. an earlier backup, as it
+was, and says so. The Storage Access Framework can't replace a document in
+one step, so a failure while writing can still leave it empty or partial;
+that message says to export again. The stream is closed before success is
+reported, since some document providers only store the data then.
+
+Before the file picker opens, the screen checks the entries with
+`PasswordEntry.canDecrypt()`. If any are damaged (see [Entry
+encryption](#entry-encryption)), a dialog names up to five and asks whether
+to export anyway. A field that can't be decrypted is `null` in the
+decrypted copy and is left out of the file, as a field the entry doesn't
+have; an entry whose system can't be decrypted is exported as "(can't
+decrypt)", so its other fields come back with an import too. The success
+message then counts the entries that were exported incomplete.
 
 ### Importing
 
@@ -894,8 +907,10 @@ passphrase is out of reach.
   The import lists every setting it changed, so turning off "Log out on
   close", the screen off logout or the clipboard clearing doesn't go
   unnoticed.
-- Exports truncate an existing file and leave out characters XML doesn't
-  allow, so a backup can always be imported again.
+- Exports replace an existing file only once the export is complete, and
+  leave out characters XML doesn't allow, so a backup can always be
+  imported again. Fields that can't be decrypted are never left out
+  without the user being told.
 - Imports read at most 10 MB and reject files with a document type
   declaration, which could declare entities that expand to a lot of text.
   Only the part before the root element is checked, so values can contain
@@ -1140,7 +1155,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 
 | Class | Covers |
 |---|---|
-| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
+| `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); cleartext in UTF-8; an entry without a system refused, a field that didn't decrypt left out; invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields; damaged fields (`canDecrypt()`, `isDecrypted()`), the list order with damaged entries and no username, the same order in a Turkish locale |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
@@ -1167,6 +1182,12 @@ release:
 
 - Log in, turn the screen off and on, log in again: no second logout.
 - Export over an existing, longer export file and import it again.
+- In a test vault with a damaged entry (see below), export over a longer
+  existing file: Cancel in the damaged entries dialog leaves the file as it
+  was, and Export anyway writes a file that imports with the intact fields.
+  With a temporary `throw` in `FileExportActivity.buildExport()` (a local
+  build, not committed), an export over an existing file keeps its
+  content.
 - Export, change "Log out on close", the logout delay, the clipboard
   clearing and the theme, and import the export from Settings: the message
   lists those four with their old values, and back on Settings the check

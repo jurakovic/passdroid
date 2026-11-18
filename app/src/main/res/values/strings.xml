@@ -124,6 +124,24 @@ longer password made of a few random words is easy to remember and hard to guess
 <string name="encrypt_export">Encrypt the exported file</string>
 <string name="export_successful">Database successfully exported to %s</string>
 <string name="export_cleartext_successful">Database successfully exported to %s. Note that the passwords are NOT ENCRYPTED.</string>
+<!-- %s is the reason. The export is built before the file is opened. -->
+<string name="export_failed_unchanged">Export failed: %s. The file was not changed.</string>
+<!-- %1$s is the file, %2$s the reason -->
+<string name="export_failed_writing">Export failed while writing %1$s: %2$s. The file may be incomplete; export again.</string>
+<string name="export_incomplete_title">Damaged entries</string>
+<!-- %1$d is the number of entries, %2$s their names -->
+<plurals name="export_incomplete_message">
+    <item quantity="one">%1$d entry can\'t be fully decrypted: %2$s. Its damaged fields will be missing from the export.</item>
+    <item quantity="other">%1$d entries can\'t be fully decrypted: %2$s. Their damaged fields will be missing from the export.</item>
+</plurals>
+<!-- The names of the first damaged entries, and how many are not named -->
+<string name="export_incomplete_more">%1$s and %2$d more</string>
+<string name="export_anyway">Export anyway</string>
+<!-- Added to the message of a successful export -->
+<plurals name="export_incomplete_done">
+    <item quantity="one">%d entry was exported incomplete.</item>
+    <item quantity="other">%d entries were exported incomplete.</item>
+</plurals>
 
 <string name="export_description">This will export the password database to a file of your choice.
 In combination with the import function this can be used to move the

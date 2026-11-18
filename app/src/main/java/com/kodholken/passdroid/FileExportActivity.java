@@ -19,8 +19,12 @@
 
 package com.kodholken.passdroid;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import com.kodholken.passdroid.db.SystemData;
 
@@ -39,10 +43,14 @@ public class FileExportActivity extends SherlockTimeoutActivity {
     private static final String EXPORT_FILE_NAME = "passdroid_db.xml";
 
     private static final int CREATE_FILE_RESULT_ID = 1;
+    // The damaged entries named before an export
+    private static final int MAX_NAMES = 5;
 
     private Button cancelButton;
     private Button exportButton;
     private CheckBox encryptFileCheckbox;
+    // Entries of the last export with a field that couldn't be decrypted
+    private int incomplete;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,11 +70,55 @@ public class FileExportActivity extends SherlockTimeoutActivity {
         exportButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                selectExportFile();
+                confirmDamaged();
             }
         });
 
         encryptFileCheckbox = (CheckBox) findViewById(R.id.encrypt_export);
+    }
+
+    /**
+     * Before an export, name the entries with a field that can't be
+     * decrypted, since the export can't contain those fields, and let the
+     * user export anyway: everything that still decrypts is kept, which is
+     * what a damaged vault needs most.
+     */
+    private void confirmDamaged() {
+        byte [] key = Session.getInstance().getKey();
+        List<String> names = new ArrayList<String>();
+        for (PasswordEntry entry : PasswordModel.getInstance(this).getPasswords()) {
+            if (!entry.canDecrypt(key)) {
+                names.add(Utils.systemName(this, entry));
+            }
+        }
+
+        if (names.isEmpty()) {
+            selectExportFile();
+            return;
+        }
+
+        StringBuilder list = new StringBuilder();
+        for (int i = 0; i < names.size() && i < MAX_NAMES; i++) {
+            if (i > 0) {
+                list.append(", ");
+            }
+            list.append(names.get(i));
+        }
+        String shown = names.size() <= MAX_NAMES ? list.toString() :
+            getString(R.string.export_incomplete_more, list, names.size() - MAX_NAMES);
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.export_incomplete_title)
+            .setMessage(getResources().getQuantityString(R.plurals.export_incomplete_message,
+                                                         names.size(), names.size(), shown))
+            .setPositiveButton(R.string.export_anyway, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    selectExportFile();
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
     }
 
     /**
@@ -111,8 +163,21 @@ public class FileExportActivity extends SherlockTimeoutActivity {
 
     private void doExport(Uri uri) {
         String filename = Utils.getDisplayName(this, uri);
-        OutputStream output = null;
 
+        // The whole file is built before the chosen file is opened, since
+        // opening it empties it: an export that fails while decrypting or
+        // encrypting leaves the file, e.g. an earlier backup, as it was.
+        byte [] content;
+        try {
+            content = buildExport();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Utils.alertDialog(this, getString(R.string.failure),
+                              getString(R.string.export_failed_unchanged, describe(e)));
+            return;
+        }
+
+        OutputStream output = null;
         try {
             // "w" alone does not always truncate an existing file, which
             // would leave the end of a longer file after the export.
@@ -120,40 +185,22 @@ public class FileExportActivity extends SherlockTimeoutActivity {
             if (output == null) {
                 throw new IOException("Unable to open " + filename);
             }
-
-            FileExporter exporter = new FileExporter(output,
-                                                     Utils.getVersion(this));
-            exporter.setSettings(SettingsBackup.get(this));
-            if (encryptFileCheckbox.isChecked()) {
-                // The file is encrypted with the database key, so the salt
-                // and iteration count it was derived with are stored in the
-                // file as well.
-                String record = new SystemData(this).getKey();
-                if (MasterKey.isLegacy(record)) {
-                    exporter.exportEncryptedLegacy(
-                            Session.getInstance().getKey(),
-                            PasswordModel.getInstance(this).getDecryptedPasswords());
-                } else {
-                    exporter.exportEncrypted(
-                            Session.getInstance().getKey(),
-                            MasterKey.getSalt(record),
-                            MasterKey.getIterations(record),
-                            PasswordModel.getInstance(this).getDecryptedPasswords());
-                }
-            } else {
-                exporter.exportCleartext(
-                        PasswordModel.getInstance(this).getDecryptedPasswords());
-            }
+            output.write(content);
 
             // Some document providers only store the data when the stream is
             // closed so we need to do that before reporting success.
             output.close();
             output = null;
         } catch (Exception e) {
-            Utils.alertDialog(this, "Failure", "Export failed: " + e.getMessage());
+            // There is no way to replace a document in one step, so the
+            // file may have been emptied or written in part
             e.printStackTrace();
+            Utils.alertDialog(this, getString(R.string.failure),
+                              getString(R.string.export_failed_writing, filename,
+                                        describe(e)));
             return;
         } finally {
+            Arrays.fill(content, (byte) 0);
             if (output != null) {
                 try {
                     output.close();
@@ -161,11 +208,61 @@ public class FileExportActivity extends SherlockTimeoutActivity {
             }
         }
 
-        if (encryptFileCheckbox.isChecked()) {
-            showDialog("Success", getString(R.string.export_successful, filename));
-        } else {
-            showDialog("Success", getString(R.string.export_cleartext_successful, filename));
+        String message = getString(encryptFileCheckbox.isChecked() ?
+                                   R.string.export_successful :
+                                   R.string.export_cleartext_successful, filename);
+        if (incomplete > 0) {
+            message += "\n\n" + getResources().getQuantityString(
+                R.plurals.export_incomplete_done, incomplete, incomplete);
         }
+        showDialog("Success", message);
+    }
+
+    /**
+     * @return the content of the export file, encrypted or not. Fields that
+     *         can't be decrypted are left out, see confirmDamaged(), and an
+     *         entry whose system can't be decrypted is named with the
+     *         placeholder, so its other fields come back with an import too.
+     */
+    private byte [] buildExport() throws ExportException, Base64Exception {
+        PasswordEntry [] entries = PasswordModel.getInstance(this).getDecryptedPasswords();
+        incomplete = 0;
+        for (PasswordEntry entry : entries) {
+            if (!entry.isDecrypted()) {
+                incomplete++;
+            }
+            if (entry.getDecSystem() == null) {
+                entry.setDecSystem(getString(R.string.entry_cant_decrypt));
+            }
+        }
+
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        FileExporter exporter = new FileExporter(buffer, Utils.getVersion(this));
+        exporter.setSettings(SettingsBackup.get(this));
+        if (encryptFileCheckbox.isChecked()) {
+            // The file is encrypted with the database key, so the salt
+            // and iteration count it was derived with are stored in the
+            // file as well.
+            String record = new SystemData(this).getKey();
+            if (MasterKey.isLegacy(record)) {
+                exporter.exportEncryptedLegacy(Session.getInstance().getKey(), entries);
+            } else {
+                exporter.exportEncrypted(Session.getInstance().getKey(),
+                                         MasterKey.getSalt(record),
+                                         MasterKey.getIterations(record),
+                                         entries);
+            }
+        } else {
+            exporter.exportCleartext(entries);
+        }
+
+        return buffer.toByteArray();
+    }
+
+    /** @return the message of an exception, or its name if it has none. */
+    private static String describe(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     private void showDialog(String title, String message) {
