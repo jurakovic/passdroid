@@ -23,14 +23,18 @@ import com.kodholken.passdroid.R;
 import com.kodholken.passdroid.db.SystemData;
 
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 public class InitializeActivity extends Activity {
     Button okButton;
@@ -59,6 +63,37 @@ public class InitializeActivity extends Activity {
         });
 
         Utils.applySystemBarInsets(this);
+
+        // From Android 13 back events are delivered through callbacks instead
+        // of onBackPressed() (see android:enableOnBackInvokedCallback).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    new OnBackInvokedCallback() {
+                        @Override
+                        public void onBackInvoked() {
+                            handleBack();
+                        }
+                    });
+        }
+    }
+
+    /**
+     * Back handler for Android 12 and earlier. Later versions use the
+     * callback registered in onCreate().
+     */
+    @SuppressLint("GestureBackNavigation")
+    @Override
+    public void onBackPressed() {
+        handleBack();
+    }
+
+    private void handleBack() {
+        // Back exits the application, as on the login screen. Without the
+        // flag MainActivity would find no master key in onResume() and start
+        // this screen again.
+        Session.getInstance().setExitMain(true);
+        finish();
     }
 
     private void handleOK() {

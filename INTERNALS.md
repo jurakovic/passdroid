@@ -152,12 +152,12 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
    key (see [Master key](#master-key)), and starts `PasswordListActivity`. It
    stays below the list, so a logout returns to it.
 
-Back handling: back on the login screen exits the app. It sets
-`Session.setExitMain(true)` so that `MainActivity` finishes itself instead of
-starting the login again. Back on the password list closes the search, or
-else asks whether to log out. On Android 13 and later back is handled with
-an `OnBackInvokedCallback`, since Android 16 doesn't deliver
-`onBackPressed()` to apps that target it.
+Back handling: back on the login screen and on the welcome screen exits the
+app. It sets `Session.setExitMain(true)` so that `MainActivity` finishes
+itself instead of starting that screen again. Back on the password list
+closes the search, or else asks whether to log out. On Android 13 and later
+back is handled with an `OnBackInvokedCallback`, since Android 16 doesn't
+deliver `onBackPressed()` to apps that target it.
 
 ## Session and automatic logout
 
@@ -1202,6 +1202,9 @@ What the unit tests don't cover, worth checking on a device before a
 release:
 
 - Log in, turn the screen off and on, log in again: no second logout.
+- On a fresh install, Back on the welcome screen leaves the app, and
+  opening it again shows the welcome screen. On the login screen Back also
+  leaves the app.
 - On the login screen, a screenshot is refused or black, and the recent
   apps show a blank preview. Logging in with the password and with the
   fingerprint still works.
