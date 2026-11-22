@@ -8,8 +8,9 @@ plugins {
 //
 // or as the environment variables ORG_GRADLE_PROJECT_versionCode and
 // ORG_GRADLE_PROJECT_versionName. The publish workflow sets them, see
-// publish.sh. Local builds default to versionCode 1 and versionName
-// 0.0.0-dev.
+// publish.sh. The Build workflow passes its run number as the version code,
+// so that each of its debug builds updates the one before, see build.yml.
+// Local builds default to versionCode 1 and versionName 0.0.0-dev.
 //
 // The version name is only shown to the user and written to exports for
 // information. The app does not compare it: the database and exports have
@@ -49,7 +50,27 @@ android {
         versionName = appVersionName
     }
 
+    signingConfigs {
+        debug {
+            // Debug builds are signed with the keystore given as the Gradle
+            // property debugKeystore, if there is one, else with the key the
+            // Android Gradle plugin generates. The Build workflow sets it
+            // from a secret, so that its builds can update each other. The
+            // key alias and the passwords stay the standard debug ones
+            // (androiddebugkey, android).
+            def debugKeystore = providers.gradleProperty('debugKeystore')
+            if (debugKeystore.isPresent()) {
+                storeFile = file(debugKeystore.get())
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Debug builds install next to the release app, as an app of
+            // their own with their own data, named in src/debug/res
+            applicationIdSuffix = '.debug'
+        }
         release {
             // Removes the unused code of the libraries, mostly CameraX and
             // the Kotlin runtime it uses. This makes the APK about 4 MB

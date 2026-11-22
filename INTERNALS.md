@@ -50,7 +50,9 @@ releasing.
 - Java package and namespace `com.kodholken.passdroid`, the package of the
   original Passdroid. The application id is `com.jurakovic.passdroid`: the
   original id is signed by its author, so an app with it can't be installed
-  next to the original or published under it.
+  next to the original or published under it. Debug builds have
+  `com.jurakovic.passdroid.debug` and the name "Passdroid++ Debug", so they
+  install next to the release app, with their own data.
 - The only permissions are `CAMERA` and `USE_BIOMETRIC`, and the app's own
   signature permission
   `<application id>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which
@@ -85,6 +87,10 @@ Point `ANDROID_HOME` or `sdk.dir` in `local.properties` to the SDK.
     own format version, see [Database](#database) and [XML](#xml).
   - `versionCode` must be a whole number from 1 to 2,100,000,000 (the Google
     Play limit). Android doesn't install an update with a lower one.
+- **Debug builds are signed with the keystore in `-PdebugKeystore=<path>`**
+  (or `ORG_GRADLE_PROJECT_debugKeystore`), if given, else with the key the
+  Android Gradle plugin generates. A relative path is relative to `app/`.
+  See [Debug signing key](#debug-signing-key).
 - **Release builds are shrunk with R8** (`minifyEnabled`,
   `shrinkResources`) but not obfuscated (`-dontobfuscate` in
   `proguard-rules.txt`), so stack traces stay readable. Without shrinking,
@@ -100,10 +106,15 @@ uploads the debug APK, not zipped, as `Passdroid_v<version>_debug.apk`. The
 version is `<next release>-build.<run number>`, e.g. 3.0.1-build.42: the
 next release is computed from the tags as in [Releasing](#releasing)
 (`publish.sh version -p false`), so the checkout fetches them. The version
-code is 1. The release build is there to check that R8 keeps what the app
-needs. The debug APK is signed with a debug key generated for each run, so
-the debug APKs of different runs can't be installed over each other.
-Releases are made with the "Publish" workflow, see [Releasing](#releasing).
+code is the run number, so each CI build updates the one before. Keep the
+file name `build.yml`: renaming it starts the run numbers at 1 again. The
+release build is there to check that R8 keeps what the app needs. The debug
+APK is signed with the keystore in the secret `DEBUG_KEYSTORE_BASE64`, so
+the debug APKs of different runs install over each other, see
+[Debug signing key](#debug-signing-key). Without the secret, e.g. in pull
+requests from forks, it is signed with a key generated for the run, and a
+notice in the run says so. Releases are made with the "Publish" workflow,
+see [Releasing](#releasing).
 
 ## Source layout
 
@@ -1241,13 +1252,13 @@ release:
 - Edit an entry, clear the system name and save: it is refused.
 - In a debug build, open an entry's edit screen and change the password,
   then make the database read-only with
-  `adb shell run-as com.jurakovic.passdroid chmod 400 databases/password.db`.
+  `adb shell run-as com.jurakovic.passdroid.debug chmod 400 databases/password.db`.
   Save: a message says the entry wasn't saved, and the screen keeps the
   change. Delete on the entry screen: its message, and the entry stays. The
   same on the add screen. After `chmod 600` again, Save closes the screen
   and the entry screen shows the change.
 - Damage two entries of a test vault in a debug build: in
-  `adb shell run-as com.jurakovic.passdroid sqlite3 databases/password.db`,
+  `adb shell run-as com.jurakovic.passdroid.debug sqlite3 databases/password.db`,
   replace the fifth character from the end of one entry's `system` and of
   another's `password` with a different one (e.g. `A` with `z`). That
   character is in the last block and fully used, while the low bits of the
@@ -1275,6 +1286,8 @@ release:
   result is shown too and whose settings the next tap uses.
 - The keyboard offers no suggestions learned from notes, and no autofill
   service offers to save the master password.
+- Install a CI debug APK next to the release app, then the APK of a later
+  run over it: both apps keep their data.
 - Install the new APK over the previous release: the entries are there
   after the login. Import an export of the original Passdroid and one of
   the previous release.
@@ -1410,6 +1423,30 @@ Keep it and its password backed up: Android only installs an update that is
 signed with the same key. Locally, `publish.sh package` signs with the
 keystore in `KEYSTORE_FILE`, and reads the passwords from
 `KEYSTORE_PASSWORD` and `KEY_PASSWORD` or asks for them.
+
+### Debug signing key
+
+The Build workflow signs the debug APK with the keystore in the repository
+secret `DEBUG_KEYSTORE_BASE64`, so that a CI build installs over an earlier
+one and keeps its data. Without the secret it uses a key generated for the
+run. To set it up once:
+
+1. Create a keystore with the standard debug alias and passwords, which
+   `app/build.gradle` expects:
+
+   ```
+   keytool -genkeypair -v -keystore passdroid-debug.jks -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+   ```
+
+2. Store the output of `base64 -w0 passdroid-debug.jks` as the secret
+   `DEBUG_KEYSTORE_BASE64`.
+3. Locally, `./gradlew assembleDebug -PdebugKeystore=<path to
+   passdroid-debug.jks>` signs with the same key, so a local build and a CI
+   build install over each other.
+
+Keep the keystore secret even though its passwords are well known: whoever
+has it can build an APK that installs over the debug app and reads its data.
+Use the debug app for test vaults only.
 
 ## Known limitations
 
