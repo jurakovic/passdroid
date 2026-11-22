@@ -646,6 +646,16 @@ one step, so a failure while writing can still leave it empty or partial;
 that message says to export again. The stream is closed before success is
 reported, since some document providers only store the data then.
 
+An unencrypted export first asks for the master password
+(`askMasterPassword()`), in a dialog with its own `FLAG_SECURE` and the
+field of `password_dialog.xml`. `checkMasterPassword()` checks it with
+`MasterKey.unlock()` against the stored record in `Utils.runWithProgress()`,
+as the password change checks the old password, and wipes the derived key
+at once. The right password goes on with the export, a wrong one shows a
+message and asks again. The fingerprint isn't offered. An encrypted export
+doesn't ask: it is encrypted with the database key, so reading it needs the
+master password anyway.
+
 Before the file picker opens, the screen checks the entries with
 `PasswordEntry.canDecrypt()`. If any are damaged (see [Entry
 encryption](#entry-encryption)), a dialog names up to five and asks whether
@@ -840,7 +850,8 @@ Other settings:
   Android 12 or later it doesn't stop a device-to-device transfer, so on
   some devices moving to a new phone can still copy the encrypted database.
 - The text fields of the add and edit screen (`add.xml`), login, setup,
-  password change and import password screens and the search field have
+  password change and import password screens, the export's master password
+  dialog (`password_dialog.xml`) and the search field have
   `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
   `importantForAutofill="noExcludeDescendants"`.
 - The password, 2FA secret, 2FA code and generated password views, and the
@@ -877,6 +888,9 @@ Out of scope, as for any app on Android:
 - someone who has the phone while Passdroid++ is unlocked,
 - malware with root or a kernel exploit, which can read the app's memory or
   record the master password as it is typed.
+
+One action is hardened beyond that all the same, since it takes everything
+out at once: an unencrypted export asks for the master password.
 
 Everything rests on the **master password**: anyone with a copy of the data
 can try passwords offline, as fast as their hardware allows.
@@ -929,8 +943,9 @@ passphrase is out of reach.
   additional data. They are encrypted with the database key, so they need
   the master password that was current at export time, and a modified file
   is not imported.
-- Unencrypted exports are possible, with a warning. After importing one, the
-  app offers to delete it.
+- Unencrypted exports are possible, with a warning. They ask for the master
+  password, so a borrowed unlocked phone can't hand over the whole vault in
+  the clear. After importing one, the app offers to delete it.
 - Exports have a file format version. A newer format is refused, so an older
   app doesn't import a file and leave out what it doesn't know.
 - The settings are included in exports, except fingerprint unlock. Imported
@@ -1033,10 +1048,11 @@ Android 9 and later, off by default.
   in the recent apps. A password field shows each typed character for a
   moment, so a recording of the login screen would give the master password
   away, and the eye buttons of the setup and password change screens show
-  it whole. The 2FA QR code dialog sets it too, since a dialog has its own
-  window.
+  it whole. The 2FA QR code dialog and the master password dialog of an
+  unencrypted export set it too, since a dialog has its own window.
 - On the entry, login, setup, password change, import password and search
-  screens the keyboard is asked not to learn from the text fields
+  screens, and in the master password dialog of an unencrypted export, the
+  keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
   autofill.
 - On Android 14 and later the password, 2FA secret, 2FA code and generated
@@ -1229,6 +1245,13 @@ release:
   apps show a blank preview. Logging in with the password and with the
   fingerprint still works.
 - Export over an existing, longer export file and import it again.
+- Export with "Encrypt the exported file" checked: the file picker opens
+  right away. Unchecked: the master password dialog appears; Cancel stops,
+  a wrong password shows a message and the dialog again, and the right one
+  opens the file picker and the export works. A screenshot of the dialog is
+  refused, and the keyboard offers no suggestions. After the first login of
+  a legacy database (its key upgraded), the right password is still
+  accepted.
 - In a test vault with a damaged entry (see below), export over a longer
   existing file: Cancel in the damaged entries dialog leaves the file as it
   was, and Export anyway writes a file that imports with the intact fields.
