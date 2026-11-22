@@ -17,9 +17,11 @@ import android.widget.TextView;
  *
  * - A view whose own transformation shows the password, e.g. a
  *   textVisiblePassword field. Hidden, it is shown as asterisks.
- * - A textPassword field. It stays one, so the keyboard and accessibility
- *   services still treat it as a password field: hidden, it shows its own
- *   dots, and shown, the text on a single line.
+ * - A textPassword field. Its input type stays, so the keyboard still treats
+ *   it as a password field: hidden, it shows its own dots, and shown, the
+ *   text on a single line. Accessibility services go by the transformation,
+ *   so they see the text while it is shown; mark such fields
+ *   accessibilityDataSensitive.
  * - A view that only holds the value while it is shown, from a Source.
  *
  * For the first two only the displayed text changes, getText() still

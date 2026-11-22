@@ -1060,7 +1060,9 @@ Android 9 and later, off by default.
   change screens, are only visible to accessibility services that are
   accessibility tools, such as screen readers. Those fields stay
   `textPassword` while the eye button shows them, so the keyboard still
-  treats them as password fields and screen readers don't read them out.
+  treats them as password fields and doesn't suggest or learn from them.
+  Accessibility services go by the displayed text, so while a field is
+  shown they see the password, as with the other views here.
 
 #### 2FA
 
