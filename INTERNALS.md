@@ -1481,8 +1481,10 @@ run. To set it up once:
 2. Store the output of `base64 -w0 passdroid-debug.jks` as the secret
    `DEBUG_KEYSTORE_BASE64`.
 3. Locally, `./gradlew assembleDebug -PdebugKeystore=<path to
-   passdroid-debug.jks>` signs with the same key, so a local build and a CI
-   build install over each other.
+   passdroid-debug.jks>` signs with the same key, so a CI build installs
+   over a local one and keeps its data. A local build has version code 1,
+   so to install it over a CI build, give it a higher one with
+   `-PversionCode=`, or install it with `adb install -r -d`.
 
 Keep the keystore secret even though its passwords are well known: whoever
 has it can build an APK that installs over the debug app and reads its data.
