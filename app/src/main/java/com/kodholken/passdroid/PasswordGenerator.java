@@ -33,7 +33,9 @@ import android.preference.PreferenceManager;
  */
 public class PasswordGenerator {
     public static final int MAX_PASSWORD_LENGTH = 99;
-    public static final int DEFAULT_PASSWORD_LENGTH = 16;
+    // 17 letters and digits are 101 bits, rated excellent, see
+    // PasswordStrength
+    public static final int DEFAULT_PASSWORD_LENGTH = 17;
 
     private static final String LENGTH_PREFERENCE = "passwordLength";
     private static final String CHARSET_PREFERENCE = "passwordCharset";

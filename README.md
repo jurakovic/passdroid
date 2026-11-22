@@ -147,7 +147,7 @@ on in Settings.
   password it didn't generate.
 - Letters and digits, letters only, digits only, or letters, digits and
   symbols, up to 99 characters. The length and the characters are
-  remembered. The default is 16 letters and digits.
+  remembered. The default is 17 letters and digits.
 - The strength is shown in bits, rated from "very weak" to "excellent".
 
 ### Import and export
@@ -258,7 +258,7 @@ of Passdroid++.
   amounts of text.
 - Uses the standard crypto provider instead of Android's deprecated
   BouncyCastle one. The encryption is the same.
-- Generated passwords are 16 characters long by default instead of 10.
+- Generated passwords are 17 characters long by default instead of 10.
 
 ### New features
 

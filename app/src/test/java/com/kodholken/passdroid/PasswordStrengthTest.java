@@ -11,6 +11,7 @@ public class PasswordStrengthTest {
         assertEquals(59, PasswordStrength.getBits(10, 62));
         assertEquals(83, PasswordStrength.getBits(14, 62));
         assertEquals(95, PasswordStrength.getBits(16, 62));
+        assertEquals(101, PasswordStrength.getBits(17, 62));
         // Digits only
         assertEquals(53, PasswordStrength.getBits(16, 10));
         // Letters, digits and the 17 symbols
@@ -32,5 +33,9 @@ public class PasswordStrengthTest {
         assertEquals(PasswordStrength.GOOD, PasswordStrength.getRating(99));
         assertEquals(PasswordStrength.EXCELLENT, PasswordStrength.getRating(100));
         assertEquals(PasswordStrength.EXCELLENT, PasswordStrength.getRating(600));
+
+        // The generator's default, letters and digits, is excellent
+        assertEquals(PasswordStrength.EXCELLENT, PasswordStrength.getRating(
+                PasswordStrength.getBits(PasswordGenerator.DEFAULT_PASSWORD_LENGTH, 62)));
     }
 }
