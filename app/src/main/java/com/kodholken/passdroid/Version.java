@@ -58,22 +58,6 @@ public class Version implements Comparable<Version> {
         return new Version(intMajor, intMinor);
     }
 
-    public int getMajor() {
-        return major;
-    }
-
-    public void setMajor(int major) {
-        this.major = major;
-    }
-
-    public int getMinor() {
-        return minor;
-    }
-
-    public void setMinor(int minor) {
-        this.minor = minor;
-    }
-
     /**
      * Implementation of Comparable<Version>.compareTo()
      */
@@ -97,6 +81,11 @@ public class Version implements Comparable<Version> {
         }
 
         return (compareTo((Version) object) == 0);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * major + minor;
     }
 
     @Override

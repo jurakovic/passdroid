@@ -19,31 +19,24 @@
 
 package com.kodholken.passdroid;
 
-import com.kodholken.passdroid.db.PasswordData;
-
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager.LayoutParams;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.window.OnBackInvokedCallback;
@@ -53,8 +46,7 @@ import android.window.OnBackInvokedDispatcher;
  * Activity that displays the user passwords.
  */
 public class PasswordListActivity extends TimeoutListActivity
-implements IdleLogoutCallback,
-PasswordModelListener {
+implements PasswordModelListener {
     // True if the user logged in with a master password that is shorter than
     // is required for new ones, see MasterKey.MIN_PASSWORD_LENGTH
     public static final String EXTRA_SHORT_PASSWORD = "short_password";
@@ -62,23 +54,15 @@ PasswordModelListener {
     private static final int OPTION_MENU_ADD      = 1;
     private static final int OPTION_MENU_SETTINGS = 3;
     private static final int OPTION_MENU_ABOUT    = 4;
-    private static final int OPTION_MENU_DROPDB   = 5;
     private static final int OPTION_MENU_LOGOUT   = 6;
     private static final int OPTION_MENU_GENERATE = 7;
     private static final int OPTION_MENU_SEARCH   = 8;
     private static final int OPTION_MENU_TOTP     = 9;
 
-    // Used to keep the activity from reloading the settings on resumes where
-    // the settings has not changed.
-    private boolean loadSettingsOnResume;
     private ListView list;
     private int listPosition;
 
     private TextView     emptyListHelp;
-    private LinearLayout countdownLayout;
-    private TextView     countdownTextView;
-    private int          countdownValue;
-    private Handler      countdownHandler;
     private TextView     passwordCountTextView;
 
     private boolean passwordCounterIsVisible = false;
@@ -92,8 +76,6 @@ PasswordModelListener {
     MenuItem searchMenuItem;
 
     public PasswordListActivity() {
-        loadSettingsOnResume = false;
-        countdownLayout = null;
         listPosition = 0;
     }
 
@@ -111,8 +93,6 @@ PasswordModelListener {
         list = (ListView) findViewById(android.R.id.list);
         initLongClickListener();
 
-        // Make sure settings are loaded on first run.
-        loadSettingsOnResume = true;
         // Make sure the password entries is loaded from the database
         Session.getInstance().setNeedReload(true);
 
@@ -126,25 +106,6 @@ PasswordModelListener {
         
         passwordCountTextView = (TextView) findViewById(R.id.password_count);
         getListView().setTextFilterEnabled(true);
-
-        countdownLayout = new LinearLayout(this);
-        countdownLayout.setGravity(Gravity.CENTER_VERTICAL);
-        countdownLayout.setOrientation(LinearLayout.VERTICAL);
-        countdownLayout.setVisibility(View.INVISIBLE);
-
-        countdownTextView = new TextView(this);
-        countdownTextView.setText("10");
-        countdownTextView.setShadowLayer(5.0f, 5.0f, 5.0f, 0xff606060);
-        countdownTextView.setTextSize(128);
-        countdownTextView.setGravity(Gravity.CENTER);
-
-        countdownLayout.addView(countdownTextView);
-
-        LayoutParams params = new LayoutParams(LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT);
-        getWindow().addContentView(countdownLayout, params);
-
-        countdownHandler = new Handler();
 
         PasswordModel.getInstance(this).addListener(this);
 
@@ -177,11 +138,6 @@ PasswordModelListener {
             list.setSelection(listPosition);
         } else {
             Utils.debug("Skipping loadPassword()");
-        }
-
-        if (loadSettingsOnResume) {
-            loadSettingsOnResume = false;
-            loadSettings();
         }
     }
     
@@ -308,10 +264,6 @@ PasswordModelListener {
                 getString(R.string.options_logout))
         .setIcon(R.drawable.ic_menu_close_clear_cancel);
 
-        if (Constants.DEBUG) {
-            menu.add(Menu.NONE,OPTION_MENU_DROPDB, Menu.NONE, "Drop DB");
-        }
-
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -326,19 +278,11 @@ PasswordModelListener {
             break;
         case OPTION_MENU_SETTINGS:
             startActivity(new Intent(this, SettingsActivity.class));
-            loadSettingsOnResume = true;
             listPosition = list.getFirstVisiblePosition();
             break;
         case OPTION_MENU_ADD:
-            loadSettingsOnResume = true;
             startActivity(new Intent(this, AddActivity.class));
             listPosition = list.getFirstVisiblePosition();
-            break;
-        case OPTION_MENU_DROPDB:
-            PasswordData passwordData = new PasswordData(this);
-            SQLiteDatabase db = passwordData.getWritableDatabase();
-            passwordData.onUpgrade(db, 0, 0);
-            db.close();
             break;
         case OPTION_MENU_TOTP:
             startActivity(new Intent(this, TotpListActivity.class));
@@ -373,11 +317,6 @@ PasswordModelListener {
 
         i.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
         startActivity(i);
-    }
-
-    @Override
-    public void onUserInteraction() {
-        super.onUserInteraction();
     }
 
     /**
@@ -508,36 +447,6 @@ PasswordModelListener {
         String quantifier = count == 1 ? "" : "s";
 
         passwordCountTextView.setText(count + " password" + quantifier);
-    }
-
-    private void loadSettings() {}
-
-    @Override
-    public void idleLogoutCallback() {
-        finish();
-    }
-
-    @Override
-    public void idleLogoutCountdown(int left) {
-        Utils.debug("Idle logout countdown: " + left);
-        countdownValue = left;
-        countdownHandler.post(new Runnable() {
-            public void run() {
-                Utils.debug("Running in handler");
-                countdownTextView.setText(Integer.toString(countdownValue));
-                countdownLayout.setVisibility(View.VISIBLE);
-            }
-        });
-    }
-
-    @Override
-    public void idleLogoutCancel() {
-        countdownHandler.post(new Runnable() {
-            public void run() {
-                Utils.debug("Cancelling idle logout");
-                countdownLayout.setVisibility(View.INVISIBLE);
-            }
-        });
     }
 
     @Override

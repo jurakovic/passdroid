@@ -258,8 +258,9 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
   rejects, it falls back on a pure Java implementation of RFC 8018
   (`pbkdf2HmacSha256()`), tested against the RFC 7914 test vectors. Both
   encode the password as UTF-8.
-- Iteration counts read from files are capped at `MAX_ITERATIONS`
-  (10,000,000).
+- Iteration counts read from files and from the database's record are
+  capped at `MAX_ITERATIONS` (10,000,000); a record with more, or with fewer
+  than 1, doesn't unlock.
 - `MIN_PASSWORD_LENGTH` (12) is counted in code points. It only applies to
   new master passwords; a login with a shorter one passes
   `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder. On the setup
@@ -276,7 +277,8 @@ The original Passdroid derives the key without a salt or iterations:
   (`Crypto.hmacFromPassword()`).
 - The record is the base64 of 32 bytes that, XORed with that HMAC, give 28
   random bytes followed by their CRC32 (`Crypto.verifyPassword()`). So a
-  guess costs one HMAC and a CRC.
+  guess costs one HMAC and a CRC. A record of another length fails the
+  login.
 - `MasterKey.isLegacy()` recognizes it by the missing `pbkdf2-sha256$`
   prefix.
 
@@ -876,8 +878,9 @@ can try passwords offline, as fast as their hardware allows.
   SHA-256 hash of the derived key. It is compared in constant time.
 - The platform PBKDF2 is used where available, with a pure Java fallback for
   Android 7.0–7.1 and empty passwords.
-- Iteration counts read from files are capped at 10,000,000, so a crafted
-  file can't make the derivation run (almost) forever.
+- Iteration counts read from files and from the key record are capped at
+  10,000,000, so a crafted file or a damaged record can't make the
+  derivation run (almost) forever.
 - **New master passwords need at least 12 characters.** An existing shorter
   password still works, but logging in with it shows a reminder with a
   "Change" button. The setup and change screens show the minimum below the
@@ -1172,7 +1175,8 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | Class | Covers |
 |---|---|
 | `FileExportImportTest` | Cleartext, `sq2` and `sqt` round trips with awkward values (`]]>`, `<!DOCTYPE` in values, Unicode); cleartext in UTF-8; an entry without a system refused, a field that didn't decrypt left out; invalid characters; DTD rejection, also behind a comment and in UTF-16; files without some fields; settings; wrong key, modified file, unreasonable iteration count; a wrong key told apart from a file that can't be imported; format versions of older files, files of each older format, newer and invalid versions |
-| `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, malformed records, minimum length |
+| `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, damaged legacy records, malformed records, iteration counts out of range, minimum length |
+| `Base64Test` | Round trips, empty and truncated input rejected |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields; damaged fields (`canDecrypt()`, `isDecrypted()`), `isEncrypted()` with and without a key, the list order with damaged entries and no username, the same order in a Turkish locale |
 | `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
@@ -1181,6 +1185,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `SessionTest` | Both kinds of logout wipe the key |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
+| `VersionTest` | Equal versions have equal hash codes |
 | `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored; every exported setting in `ORDER`, with a title and, for a list, labels |
 | `StringResourcesTest` | No line in `res/values*` ends with a backslash, see [Adding a string](#adding-a-string) |
 
@@ -1405,19 +1410,8 @@ keystore in `KEYSTORE_FILE`, and reads the passwords from
 
 ## Known limitations
 
-Code that does nothing:
-
-- `IdleLogoutCallback` and the countdown overlay in `PasswordListActivity`
-  are never triggered.
-- `TimeoutReceiver` is empty and not in the manifest.
-  `Crypto.verifyAes256Implementation()`, `Utils.logoutConfirmDialog()` and
-  `Utils.unescapeXMLChars()` are never called.
-- `Constants.DEBUG` only adds a "Drop DB" menu item, which does nothing.
-  `Constants.CLEARDB` is not used. `Utils.debug()` logs whatever
-  `Constants.DEBUG` is; nothing secret is logged.
-
-Limitations:
-
+- `Utils.debug()` logs in every build, release builds too; nothing secret is
+  logged.
 - The four `Timeout*Activity` base classes are copies of each other, and
   each screen that starts an external activity repeats the timeout check in
   `onActivityResult()`.

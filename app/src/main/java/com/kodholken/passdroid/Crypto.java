@@ -19,6 +19,7 @@
 
 package com.kodholken.passdroid;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.zip.CRC32;
 
@@ -72,6 +73,11 @@ public class Crypto {
             return false;
         }
 
+        // A damaged record fails the login instead of throwing
+        if (xor.length != 32) {
+            return false;
+        }
+
         byte [] hmac = hmacFromPassword(password);
         byte [] key = new byte[xor.length];
 
@@ -89,65 +95,6 @@ public class Crypto {
                 (key[31] == (byte) (crcValue & 0xff)));
     }
 
-    /**
-     * Method to verify that the AES implementation is indeed using the 256 bit
-     * key version when given a 256 bit key. The reference key and cipher text
-     * is taken from the AES test vectors available at
-     * http://csrc.nist.gov/groups/STM/cavp/documents/aes/KAT_AES.zip
-     * (last one in CBCVarKey256.rsp):
-     * 
-     * COUNT = 255
-     * KEY = ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-     * IV = 00000000000000000000000000000000
-     * CIPHERTEXT = 4bf85f1b5d54adbc307b0a048389adcb
-     * PLAINTEXT = 00000000000000000000000000000000 
-     * 
-     * @return true if 256 bit AES is implemented. Else false.
-     */
-    public static boolean verifyAes256Implementation() {
-        final byte [] key = {
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-                (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff };
-
-        final byte [] cipher = {
-                (byte) 0x4b, (byte) 0xf8, (byte) 0x5f, (byte) 0x1b,
-                (byte) 0x5d, (byte) 0x54, (byte) 0xad, (byte) 0xbc,
-                (byte) 0x30, (byte) 0x7b, (byte) 0x0a, (byte) 0x04,
-                (byte) 0x83, (byte) 0x89, (byte) 0xad, (byte) 0xcb };
-        
-        final byte [] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-        final byte [] plain = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-        try {
-            SecretKeySpec skeySpec = new SecretKeySpec(key, "AES");
-            Cipher c = Cipher.getInstance("AES/CBC/NoPadding");
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
-            c.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
-            byte[] res = c.doFinal(plain);
-
-            if (res.length != cipher.length) {
-                return false;
-            }
-
-            for (int i = 0; i < res.length; i++) {
-                if (res[i] != cipher[i]) {
-                    return false;
-                }
-            }
-        } catch (Exception e) {
-            return false;
-        }
-
-        return true;
-    }
-    
     /**
      * Encrypt a string using AES in CBC mode. The result is PKCS7 padded.
      * 
@@ -170,7 +117,7 @@ public class Crypto {
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
             rnd.nextBytes(salt);
             cipher.update(salt);
-            encrypted = cipher.doFinal(clear.getBytes());
+            encrypted = cipher.doFinal(clear.getBytes(StandardCharsets.UTF_8));
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
@@ -179,24 +126,6 @@ public class Crypto {
         return encrypted;
     }
     
-    /**
-     * Encrypt and base64 encode a string with AES in CBC mode.
-     * @see #encryptAesCbc(byte[], String).
-     * 
-     * @param key   AES key.
-     * @param clear Clear text to encrypt.
-     * @return Base64 encoded enrypted string. null on error.
-     */
-    public static String encryptAesCbcAsBase64(byte [] key, String clear) {
-        byte[] encrypted = encryptAesCbc(key, clear);
-        
-        if (encrypted == null) {
-            return null;
-        }
-
-        return Base64.encode(encrypted);
-    }
-
     /**
      * Decrypt PKCS7 padded data using AES in CBC mode.
      * 
@@ -235,24 +164,6 @@ public class Crypto {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
-        return null;
-    }
-
-    /**
-     * Decrypt PKCS7 encoded data using AES in CBC mode and convert the data
-     * to an UTF8 encoded string. @see decryptAesCbc(byte [], encrypted).
-     * 
-     * @param key  AES key.
-     * @param encrypted 
-     * @return
-     */
-    public static String decryptAesCbcToUtf8(byte[] key, String encrypted) {
-        
-        try {
-            byte[] decrypted = decryptAesCbc(key, encrypted);
-            return new String(decrypted, 2, decrypted.length - 2, "UTF8");
-        } catch(Exception ex) {}
 
         return null;
     }

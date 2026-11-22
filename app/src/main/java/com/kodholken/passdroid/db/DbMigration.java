@@ -171,7 +171,7 @@ public class DbMigration {
             ContentValues values = new ContentValues();
             while (cur.moveToNext()) {
                 password = new PasswordEntry();
-                password.setId(cur.getInt(0));
+                password.setId(cur.getLong(0));
                 password.setEncSystem(cur.getString(1));
                 password.setEncUsername(cur.getString(2));
                 password.setEncPassword(cur.getString(3));
@@ -212,7 +212,7 @@ public class DbMigration {
             ContentValues values = new ContentValues();
             while (cur.moveToNext()) {
                 password = new PasswordEntry();
-                password.setId(cur.getInt(0));
+                password.setId(cur.getLong(0));
                 password.setEncSystem(cur.getString(1));
                 password.setEncUsername(cur.getString(2));
                 password.setEncPassword(cur.getString(3));

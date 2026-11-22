@@ -69,11 +69,6 @@ public class PasswordModel {
         return passwords;
     }
 
-    public PasswordEntry getAt(int index) {
-        load();
-        return passwords[index];
-    }
-
     /**
      * @return the entry with an id, or null if there is none, e.g. because
      *         the user has been logged out.

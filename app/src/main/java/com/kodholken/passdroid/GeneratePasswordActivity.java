@@ -105,7 +105,7 @@ public class GeneratePasswordActivity extends TimeoutActivity {
             return ;
         }
 
-        int layoutWidth = vg.getWidth() - vg.getPaddingLeft() - vg.getPaddingLeft();
+        int layoutWidth = vg.getWidth() - vg.getPaddingLeft() - vg.getPaddingRight();
 
         if (layoutWidth <= 0) {
             return;

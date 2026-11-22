@@ -35,7 +35,6 @@ public class AboutActivity extends TimeoutActivity {
         TextView title = (TextView) findViewById(R.id.about_title);
         title.setText(getString(R.string.app_name) + " " + Utils.getVersion(this));
 
-        getString(R.string.about_text);
         ((TextView) findViewById(R.id.about_content)).setText(
                 getString(R.string.about_text).replace("${VERSION}",
                         Utils.getVersion(this)));

@@ -36,14 +36,10 @@ public class ImportExportActivity extends TimeoutPreferenceActivity implements O
                 new Intent(this, FileImportActivity.class));
 
         getPreferenceScreen().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
-        updateSummaries();
     }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        updateSummaries();
         Session.getInstance().setNeedReload(true);
     }
-
-    public void updateSummaries() {}
 }
