@@ -3,12 +3,18 @@ name: Build
 # Runs the tests and lint and builds the APKs for every push and pull request.
 # The version is the next release computed from the tags, see publish.sh,
 # with the run number: <next release>-build.<run number>, e.g. 3.0.1-build.42.
-# The version code is 1. Releases are made with the Publish workflow, see
-# publish.yml.
+# The version code is the run number, so that each build updates the one
+# before. Keep the name of this file: GitHub counts the run numbers per
+# workflow file, and a renamed one starts at 1 again. Releases are made with
+# the Publish workflow, see publish.yml.
 #
 # The debug APK is uploaded for testing, as Passdroid_v<version>_debug.apk,
-# not zipped. It is signed with a debug key that is generated for each run,
-# so it can not update the APK of another run.
+# not zipped. It installs next to the release app, see app/build.gradle. It
+# is signed with the debug key in the secret DEBUG_KEYSTORE_BASE64, so that
+# it can update the APK of an earlier run, see "Debug signing key" in
+# INTERNALS.md. Without the secret, e.g. in pull requests from forks, it is
+# signed with a key generated for the run, and can not update the APK of
+# another run.
 on:
   push:
     branches: ['**']
@@ -55,10 +61,21 @@ jobs:
           yes | "$sdkmanager" --licenses > /dev/null
           "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0"
 
+      - name: Debug signing key
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+            echo "ORG_GRADLE_PROJECT_debugKeystore=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::notice::The secret DEBUG_KEYSTORE_BASE64 is not set: the debug APK is signed with a key generated for this run, and can not update the APK of another run"
+          fi
+
       # The release build checks that shrinking the code keeps what the app
       # needs
       - name: Build and test
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease -PversionName="$VERSION"
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease -PversionName="$VERSION" -PversionCode="$GITHUB_RUN_NUMBER"
 
       - name: Summary
         run: echo "### Passdroid++ $VERSION" >> "$GITHUB_STEP_SUMMARY"
