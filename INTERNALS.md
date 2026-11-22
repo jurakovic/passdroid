@@ -749,7 +749,7 @@ is the system, followed by the username (or the email) in parentheses if
 - `PasswordGenerator` picks every character uniformly with `SecureRandom`
   from one of four character sets: letters and digits (62), letters (52),
   digits (10), or letters, digits and `!#@%&/()?+-_:;*=$` (79), into a
-  `char[]` that is wiped afterwards. The length is 1 to 99, 16 by default.
+  `char[]` that is wiped afterwards. The length is 1 to 99, 17 by default.
   `GeneratePasswordActivity` stores the length and the set in the
   preferences `passwordLength` and `passwordCharset` when it generates a
   password.
@@ -785,7 +785,7 @@ Settings are default `SharedPreferences`, defined in `res/xml/settings.xml`:
 | `font_size` | `normal` (`small`, `large`) | `FontSetting` | yes |
 | `date_format` | `device` (`iso`) | `DateField.format()` | yes |
 | `biometric_unlock` | not persisted | `SettingsActivity` | no |
-| `passwordLength`, `passwordCharset` | 16, 0 | `PasswordGenerator`: the generator and the generate button of the add and edit screens | no |
+| `passwordLength`, `passwordCharset` | 17, 0 | `PasswordGenerator`: the generator and the generate button of the add and edit screens | no |
 
 `SettingsBackup.get()` collects the exported settings (after applying the
 defaults, so unchanged settings are included too). `SettingsBackup.apply()`
@@ -1049,8 +1049,8 @@ Android 9 and later, off by default.
 #### Password generator
 
 - `SecureRandom`, every character chosen uniformly.
-- Default **16 characters** of letters and digits, about 95 bits. The length
-  and the characters chosen last are remembered.
+- Default **17 characters** of letters and digits, about 101 bits, rated
+  excellent. The length and the characters chosen last are remembered.
 - Strength meter: bits = length × log₂(characters), rated very weak below
   40, weak from 40, fair from 65, good from 75, excellent from 100 bits. The
   bar is full at 100. About 80 bits can't be found by trying, even if a
@@ -1139,8 +1139,6 @@ Not done, in rough order of value:
    and field name as associated data, and Argon2id instead of PBKDF2, in one
    migration at login. The riskiest kind of change, since it rewrites the
    whole vault. Only with device testing and a fresh export at hand.
-4. Optionally a default generator length of 17, which rates excellent
-   instead of good.
 
 Limitations that are not about security are listed in
 [Known limitations](#known-limitations).
