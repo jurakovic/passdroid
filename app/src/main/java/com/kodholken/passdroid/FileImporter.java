@@ -235,8 +235,6 @@ public class FileImporter {
     }
 
     private void parseImportFile(String version, Node root) throws FileImporterException {
-        ImportFileParser parser = null;
-
         int formatVersion = getFormatVersion(version);
         if (formatVersion > FileExporter.FORMAT_VERSION) {
             throw new FileImporterException("Import file format (" +
@@ -244,8 +242,7 @@ public class FileImporter {
                     FileExporter.FORMAT_VERSION + "). Update the app to import it.");
         }
 
-        parser = new ImportFileParser_v_1_0();		
-        parser.parse(root);
+        new ImportFileParser_v_1_0().parse(root);
     }
 
     /**
@@ -298,14 +295,7 @@ public class FileImporter {
         return settings;
     }
 
-    private interface ImportFileParser {
-        void parse(Node root);
-    }
-
-    private class ImportFileParser_v_1_0 implements ImportFileParser {
-        public ImportFileParser_v_1_0() {}
-
-        @Override
+    private class ImportFileParser_v_1_0 {
         public void parse(Node root) {
             ArrayList<PasswordEntry> entries = new ArrayList<PasswordEntry>();
 

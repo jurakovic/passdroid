@@ -173,10 +173,6 @@ public class Session {
         
         return --resumes;
     }
-    
-    public int getResumes() {
-        return resumes;
-    }
 
     public static void setTimeoutTimer(Context context) {
         Session session = getInstance();

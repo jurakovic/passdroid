@@ -131,29 +131,4 @@ public class Base64 {
 
         return result;
     }
-
-    public static void main(String [] args) {
-        try {
-            System.out.println("Test: " + Base64.encode(args[0].getBytes()));
-            System.out.println("2: " + Base64.decode(Base64.encode(args[0].getBytes())));
-            byte [] res = Base64.decode(Base64.encode(args[0].getBytes()));
-            String str = new String(res, 0, res.length, "UTF8");
-            System.out.println("UTF8: " + str);
-            for (int i = 0; i < res.length; i++) {
-                System.out.println(res[i]);
-            }
-
-            byte t [] = new byte[2];
-            t[0] = -128;
-            t[1] = -23;
-
-            byte u [] = Base64.decode(Base64.encode(t));
-
-            for (int i = 0; i < u.length; i++) {
-                System.out.println(u[i]);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
 }

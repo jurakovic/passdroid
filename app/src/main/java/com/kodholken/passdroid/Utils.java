@@ -64,9 +64,6 @@ public class Utils {
         context.startActivity(i);
     }
 
-    public static void logoutConfirmDialog(Context context) {
-    }
-
     /**
      * Register a broadcast receiver that only receives broadcasts from this
      * application and the system, on every Android version. Since Android 13
@@ -211,10 +208,6 @@ public class Utils {
         Log.e("Passdroid", message);
     }
 
-    public static void notice(String message) {
-        Log.i("Passdroid", message);
-    }
-
     public static String getVersion(Context context) throws RuntimeException {
         try {
             return context.getPackageManager()
@@ -269,13 +262,5 @@ public class Utils {
         .replaceAll("\"", "&quot;")
         .replaceAll("<",  "&lt;")
         .replaceAll(">",  "&gt;");
-    }
-
-    public static String unescapeXMLChars(String s) {
-        return s.replaceAll("&amp;",  "&")
-        .replaceAll("&apos;", "'")
-        .replaceAll("&quot;", "\"")
-        .replaceAll("&lt;",   "<")
-        .replaceAll("&gt;",   ">");
     }
 }

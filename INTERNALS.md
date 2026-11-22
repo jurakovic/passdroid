@@ -1405,19 +1405,8 @@ keystore in `KEYSTORE_FILE`, and reads the passwords from
 
 ## Known limitations
 
-Code that does nothing:
-
-- `IdleLogoutCallback` and the countdown overlay in `PasswordListActivity`
-  are never triggered.
-- `TimeoutReceiver` is empty and not in the manifest.
-  `Crypto.verifyAes256Implementation()`, `Utils.logoutConfirmDialog()` and
-  `Utils.unescapeXMLChars()` are never called.
-- `Constants.DEBUG` only adds a "Drop DB" menu item, which does nothing.
-  `Constants.CLEARDB` is not used. `Utils.debug()` logs whatever
-  `Constants.DEBUG` is; nothing secret is logged.
-
-Limitations:
-
+- `Utils.debug()` logs in every build, release builds too; nothing secret is
+  logged.
 - The four `Timeout*Activity` base classes are copies of each other, and
   each screen that starts an external activity repeats the timeout check in
   `onActivityResult()`.

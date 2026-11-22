@@ -45,7 +45,6 @@ public class SettingsActivity extends TimeoutPreferenceActivity
         addPreferencesFromResource(R.xml.settings);
 
         getPreferenceScreen().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
-        updateSummaries();
 
         findPreference("change_password").setIntent(
                 new Intent(this, ChangePasswordActivity.class));
@@ -138,11 +137,8 @@ public class SettingsActivity extends TimeoutPreferenceActivity
             return;
         }
 
-        updateSummaries();
         if (ThemeSetting.PREFERENCE.equals(key)) {
             recreate();
         }
     }
-
-    public void updateSummaries() {}
 }
