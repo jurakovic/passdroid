@@ -102,8 +102,10 @@ public class Utils {
     }
 
     /**
-     * Copy a password to the clipboard. The clip is flagged as sensitive so
-     * that the clipboard preview (Android 13 and later) does not show it.
+     * Copy a secret, e.g. a password, 2FA code or note, to the clipboard. The
+     * clip is flagged as sensitive so that the clipboard preview (Android 13
+     * and later) does not show it, and it is cleared later, see
+     * ClipboardClearReceiver.
      */
     public static void copyPasswordToClipboard(Context context, String password) {
         // E.g. it could not be decrypted after a logout
