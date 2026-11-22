@@ -136,6 +136,11 @@ longer password made of a few random words is easy to remember and hard to guess
 <!-- The names of the first damaged entries, and how many are not named -->
 <string name="export_incomplete_more">%1$s and %2$d more</string>
 <string name="export_anyway">Export anyway</string>
+<!-- Asked before an unencrypted export -->
+<string name="export_password_title">Master password</string>
+<string name="export_password_message">Enter your master password to export the passwords unencrypted.</string>
+<string name="export_password_wrong">The master password entered is incorrect.</string>
+<string name="checking">Checking…</string>
 <!-- Added to the message of a successful export -->
 <plurals name="export_incomplete_done">
     <item quantity="one">%d entry was exported incomplete.</item>

@@ -36,8 +36,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 
 public class FileExportActivity extends SherlockTimeoutActivity {
     private static final String EXPORT_FILE_NAME = "passdroid_db.xml";
@@ -51,6 +53,8 @@ public class FileExportActivity extends SherlockTimeoutActivity {
     private CheckBox encryptFileCheckbox;
     // Entries of the last export with a field that couldn't be decrypted
     private int incomplete;
+    // The master password is being checked
+    private boolean checking = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,11 +74,101 @@ public class FileExportActivity extends SherlockTimeoutActivity {
         exportButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                confirmDamaged();
+                if (encryptFileCheckbox.isChecked()) {
+                    confirmDamaged();
+                } else {
+                    askMasterPassword();
+                }
             }
         });
 
         encryptFileCheckbox = (CheckBox) findViewById(R.id.encrypt_export);
+    }
+
+    /**
+     * Ask for the master password before an unencrypted export, the whole
+     * vault in the clear, so that whoever holds the unlocked app can't take
+     * it out without knowing the password. An encrypted export is encrypted
+     * with the vault key, so it still needs the password to be read. The
+     * fingerprint isn't offered, since it doesn't prove the password is
+     * known.
+     */
+    private void askMasterPassword() {
+        View view = View.inflate(this, R.layout.password_dialog, null);
+        final EditText field = (EditText) view.findViewById(R.id.dialog_password);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle(R.string.export_password_title)
+            .setMessage(R.string.export_password_message)
+            .setView(view)
+            .setPositiveButton(R.string.export, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    checkMasterPassword(field.getText().toString());
+                }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .create();
+        // A dialog has its own window, without the FLAG_SECURE of the
+        // activity that keeps it out of screenshots
+        dialog.getWindow().setFlags(LayoutParams.FLAG_SECURE, LayoutParams.FLAG_SECURE);
+        dialog.getWindow().setSoftInputMode(LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        dialog.show();
+        field.requestFocus();
+    }
+
+    /**
+     * Check the master password against the stored record, as the password
+     * change does with the old one, in the background since it is slow. The
+     * right one goes on with the export, a wrong one asks again.
+     */
+    private void checkMasterPassword(final String password) {
+        if (checking) {
+            return;
+        }
+
+        final String record = new SystemData(this).getKey();
+        final boolean [] correct = new boolean[1];
+
+        checking = true;
+        Utils.runWithProgress(this, getString(R.string.checking), new Runnable() {
+            @Override
+            public void run() {
+                MasterKey key = MasterKey.unlock(password, record);
+                if (key != null) {
+                    // Only the check is needed, the session has the key
+                    Arrays.fill(key.getKey(), (byte) 0);
+                    correct[0] = true;
+                }
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                checking = false;
+                if (!Session.getInstance().isLoggedIn()) {
+                    finish();
+                    return;
+                }
+
+                if (correct[0]) {
+                    confirmDamaged();
+                } else {
+                    new AlertDialog.Builder(FileExportActivity.this)
+                        .setTitle(R.string.export_password_title)
+                        .setMessage(R.string.export_password_wrong)
+                        .setPositiveButton(R.string.ok, null)
+                        .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                if (!isFinishing() && !isDestroyed()) {
+                                    askMasterPassword();
+                                }
+                            }
+                        })
+                        .show();
+                }
+            }
+        });
     }
 
     /**

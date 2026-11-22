@@ -156,7 +156,8 @@ on in Settings.
 
 - **Export** to a file you choose, encrypted (recommended) or unencrypted XML.
   An encrypted export needs the master password that was current when it was
-  made, and a modified file is not imported.
+  made, and a modified file is not imported. An unencrypted export asks for
+  the master password first.
 - Exports include your settings, except fingerprint unlock.
 - **Import** an encrypted file made with the current master password directly.
   For other encrypted files Passdroid++ asks for the master password they were
