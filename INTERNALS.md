@@ -157,7 +157,9 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
      there is none (see [Database](#database)), and starts `LoginActivity`
      if a master key record exists, else `InitializeActivity`.
 3. `InitializeActivity` creates the master key from the new password (at
-   least 12 characters), stores the record and logs in.
+   least 12 characters), stores the record and logs in. Its two fields have
+   eye buttons (`PasswordToggle`), as do the three of
+   `ChangePasswordActivity`.
 4. `LoginActivity` derives the key in a background thread, runs the data
    migrations (`DbMigration.postLoginMigration()`), upgrades a legacy master
    key (see [Master key](#master-key)), and starts `PasswordListActivity`. It
@@ -202,8 +204,8 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
   `Session.clearTimeoutTimer()` and finishes the activity if the session is
   no longer logged in.
 
-`LoginActivity` doesn't extend one of them, so it sets `FLAG_SECURE`
-itself, first thing in `onCreate()`.
+`LoginActivity` and `InitializeActivity` don't extend one of them, so they
+set `FLAG_SECURE` themselves, first thing in `onCreate()`.
 
 ### The timeout
 
@@ -840,7 +842,8 @@ Other settings:
   password change and import password screens and the search field have
   `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
   `importantForAutofill="noExcludeDescendants"`.
-- The password, 2FA secret, 2FA code and generated password views have
+- The password, 2FA secret, 2FA code and generated password views, and the
+  master password fields of the setup and password change screens, have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
 - Only `MainActivity` is exported. The timeout and screen off receivers are
   registered at runtime as not exported, with
@@ -1024,18 +1027,25 @@ Android 9 and later, off by default.
 #### Screens and input
 
 - The screens that show secrets, and those where the master password is
-  typed (login, password change, import password), set `FLAG_SECURE`: no
-  screenshots, screen recordings or casts, and no content in the recent
-  apps. A password field shows each typed character for a moment, so a
-  recording of the login screen would give the master password away. The
-  2FA QR code dialog sets it too, since a dialog has its own window.
+  typed (login, setup, password change, import password), set
+  `FLAG_SECURE`: no screenshots, screen recordings or casts, and no content
+  in the recent apps. A password field shows each typed character for a
+  moment, so a recording of the login screen would give the master password
+  away, and the eye buttons of the setup and password change screens show
+  it whole. The 2FA QR code dialog sets it too, since a dialog has its own
+  window.
 - On the entry, login, setup, password change, import password and search
   screens the keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
   autofill.
 - On Android 14 and later the password, 2FA secret, 2FA code and generated
-  password views are only visible to accessibility services that are
-  accessibility tools, such as screen readers.
+  password views, and the master password fields of the setup and password
+  change screens, are only visible to accessibility services that are
+  accessibility tools, such as screen readers. Those fields stay
+  `textPassword` while the eye button shows them, so the keyboard still
+  treats them as password fields and doesn't suggest or learn from them.
+  Accessibility services go by the displayed text, so while a field is
+  shown they see the password, as with the other views here.
 
 #### 2FA
 
@@ -1274,6 +1284,11 @@ release:
 - Set up or change the master password with fewer than 12 characters: the
   note below the field counts the missing characters, and the password is
   refused. Log in with an existing short one: the reminder appears.
+- On the setup and the change password screen, each eye button shows and
+  hides only its field, the cursor stays where it was, and the keyboard
+  offers no suggestions while a field is shown. After a rotation all fields
+  are hidden and keep their text. On the setup screen a screenshot is
+  refused, and the recent apps show a blank preview.
 - Turn fingerprint unlock on and off, log in with it.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the rating and the bar follow.

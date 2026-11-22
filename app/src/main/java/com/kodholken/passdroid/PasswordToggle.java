@@ -3,6 +3,8 @@ package com.kodholken.passdroid;
 import java.util.Arrays;
 
 import android.graphics.Rect;
+import android.text.method.PasswordTransformationMethod;
+import android.text.method.SingleLineTransformationMethod;
 import android.text.method.TransformationMethod;
 import android.view.View;
 import android.widget.EditText;
@@ -11,8 +13,19 @@ import android.widget.TextView;
 
 /**
  * Shows or hides the password in a TextView or EditText with an "eye"
- * button. A hidden password is shown as asterisks. Only the displayed text
- * changes, getText() still returns the password.
+ * button, for three kinds of view:
+ *
+ * - A view whose own transformation shows the password, e.g. a
+ *   textVisiblePassword field. Hidden, it is shown as asterisks.
+ * - A textPassword field. Its input type stays, so the keyboard still treats
+ *   it as a password field: hidden, it shows its own dots, and shown, the
+ *   text on a single line. Accessibility services go by the transformation,
+ *   so they see the text while it is shown; mark such fields
+ *   accessibilityDataSensitive.
+ * - A view that only holds the value while it is shown, from a Source.
+ *
+ * For the first two only the displayed text changes, getText() still
+ * returns the password.
  */
 public class PasswordToggle {
     /**
@@ -30,6 +43,9 @@ public class PasswordToggle {
     private final Source source;  // null if the view holds the value
     // Used for a visible password, e.g. the single line transformation
     private final TransformationMethod visibleTransformation;
+    // Used for a hidden password: the dots of a textPassword field, else
+    // asterisks
+    private final TransformationMethod hiddenTransformation;
     private boolean visible;
 
     public PasswordToggle(TextView passwordView, ImageButton button,
@@ -51,7 +67,14 @@ public class PasswordToggle {
         this.passwordView = passwordView;
         this.button = button;
         this.source = source;
-        visibleTransformation = passwordView.getTransformationMethod();
+        TransformationMethod own = passwordView.getTransformationMethod();
+        if (own instanceof PasswordTransformationMethod) {
+            visibleTransformation = SingleLineTransformationMethod.getInstance();
+            hiddenTransformation = own;
+        } else {
+            visibleTransformation = own;
+            hiddenTransformation = Asterisks.INSTANCE;
+        }
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -72,7 +95,7 @@ public class PasswordToggle {
             // Changing the transformation moves the cursor to the start
             int selection = passwordView.getSelectionEnd();
             passwordView.setTransformationMethod(visible ? visibleTransformation :
-                                                           Asterisks.INSTANCE);
+                                                           hiddenTransformation);
             if (passwordView instanceof EditText && selection >= 0) {
                 ((EditText) passwordView).setSelection(selection);
             }

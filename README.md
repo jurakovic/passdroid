@@ -83,6 +83,8 @@ is encrypted.
   screens show how many are still missing. If an existing master password is
   shorter, a reminder with a "Change" button appears after each login with
   it.
+- On the setup and change screens an eye button next to each password field
+  shows what you typed, and hides it again.
 - The master password can be changed in Settings. If it is forgotten, the
   data can't be recovered.
 
@@ -183,7 +185,8 @@ on in Settings.
 - **Android backup is off**, so the database is not copied to the cloud.
   Encrypted exports are your backup, see [Backups](#backups).
 - Screenshots and the preview in the recent apps are blocked on the screens
-  that show your data and where you log in or change the master password.
+  that show your data and where you set up, log in with or change the master
+  password.
 - On the screens where you type secrets, the keyboard is asked not to learn
   from what you type, and autofill services are kept out.
 - On Android 14 and later, passwords and 2FA codes are hidden from

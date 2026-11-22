@@ -32,6 +32,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 public class ChangePasswordActivity extends TimeoutActivity {
@@ -45,6 +46,17 @@ public class ChangePasswordActivity extends TimeoutActivity {
 
         new PasswordLengthHint((EditText) findViewById(R.id.master_password_1),
                                (TextView) findViewById(R.id.master_password_hint));
+
+        // Hidden again after a rotation; the fields keep their text
+        new PasswordToggle((EditText) findViewById(R.id.old_master_password),
+                           (ImageButton) findViewById(R.id.old_master_password_toggle),
+                           false);
+        new PasswordToggle((EditText) findViewById(R.id.master_password_1),
+                           (ImageButton) findViewById(R.id.master_password_1_toggle),
+                           false);
+        new PasswordToggle((EditText) findViewById(R.id.master_password_2),
+                           (ImageButton) findViewById(R.id.master_password_2_toggle),
+                           false);
 
         Button okButton = (Button) this.findViewById(R.id.ok_button);
         okButton.setOnClickListener(new OnClickListener() {

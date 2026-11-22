@@ -30,8 +30,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager.LayoutParams;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
@@ -49,10 +51,25 @@ public class InitializeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Kept out of screenshots, screen recordings and the recent apps,
+        // like the login screen: the new master password is typed here and
+        // can be shown with the eye buttons. This screen doesn't extend a
+        // timeout base class, which sets it.
+        getWindow().setFlags(LayoutParams.FLAG_SECURE, LayoutParams.FLAG_SECURE);
+
         setContentView(R.layout.initialize);
 
         new PasswordLengthHint((EditText) findViewById(R.id.master_password_1),
                                (TextView) findViewById(R.id.master_password_hint));
+
+        // Hidden again after a rotation; the fields keep their text
+        new PasswordToggle((EditText) findViewById(R.id.master_password_1),
+                           (ImageButton) findViewById(R.id.master_password_1_toggle),
+                           false);
+        new PasswordToggle((EditText) findViewById(R.id.master_password_2),
+                           (ImageButton) findViewById(R.id.master_password_2_toggle),
+                           false);
 
         okButton = (Button) this.findViewById(R.id.ok_button);
         okButton.setOnClickListener(new OnClickListener() {
