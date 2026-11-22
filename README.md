@@ -112,8 +112,8 @@ on in Settings.
 
 ### Clipboard
 
-- Copied passwords and 2FA codes are marked as sensitive, so Android 13 and
-  later don't show them in the clipboard preview.
+- Copied passwords, 2FA codes and notes are marked as sensitive, so Android
+  13 and later don't show them in the clipboard preview.
 - With "Auto clear clipboard" (on by default) they are removed after about 45
   seconds, at the latest within a minute, and when the screen turns off.
 - Where Android lets Passdroid++ read the clipboard, which since Android 10 is

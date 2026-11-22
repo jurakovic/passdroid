@@ -454,8 +454,9 @@ secret that isn't stored yet: the generated password to
   second. The password and the 2FA secret are shown with `PasswordToggle` in
   its "source" mode: hidden as `********` (so the length doesn't show), and
   decrypted from the session key only while visible or when copied. Taps on
-  the system, email, username and note copy them as plain text; the password
-  and the secret ask first. With `tap_to_copy` off, a long press does all of
+  the system, email and username copy them as plain text; the note is copied
+  like a secret, since notes often hold recovery codes or PINs, but without
+  asking; the password and the secret ask first. With `tap_to_copy` off, a long press does all of
   this instead of a tap (`setupClipboardActions()`, read when the entry is
   opened). The 2FA codes screen and the generator copy with a tap either
   way.
@@ -485,7 +486,7 @@ secret that isn't stored yet: the generated password to
 
 ## Clipboard
 
-- **Secrets** (passwords, 2FA codes and secrets) go through
+- **Secrets** (passwords, 2FA codes and secrets, notes) go through
   `Utils.copyPasswordToClipboard()`:
   - the clip gets the label `"password"` (`ClipboardClearReceiver.LABEL`)
     and the `android.content.extra.IS_SENSITIVE` extra, which hides it in
@@ -495,7 +496,7 @@ secret that isn't stored yet: the generated password to
     `ELAPSED_REALTIME` alarm with an immutable `PendingIntent` to the
     manifest receiver (not exported), so it fires even if the process was
     frozen or killed.
-- **Other values** (system, username, email, note) go through
+- **Other values** (system, username, email) go through
   `Utils.copyToClipboard()` with the label `"text"`, and cancel a pending
   clear: the user has copied something else.
 - `ClipboardClearReceiver.clear()` runs from the alarm and from the screen
@@ -1013,8 +1014,8 @@ Android 9 and later, off by default.
 
 #### Clipboard
 
-- Copied passwords and 2FA codes are marked as sensitive, so Android 13 and
-  later hide them in clipboard previews.
+- Copied passwords, 2FA codes and notes are marked as sensitive, so Android
+  13 and later hide them in clipboard previews.
 - They are **cleared after 45 seconds** (an inexact alarm, so within about a
   minute) and when the screen turns off, if "Auto clear clipboard" is on,
   which is the default. The alarm goes to a receiver declared in the
@@ -1242,7 +1243,10 @@ release:
   Passdroid.
 - Copy a password, wait about a minute: the clipboard is empty. Copy a
   password, copy text in another app and come back within the minute: the
-  text is kept.
+  text is kept. The same for an entry's note, which on Android 13 and later
+  is hidden in the clipboard preview, and before shows "Copied to
+  clipboard". A copied username shows in the preview, isn't cleared, and
+  cancels the clearing of a password copied before.
 - Open an entry: show and copy the password and the 2FA secret. Edit it and
   give it a note of several lines, which shows the same on the entry screen
   and after an export and import; view it again, delete it. Copy a password

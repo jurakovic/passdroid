@@ -30,6 +30,7 @@ import android.content.Intent;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -43,6 +44,7 @@ import android.view.WindowManager.LayoutParams;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * Activity that displays a password entry and let the user choose to edit or
@@ -271,14 +273,15 @@ public class ShowActivity extends SherlockTimeoutActivity {
      * The setting is read when the entry is opened. The system, email,
      * username, note and 2FA code are copied right away. The password and
      * the 2FA secret are copied after a confirmation, which also works while
-     * they are hidden. The URL opens in the browser, and the date is not
-     * copied.
+     * they are hidden. The note is copied like a secret, marked as sensitive
+     * and cleared later, since notes often hold recovery codes or PINs. The
+     * URL opens in the browser, and the date is not copied.
      */
     private void setupClipboardActions() {
         boolean tap = PreferenceManager.getDefaultSharedPreferences(this).
             getBoolean("tap_to_copy", true);
 
-        for (int id : new int [] { R.id.system, R.id.email, R.id.username, R.id.note }) {
+        for (int id : new int [] { R.id.system, R.id.email, R.id.username }) {
             final TextView view = (TextView) findViewById(id);
             setCopyAction(view, tap, new Runnable() {
                 @Override
@@ -287,6 +290,19 @@ public class ShowActivity extends SherlockTimeoutActivity {
                 }
             });
         }
+
+        final TextView note = (TextView) findViewById(R.id.note);
+        setCopyAction(note, tap, new Runnable() {
+            @Override
+            public void run() {
+                Utils.copyPasswordToClipboard(ShowActivity.this, note.getText().toString());
+
+                // Android 13 and later confirm copying to the clipboard themselves
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(ShowActivity.this, R.string.copied, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
         setCopyAction(findViewById(R.id.password), tap, new Runnable() {
             @Override
