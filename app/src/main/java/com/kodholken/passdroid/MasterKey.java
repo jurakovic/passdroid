@@ -21,8 +21,9 @@ import javax.crypto.spec.PBEKeySpec;
 public class MasterKey {
     public static final int DEFAULT_ITERATIONS = 600000;
 
-    // Upper limit for iteration counts read from files, so that a corrupt or
-    // malicious file can not make the key derivation run (almost) forever.
+    // Upper limit for iteration counts read from files and from the key
+    // record, so that a corrupt or malicious one can not make the key
+    // derivation run (almost) forever.
     public static final int MAX_ITERATIONS = 10000000;
 
     // New master passwords must be at least this long. The key derivation
@@ -102,8 +103,13 @@ public class MasterKey {
 
         try {
             String [] parts = record.split("\\$");
-            byte [] key = deriveKey(password, Base64.decode(parts[2]),
-                                    Integer.parseInt(parts[1]));
+            // The same limit as for files: a damaged record must not make
+            // the key derivation run (almost) forever
+            int iterations = Integer.parseInt(parts[1]);
+            if (iterations < 1 || iterations > MAX_ITERATIONS) {
+                return null;
+            }
+            byte [] key = deriveKey(password, Base64.decode(parts[2]), iterations);
 
             if (!verifyKey(key, record)) {
                 return null;

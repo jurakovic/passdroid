@@ -19,6 +19,7 @@
 
 package com.kodholken.passdroid;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.zip.CRC32;
 
@@ -72,6 +73,11 @@ public class Crypto {
             return false;
         }
 
+        // A damaged record fails the login instead of throwing
+        if (xor.length != 32) {
+            return false;
+        }
+
         byte [] hmac = hmacFromPassword(password);
         byte [] key = new byte[xor.length];
 
@@ -111,7 +117,7 @@ public class Crypto {
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
             rnd.nextBytes(salt);
             cipher.update(salt);
-            encrypted = cipher.doFinal(clear.getBytes());
+            encrypted = cipher.doFinal(clear.getBytes(StandardCharsets.UTF_8));
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;

@@ -83,7 +83,7 @@ public class Base64 {
         int padding = 0;
         byte [] result;
 
-        if (data.length() % 4 != 0) {
+        if (data.length() == 0 || data.length() % 4 != 0) {
             throw (new Base64Exception());
         }
 

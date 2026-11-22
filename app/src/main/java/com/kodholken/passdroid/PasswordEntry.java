@@ -244,7 +244,7 @@ public class PasswordEntry {
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
             
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
-            encrypted = cipher.doFinal(clear.getBytes());
+            encrypted = cipher.doFinal(clear.getBytes(StandardCharsets.UTF_8));
             
             complete = new byte[encrypted.length + iv.length];
             System.arraycopy(iv, 0, complete, 0, iv.length);

@@ -54,7 +54,7 @@ public class SystemData extends SQLiteOpenHelper {
     public void verifyTable() {
         SQLiteDatabase db = getReadableDatabase();
         try {
-            db.rawQuery("SELECT * FROM system", null);
+            db.rawQuery("SELECT * FROM system", null).close();
         } catch (SQLException ex) {
             onCreate(db);
         }

@@ -54,7 +54,7 @@ public class PasswordData extends SQLiteOpenHelper {
      */
     public static PasswordEntry readEntry(Cursor cur) {
         PasswordEntry entry = new PasswordEntry();
-        entry.setId(cur.getInt(0));
+        entry.setId(cur.getLong(0));
         entry.setEncSystem(cur.getString(1));
         entry.setEncUsername(cur.getString(2));
         entry.setEncPassword(cur.getString(3));
@@ -95,7 +95,7 @@ public class PasswordData extends SQLiteOpenHelper {
     public void verifyTable() {
         SQLiteDatabase db = getReadableDatabase();
         try {
-            db.rawQuery("SELECT * FROM data", null);
+            db.rawQuery("SELECT * FROM data", null).close();
         } catch (SQLException ex) {
             onCreate(db);
         }

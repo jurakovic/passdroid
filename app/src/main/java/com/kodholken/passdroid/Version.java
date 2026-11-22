@@ -84,6 +84,11 @@ public class Version implements Comparable<Version> {
     }
 
     @Override
+    public int hashCode() {
+        return 31 * major + minor;
+    }
+
+    @Override
     public String toString() {
         return major + "." + minor;
     }

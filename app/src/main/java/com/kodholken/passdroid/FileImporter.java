@@ -422,7 +422,7 @@ public class FileImporter {
 
         // This format is not authenticated: a wrong key can also give data
         // that can not be parsed
-        InputStream is = new ByteArrayInputStream(decrypted, 2 /* Skip salt */, decrypted.length - 1);
+        InputStream is = new ByteArrayInputStream(decrypted, 2 /* Skip salt */, decrypted.length - 2);
         try {
             parse(is);
         } catch (FileImporterException ex) {

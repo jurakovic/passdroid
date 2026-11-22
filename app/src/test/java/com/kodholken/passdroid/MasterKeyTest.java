@@ -147,6 +147,26 @@ public class MasterKeyTest {
     }
 
     @Test
+    public void unlockDamagedLegacyRecord() {
+        // A legacy record is 32 bytes
+        assertFalse(Crypto.verifyPassword("secret", Base64.encode(new byte[16])));
+        assertNull(MasterKey.unlock("secret", Base64.encode(new byte[16])));
+        assertNull(MasterKey.unlock("secret", Base64.encode(new byte[33])));
+    }
+
+    // Refused before deriving a key, so it doesn't take long
+    @Test(timeout = 5000)
+    public void unlockRecordWithInvalidIterationCount() {
+        String [] parts = MasterKey.create("secret", ITERATIONS).getRecord().split("\\$");
+        String salt = parts[2], verifier = parts[3];
+
+        assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$" +
+                                    (MasterKey.MAX_ITERATIONS + 1) + "$" + salt + "$" + verifier));
+        assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$0$" + salt + "$" + verifier));
+        assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$-1$" + salt + "$" + verifier));
+    }
+
+    @Test
     public void unlockMalformedRecord() {
         assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$"));
         assertNull(MasterKey.unlock("secret", "pbkdf2-sha256$x$y$z"));
