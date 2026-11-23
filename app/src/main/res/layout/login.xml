@@ -20,6 +20,7 @@
     <EditText
         android:imeOptions="flagNoPersonalizedLearning"
         android:id="@+id/login_password"
+        android:saveEnabled="false"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="13dip"

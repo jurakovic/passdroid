@@ -36,6 +36,7 @@
     <EditText
       android:imeOptions="flagNoPersonalizedLearning"
       android:id="@+id/master_password_1"
+      android:saveEnabled="false"
       android:accessibilityDataSensitive="yes"
       tools:targetApi="34"
       android:layout_width="0dip"
@@ -77,6 +78,7 @@
     <EditText
       android:imeOptions="flagNoPersonalizedLearning"
       android:id="@+id/master_password_2"
+      android:saveEnabled="false"
       android:accessibilityDataSensitive="yes"
       tools:targetApi="34"
       android:layout_width="0dip"

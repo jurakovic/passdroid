@@ -27,6 +27,9 @@ import android.view.Window;
 import android.widget.EditText;
 
 public class ImportPasswordActivity extends TimeoutActivity {
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = { R.id.password };
+
     private EditText password;
 
     @Override
@@ -36,7 +39,9 @@ public class ImportPasswordActivity extends TimeoutActivity {
         this.setContentView(R.layout.import_password);
         
         password = (EditText) findViewById(R.id.password);
-        
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
+
         findViewById(R.id.ok_button).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -54,5 +59,10 @@ public class ImportPasswordActivity extends TimeoutActivity {
                 finish();
             }
         });
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
     }
 }

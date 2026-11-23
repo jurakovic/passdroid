@@ -133,7 +133,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
 | Generator | `PasswordGenerator`, `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
-| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
+| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView`, `RetainedText` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
@@ -857,6 +857,15 @@ Other settings:
 - The password, 2FA secret, 2FA code and generated password views, and the
   master password fields of the setup and password change screens, have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
+- The fields that hold secrets have `saveEnabled="false"`: the master
+  password fields of the login, setup, password change and import password
+  screens and of the export's master password dialog, and the password, 2FA
+  secret and note of the add and edit screen. A field otherwise saves its
+  text in the saved instance state of its activity, which Android hands to
+  the system process when the activity stops. The screens keep the text
+  across a rotation with `RetainedText` in
+  `onRetainNonConfigurationInstance()` instead, which stays in the process. After the process has been killed these screens
+  finish themselves, so the text would be of no use.
 - Only `MainActivity` is exported. The timeout and screen off receivers are
   registered at runtime as not exported, with
   `ContextCompat.registerReceiver()` (`Utils.registerNotExportedReceiver()`):
@@ -1020,6 +1029,10 @@ Android 9 and later, off by default.
   2FA code only the code generator is kept.
 - Screens pass entries by their id, so no decrypted values go through the
   system process in intents.
+- Typed secrets aren't in the saved instance state either, which the system
+  process keeps for a stopped activity: the fields that hold them don't
+  save their text, and a rotation keeps it inside the process (see
+  [Android platform details](#android-platform-details)).
 - The last generated password is forgotten once it has been used.
 - Closed password list screens are released, so their decrypted list fields
   don't stay in memory after a logout.
@@ -1316,6 +1329,14 @@ release:
   offers no suggestions while a field is shown. After a rotation all fields
   are hidden and keep their text. On the setup screen a screenshot is
   refused, and the recent apps show a blank preview.
+- Rotate the add and the edit screen twice with text typed into every
+  field: every value stays, also the hidden password and 2FA secret. The
+  same for the master password fields of the login, setup, change password
+  and import password screens.
+- With the developer option "Don't keep activities" on, open the generator
+  from the add screen with every field filled in and go back: the system,
+  username, email, URL and date are back, the password, 2FA secret and note
+  are empty, since they aren't in the saved state.
 - Turn fingerprint unlock on and off, log in with it.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the rating and the bar follow.

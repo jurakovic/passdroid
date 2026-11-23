@@ -39,6 +39,11 @@ import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
 public class InitializeActivity extends Activity {
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = {
+        R.id.master_password_1, R.id.master_password_2
+    };
+
     Button okButton;
     private boolean initializing = false;
 
@@ -70,6 +75,8 @@ public class InitializeActivity extends Activity {
         new PasswordToggle((EditText) findViewById(R.id.master_password_2),
                            (ImageButton) findViewById(R.id.master_password_2_toggle),
                            false);
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
 
         okButton = (Button) this.findViewById(R.id.ok_button);
         okButton.setOnClickListener(new OnClickListener() {
@@ -93,6 +100,11 @@ public class InitializeActivity extends Activity {
                         }
                     });
         }
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
     }
 
     /**

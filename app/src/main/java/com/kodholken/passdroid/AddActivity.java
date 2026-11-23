@@ -52,6 +52,10 @@ public class AddActivity extends SherlockTimeoutActivity {
     private Intent generateIntent;
 
     private static final String STATE_DATE = "date";
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = {
+        R.id.password, R.id.totp, R.id.note
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +72,8 @@ public class AddActivity extends SherlockTimeoutActivity {
         new PasswordToggle((EditText) findViewById(R.id.totp),
                            (ImageButton) findViewById(R.id.totp_toggle), true);
         qrScan = new QrScan(this, findViewById(R.id.totp_scan));
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
 
         // The date defaults to when the entry is added
         date = new DateField((EditText) findViewById(R.id.date),
@@ -92,6 +98,11 @@ public class AddActivity extends SherlockTimeoutActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(STATE_DATE, date.getValue());
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
     }
 
     /**
