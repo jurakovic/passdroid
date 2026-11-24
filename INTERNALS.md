@@ -459,13 +459,16 @@ it once and forgets it.
   whole width it is offered. A long press asks whether to copy the password,
   which is decrypted only on "Yes". The entry is taken from the adapter, not
   the model, so the right one is used while the list is filtered.
-  Once after a restore on the welcome screen, it reports the restore (see
-  [Restoring on the welcome screen](#restoring-on-the-welcome-screen)).
-  Otherwise once after a login (`savedInstanceState == null`), if there is
-  a draft of unsaved changes (see below), it asks "You have an unsaved
-  entry from <time> (<system>). Continue editing it?", before the reminder
-  about a short master password. The dialog can't be dismissed without an answer.
-  Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
+  After a login it shows, one after the other: the result of a restore on
+  the welcome screen (see
+  [Restoring on the welcome screen](#restoring-on-the-welcome-screen)); if
+  there is a draft of unsaved changes (see below), "You have an unsaved
+  entry from <time> (<system>). Continue editing it?"; and the reminder
+  about a short master password. A rotation closes them, so the list keeps
+  in its saved state which are still to come, and shows them again. It
+  offers a draft whenever one exists: a list only finds one until the offer
+  is answered, since an editor deletes the draft it stored once it is back
+  in front. The offer can't be dismissed without an answer. Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
   or the add screen if the draft is of a new entry or its entry is gone;
   Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
   legacy key that the login has replaced, is deleted, and the list says it

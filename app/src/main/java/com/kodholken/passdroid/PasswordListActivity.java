@@ -78,6 +78,13 @@ implements PasswordModelListener {
 
     private PasswordAdapter passwordAdapter = null;
 
+    // The dialogs after a login that are still to be shown or answered. A
+    // rotation closes them, so they are shown again after it.
+    private boolean restoreResultPending;
+    private boolean reminderPending;
+    private static final String STATE_RESTORE_RESULT = "restore_result_pending";
+    private static final String STATE_REMINDER = "reminder_pending";
+
     // The text of the search, null while it is closed. A reload of the list
     // creates a new adapter, which gets it too.
     private String searchFilter = null;
@@ -105,16 +112,15 @@ implements PasswordModelListener {
         // Make sure the password entries is loaded from the database
         Session.getInstance().setNeedReload(true);
 
-        // Once after the login, not when the activity is created again
-        boolean shortPassword = savedInstanceState == null &&
-                getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
-        if (savedInstanceState == null && getIntent().hasExtra(EXTRA_RESTORED)) {
-            showRestoreResult(shortPassword);
-        } else if (savedInstanceState == null && EntryDraft.exists(this)) {
-            offerDraft(shortPassword);
-        } else if (shortPassword) {
-            showShortPasswordReminder();
+        // Once after the login, and again after a rotation until answered
+        if (savedInstanceState == null) {
+            restoreResultPending = getIntent().hasExtra(EXTRA_RESTORED);
+            reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
+        } else {
+            restoreResultPending = savedInstanceState.getBoolean(STATE_RESTORE_RESULT);
+            reminderPending = savedInstanceState.getBoolean(STATE_REMINDER);
         }
+        showLoginDialogs();
 
         emptyListHelp = (TextView) findViewById(R.id.empty_list_help);
         
@@ -155,6 +161,13 @@ implements PasswordModelListener {
         }
     }
     
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(STATE_RESTORE_RESULT, restoreResultPending);
+        outState.putBoolean(STATE_REMINDER, reminderPending);
+    }
+
     @Override
     protected void onDestroy() {
         // The model outlives the screen, which would otherwise be kept with
@@ -392,19 +405,42 @@ implements PasswordModelListener {
     }
 
     /**
+     * Show the next of the dialogs after a login: the result of a restore,
+     * the offer of a draft, the reminder about a short master password.
+     */
+    private void showLoginDialogs() {
+        if (isFinishing()) {
+            return;
+        }
+
+        if (restoreResultPending) {
+            showRestoreResult();
+        } else if (EntryDraft.exists(this)) {
+            // A list finds one only until the offer is answered: an editor
+            // deletes the draft it stored when it is back in front
+            offerDraft();
+        } else {
+            showReminderIfPending();
+        }
+    }
+
+    private void showReminderIfPending() {
+        if (reminderPending && !isFinishing()) {
+            reminderPending = false;
+            showShortPasswordReminder();
+        }
+    }
+
+    /**
      * Report a backup restored on the welcome screen, and offer to delete
      * it if it isn't encrypted, as the import does.
-     *
-     * @param shortPassword show the reminder about a short master password
-     *                      once the dialog is closed.
      */
-    private void showRestoreResult(final boolean shortPassword) {
+    private void showRestoreResult() {
         final Runnable next = new Runnable() {
             @Override
             public void run() {
-                if (shortPassword && !isFinishing()) {
-                    showShortPasswordReminder();
-                }
+                restoreResultPending = false;
+                showLoginDialogs();
             }
         };
         final DialogInterface.OnDismissListener nextOnDismiss = new DialogInterface.OnDismissListener() {
@@ -442,6 +478,8 @@ implements PasswordModelListener {
                                next.run();
                                return;
                            }
+                           // Answered, also if a rotation closes the message
+                           restoreResultPending = false;
                            new AlertDialog.Builder(PasswordListActivity.this)
                                .setTitle(R.string.failure)
                                .setMessage(R.string.restore_delete_failed)
@@ -463,20 +501,8 @@ implements PasswordModelListener {
 
     /**
      * Offer the unsaved changes kept at the last logout, see EntryDraft.
-     *
-     * @param shortPassword show the reminder about a short master password
-     *                      once the dialog is closed.
      */
-    private void offerDraft(final boolean shortPassword) {
-        DialogInterface.OnDismissListener next = new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface dialog) {
-                if (shortPassword && !isFinishing()) {
-                    showShortPasswordReminder();
-                }
-            }
-        };
-
+    private void offerDraft() {
         final EntryDraft.Draft draft = EntryDraft.load(this, Session.getInstance().getKey());
         if (draft == null) {
             // E.g. stored with a legacy key that the login has replaced
@@ -484,7 +510,12 @@ implements PasswordModelListener {
             new AlertDialog.Builder(this)
                 .setMessage(R.string.draft_lost)
                 .setPositiveButton(R.string.ok, null)
-                .setOnDismissListener(next)
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        showReminderIfPending();
+                    }
+                })
                 .show();
             return;
         }
@@ -508,15 +539,16 @@ implements PasswordModelListener {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     continueDraft(entry);
+                    showReminderIfPending();
                 }
             })
             .setNegativeButton(R.string.discard, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     EntryDraft.delete(PasswordListActivity.this);
+                    showReminderIfPending();
                 }
             })
-            .setOnDismissListener(next)
             .show();
     }
 
