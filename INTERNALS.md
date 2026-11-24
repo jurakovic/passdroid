@@ -458,6 +458,15 @@ it once and forgets it.
   whole width it is offered. A long press asks whether to copy the password,
   which is decrypted only on "Yes". The entry is taken from the adapter, not
   the model, so the right one is used while the list is filtered.
+  Once after a login (`savedInstanceState == null`), if there is a draft of
+  unsaved changes (see below), it asks "You have an unsaved entry from
+  <time> (<system>). Continue editing it?", before the reminder about a
+  short master password. The dialog can't be dismissed without an answer.
+  Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
+  or the add screen if the draft is of a new entry or its entry is gone;
+  Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
+  legacy key that the login has replaced, is deleted, and the list says it
+  could not be restored.
 - **`ShowActivity`**: decrypts the note, URL and date for display, and the
   2FA secret once into a `Totp` generator for the live code, refreshed every
   second. The password and the 2FA secret are shown with `PasswordToggle` in
@@ -488,7 +497,8 @@ it once and forgets it.
     background without a logout. `onResume()` deletes it again while the
     user is still logged in, since the screen still has the changes.
 
-  A save and Discard delete it. With `EXTRA_DRAFT`, the screen fills its
+  A save and Discard delete it, as does Discard in the list's offer after
+  the next login. With `EXTRA_DRAFT`, the screen fills its
   fields from the draft once it is set up, so they count as changes; the
   edit screen only from a draft of its entry.
 - A save on the add and edit screens counts only with the session key,
@@ -1341,6 +1351,14 @@ release:
 - On the add and the edit screen, Back without changes closes at once. With
   a change it asks first: Keep editing keeps the change, Discard closes the
   screen. A rotation with changes asks nothing.
+- With the default settings (logout after 5 seconds), on the add screen
+  type a system and generate a password, then switch to another app for 10
+  seconds and come back: the login screen. After the login the list offers
+  the unsaved entry by its system and time; Continue shows the values, and
+  Save stores them. The same on the edit screen opens that entry with the
+  changes, and Discard leaves the entry as it was. Turning the screen off
+  with the editor in front, then logging in, offers the draft too. Without
+  changes, or after Back and Discard, nothing is offered.
 - In a debug build, open an entry's edit screen and change the password,
   then make the database read-only with
   `adb shell run-as com.jurakovic.passdroid.debug chmod 400 databases/password.db`.

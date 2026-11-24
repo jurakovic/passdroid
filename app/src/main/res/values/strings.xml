@@ -231,6 +231,13 @@ would like to transfer this entry to</string>
 <string name="discard_changes">Discard your changes?</string>
 <string name="discard">Discard</string>
 <string name="keep_editing">Keep editing</string>
+<!-- After a login, for the unsaved changes kept at the logout before -->
+<string name="draft_title">Unsaved entry</string>
+<!-- %1$s is when it was kept, %2$s the system or draft_new_entry -->
+<string name="draft_message">You have an unsaved entry from %1$s (%2$s). Continue editing it?</string>
+<string name="draft_new_entry">a new entry</string>
+<string name="draft_continue">Continue</string>
+<string name="draft_lost">An unsaved entry could not be restored.</string>
 <string name="error_entry_not_found">the entry no longer exists</string>
 
 <!-- 2FA codes screen -->

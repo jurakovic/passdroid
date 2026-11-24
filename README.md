@@ -109,6 +109,8 @@ on in Settings.
 - While the system file picker or image picker is open for Passdroid++, you
   get at least 2 minutes.
 - Logging out forgets the key and everything that was decrypted.
+- Unsaved changes on the add or edit screen are kept, encrypted, and
+  offered after the next login.
 
 ### Clipboard
 
