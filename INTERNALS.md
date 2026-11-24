@@ -779,7 +779,10 @@ shares the file reading (`FileImporter.read()`) and the parsing.
    with the activity that picked the file, so the welcome screen keeps it
    for the list with a persistable grant (`Utils.keepDocumentAccess()`),
    which the list gives up once the question is answered
-   (`releaseDocumentAccess()`). The reminder about a short master
+   (`releaseDocumentAccess()`). A question that is never answered, e.g.
+   because of a logout, leaves the grant behind; the list gives up every
+   such grant when it opens after the next login
+   (`releaseDocumentAccessExcept()`). No other code keeps grants. The reminder about a short master
    password follows once that dialog is closed. If the
    entries can't be stored, the `key` attribute is removed again and the
    user logged out, so there is never a vault without them; the screen says

@@ -114,6 +114,11 @@ implements PasswordModelListener {
 
         // Once after the login, and again after a rotation until answered
         if (savedInstanceState == null) {
+            // The access to a restored file whose delete question wasn't
+            // answered, e.g. because of a logout, isn't needed any more
+            Uri restoredFile = getIntent().getParcelableExtra(EXTRA_RESTORED_FILE);
+            Utils.releaseDocumentAccessExcept(this, restoredFile);
+
             restoreResultPending = getIntent().hasExtra(EXTRA_RESTORED);
             reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
         } else {

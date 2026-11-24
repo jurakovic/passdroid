@@ -203,19 +203,39 @@ public class Utils {
     public static void releaseDocumentAccess(Context context, Uri uri) {
         for (UriPermission permission :
              context.getContentResolver().getPersistedUriPermissions()) {
-            if (!permission.getUri().equals(uri)) {
-                continue;
+            if (permission.getUri().equals(uri)) {
+                release(context, permission);
             }
+        }
+    }
 
-            int flags = (permission.isReadPermission() ?
-                         Intent.FLAG_GRANT_READ_URI_PERMISSION : 0) |
-                        (permission.isWritePermission() ?
-                         Intent.FLAG_GRANT_WRITE_URI_PERMISSION : 0);
-            try {
-                context.getContentResolver().releasePersistableUriPermission(uri, flags);
-            } catch (SecurityException ex) {
-                ex.printStackTrace();
+    /**
+     * Give up every access that keepDocumentAccess() kept, except the one to
+     * a document, e.g. one still to be released after a question. An access
+     * whose question was never answered, e.g. because of a logout, is
+     * released this way.
+     *
+     * @param keep the document whose access is kept, or null.
+     */
+    public static void releaseDocumentAccessExcept(Context context, Uri keep) {
+        for (UriPermission permission :
+             context.getContentResolver().getPersistedUriPermissions()) {
+            if (!permission.getUri().equals(keep)) {
+                release(context, permission);
             }
+        }
+    }
+
+    private static void release(Context context, UriPermission permission) {
+        int flags = (permission.isReadPermission() ?
+                     Intent.FLAG_GRANT_READ_URI_PERMISSION : 0) |
+                    (permission.isWritePermission() ?
+                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION : 0);
+        try {
+            context.getContentResolver().releasePersistableUriPermission(
+                    permission.getUri(), flags);
+        } catch (SecurityException ex) {
+            ex.printStackTrace();
         }
     }
 
