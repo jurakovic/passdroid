@@ -27,6 +27,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -52,6 +53,12 @@ implements PasswordModelListener {
     // True if the user logged in with a master password that is shorter than
     // is required for new ones, see MasterKey.MIN_PASSWORD_LENGTH
     public static final String EXTRA_SHORT_PASSWORD = "short_password";
+    // After a backup was restored on the welcome screen: the number of
+    // entries, the settings it changed as SettingsBackup.describe() lists
+    // them (if any), and the file if it isn't encrypted
+    public static final String EXTRA_RESTORED = "restored";
+    public static final String EXTRA_RESTORED_SETTINGS = "restored_settings";
+    public static final String EXTRA_RESTORED_FILE = "restored_file";
 
     private static final int OPTION_MENU_ADD      = 1;
     private static final int OPTION_MENU_SETTINGS = 3;
@@ -101,7 +108,9 @@ implements PasswordModelListener {
         // Once after the login, not when the activity is created again
         boolean shortPassword = savedInstanceState == null &&
                 getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
-        if (savedInstanceState == null && EntryDraft.exists(this)) {
+        if (savedInstanceState == null && getIntent().hasExtra(EXTRA_RESTORED)) {
+            showRestoreResult(shortPassword);
+        } else if (savedInstanceState == null && EntryDraft.exists(this)) {
             offerDraft(shortPassword);
         } else if (shortPassword) {
             showShortPasswordReminder();
@@ -385,6 +394,73 @@ implements PasswordModelListener {
     /**
      * Suggest changing a master password that is too short to be set now.
      */
+    /**
+     * Report a backup restored on the welcome screen, and offer to delete
+     * it if it isn't encrypted, as the import does.
+     *
+     * @param shortPassword show the reminder about a short master password
+     *                      once the dialog is closed.
+     */
+    private void showRestoreResult(final boolean shortPassword) {
+        final Runnable next = new Runnable() {
+            @Override
+            public void run() {
+                if (shortPassword && !isFinishing()) {
+                    showShortPasswordReminder();
+                }
+            }
+        };
+        final DialogInterface.OnDismissListener nextOnDismiss = new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                next.run();
+            }
+        };
+
+        int count = getIntent().getIntExtra(EXTRA_RESTORED, 0);
+        String message = getResources().getQuantityString(R.plurals.restore_done,
+                                                          count, count);
+        String settings = getIntent().getStringExtra(EXTRA_RESTORED_SETTINGS);
+        if (settings != null) {
+            message += "\n\n" + getString(R.string.import_settings_changed) +
+                       "\n" + settings;
+        }
+
+        final Uri file = getIntent().getParcelableExtra(EXTRA_RESTORED_FILE);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+            .setTitle(R.string.success);
+        if (file == null) {
+            builder.setMessage(message)
+                   .setPositiveButton(R.string.ok, null)
+                   .setOnDismissListener(nextOnDismiss);
+        } else {
+            builder.setMessage(message + "\n\n" + getString(R.string.restore_delete_question))
+                   .setCancelable(false)
+                   .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                       @Override
+                       public void onClick(DialogInterface dialog, int which) {
+                           if (Utils.deleteDocument(PasswordListActivity.this, file)) {
+                               next.run();
+                               return;
+                           }
+                           new AlertDialog.Builder(PasswordListActivity.this)
+                               .setTitle(R.string.failure)
+                               .setMessage(R.string.restore_delete_failed)
+                               .setPositiveButton(R.string.ok, null)
+                               .setOnDismissListener(nextOnDismiss)
+                               .show();
+                       }
+                   })
+                   .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                       @Override
+                       public void onClick(DialogInterface dialog, int which) {
+                           next.run();
+                       }
+                   });
+        }
+        builder.show();
+    }
+
     /**
      * Offer the unsaved changes kept at the last logout, see EntryDraft.
      *

@@ -20,6 +20,7 @@
 package com.kodholken.passdroid;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import com.kodholken.passdroid.R;
@@ -453,12 +454,21 @@ public class InitializeActivity extends Activity {
             return;
         }
 
-        if (restore.settings != null) {
-            SettingsBackup.apply(this, restore.settings);
-        }
-
         Intent intent = new Intent(this, PasswordListActivity.class);
         intent.putExtra(PasswordListActivity.EXTRA_SHORT_PASSWORD, shortPassword);
+        // The list reports the restore, so that its timeouts already apply
+        // while the message is open
+        intent.putExtra(PasswordListActivity.EXTRA_RESTORED, restore.entries.length);
+        if (restore.settings != null) {
+            List<SettingsBackup.Change> changes = SettingsBackup.apply(this, restore.settings);
+            if (!changes.isEmpty()) {
+                intent.putExtra(PasswordListActivity.EXTRA_RESTORED_SETTINGS,
+                                SettingsBackup.describe(this, changes));
+            }
+        }
+        if (restore.cleartext) {
+            intent.putExtra(PasswordListActivity.EXTRA_RESTORED_FILE, restore.uri);
+        }
         startActivity(intent);
         finish();
     }

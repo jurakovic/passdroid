@@ -244,6 +244,12 @@ would like to transfer this entry to</string>
 <string name="restore_keep">Use it</string>
 <string name="restore_new">Choose a new one</string>
 <string name="restore_failed">The backup could not be restored.</string>
+<plurals name="restore_done">
+    <item quantity="one">%d entry restored.</item>
+    <item quantity="other">%d entries restored.</item>
+</plurals>
+<string name="restore_delete_question">The backup file is not encrypted. Do you want to delete it from the device?</string>
+<string name="restore_delete_failed">The backup file could not be deleted. Please delete it manually.</string>
 <string name="no_file_app">No application available for opening files.</string>
 <!-- Back on the add and edit screens with unsaved changes -->
 <string name="discard_changes">Discard your changes?</string>

@@ -459,10 +459,12 @@ it once and forgets it.
   whole width it is offered. A long press asks whether to copy the password,
   which is decrypted only on "Yes". The entry is taken from the adapter, not
   the model, so the right one is used while the list is filtered.
-  Once after a login (`savedInstanceState == null`), if there is a draft of
-  unsaved changes (see below), it asks "You have an unsaved entry from
-  <time> (<system>). Continue editing it?", before the reminder about a
-  short master password. The dialog can't be dismissed without an answer.
+  Once after a restore on the welcome screen, it reports the restore (see
+  [Restoring on the welcome screen](#restoring-on-the-welcome-screen)).
+  Otherwise once after a login (`savedInstanceState == null`), if there is
+  a draft of unsaved changes (see below), it asks "You have an unsaved
+  entry from <time> (<system>). Continue editing it?", before the reminder
+  about a short master password. The dialog can't be dismissed without an answer.
   Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
   or the add screen if the draft is of a new entry or its entry is gone;
   Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
@@ -763,7 +765,14 @@ shares the file reading (`FileImporter.read()`) and the parsing.
 4. **Finishing**, either way: the `key` record is stored and the user
    logged in as in a setup, then `PasswordModel.setPasswords()` stores the
    entries and `SettingsBackup.apply()` the file's settings, and the list
-   opens, with `EXTRA_SHORT_PASSWORD` for a short kept password. If the
+   opens, with `EXTRA_SHORT_PASSWORD` for a short kept password. The list
+   reports the restore, so that its timeouts already apply while the
+   message is open: `EXTRA_RESTORED` (the number of entries),
+   `EXTRA_RESTORED_SETTINGS` (the settings that changed, as
+   `SettingsBackup.describe()` lists them for an import) and, for a file in
+   the clear, `EXTRA_RESTORED_FILE`, for which it asks whether to delete the
+   file (`Utils.deleteDocument()`). The reminder about a short master
+   password follows once that dialog is closed. If the
    entries can't be stored, the `key` attribute is removed again and the
    user logged out, so there is never a vault without them; the screen says
    the backup could not be restored.
@@ -941,8 +950,7 @@ Other settings:
 - The fields that hold secrets have `saveEnabled="false"`: the master
   password fields of the login, setup, password change and import password
   screens and of the master password dialog of an export or a restore, and
-  the password, 2FA
-  secret and note of the add and edit screen. A field otherwise saves its
+  the password, 2FA secret and note of the add and edit screen. A field otherwise saves its
   text in the saved instance state of its activity, which Android hands to
   the system process when the activity stops. The screens keep the text
   across a rotation with `RetainedText` in
@@ -1356,6 +1364,26 @@ release:
   apps show a blank preview. Logging in with the password and with the
   fingerprint still works. After a wrong password the field is empty, with
   the cursor in it.
+- On a fresh install, or after clearing the app's data, restore from the
+  welcome screen:
+  - an encrypted export with its password, keeping it: the list says how
+    many entries were restored and which settings changed, and logging out
+    and in again works with that password. A wrong password asks again,
+    Cancel returns to the welcome screen;
+  - an encrypted export, choosing a new password: the notice names the file
+    and the number of entries; a too short or mismatched password is
+    refused as in a setup; afterwards only the new password logs in, and a
+    new encrypted export opens with it;
+  - an unencrypted export: the list asks whether to delete the file, and
+    both answers work;
+  - an export of the original Passdroid, with its password and a new
+    master password: the entries are there;
+  - keeping a backup password shorter than 12 characters: the reminder
+    follows the list's message;
+  - a pending restore survives a rotation; going home and back drops it,
+    with the notice, and the button reads "Restore from a backup" again;
+  - a file that isn't an export shows the read error, and the screen still
+    works. A setup without a restore works as before.
 - Import an `sq2` export made with an earlier master password: the password
   screen asks for it, and the import works. Cancel on that screen returns
   to the import screen.
