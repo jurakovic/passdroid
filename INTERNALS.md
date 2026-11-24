@@ -779,8 +779,9 @@ shares the file reading (`FileImporter.read()`) and the parsing.
 
 The pending entries, the file's settings, its `Uri` and whether it is
 cleartext are kept across a rotation with `RetainedText`. In `onStop()`,
-unless the configuration changes, they are dropped and the notice is
-hidden, also when a decryption or a key derivation ends after the screen
+unless the configuration changes, they are dropped, the notice is hidden
+and the question whether to keep the backup's password is closed. They are
+dropped also when a decryption or a key derivation ends after the screen
 has left the foreground: nobody can pick up the phone later and finish a
 restore with a password of their own.
 

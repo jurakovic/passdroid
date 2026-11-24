@@ -76,6 +76,8 @@ public class InitializeActivity extends Activity {
     private boolean started = false;
     // A backup that waits for a master password, null if there is none
     private PendingRestore pending;
+    // Asks whether to keep the backup's password, while it is open
+    private AlertDialog keepDialog;
 
     /**
      * The decrypted content of a backup to restore.
@@ -416,12 +418,18 @@ public class InitializeActivity extends Activity {
                           MasterKey.MIN_PASSWORD_LENGTH) :
                 getString(R.string.restore_keep_message);
 
-        new AlertDialog.Builder(this)
+        final PendingRestore restore = pending;
+        keepDialog = new AlertDialog.Builder(this)
             .setTitle(R.string.restore_keep_title)
             .setMessage(message)
             .setPositiveButton(R.string.restore_keep, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
+                    if (restore != pending) {
+                        // Dropped meanwhile; without a backup this would set
+                        // up an empty vault
+                        return;
+                    }
                     // A fresh key record, with a new salt and the current
                     // iteration count, also for a legacy "sqt" export
                     initialize(password, MasterKey.isTooShort(password));
@@ -482,6 +490,11 @@ public class InitializeActivity extends Activity {
         if (pending != null) {
             pending = null;
             updateRestoreViews();
+        }
+        // The question is about the backup that was dropped
+        if (keepDialog != null) {
+            keepDialog.dismiss();
+            keepDialog = null;
         }
     }
 
