@@ -201,6 +201,24 @@ public final class EntryDraft {
         return new Draft(entry, entryId, savedAt);
     }
 
+    /**
+     * @return true if two sets of an editor's values differ in any field.
+     */
+    public static boolean differ(PasswordEntry a, PasswordEntry b) {
+        return !same(a.getDecSystem(), b.getDecSystem()) ||
+               !same(a.getDecUsername(), b.getDecUsername()) ||
+               !same(a.getDecPassword(), b.getDecPassword()) ||
+               !same(a.getDecNote(), b.getDecNote()) ||
+               !same(a.getDecUrl(), b.getDecUrl()) ||
+               !same(a.getDecEmail(), b.getDecEmail()) ||
+               !same(a.getDecTotp(), b.getDecTotp()) ||
+               !same(a.getDecDate(), b.getDecDate());
+    }
+
+    private static boolean same(String a, String b) {
+        return a == null ? b == null : a.equals(b);
+    }
+
     private static String orNull(String value) {
         return value.isEmpty() ? null : value;
     }

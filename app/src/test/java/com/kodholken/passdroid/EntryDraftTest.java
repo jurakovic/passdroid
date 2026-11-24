@@ -1,6 +1,7 @@
 package com.kodholken.passdroid;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -111,5 +112,22 @@ public class EntryDraftTest {
     @Test
     public void noKeyNoDraft() {
         assertNull(EntryDraft.encrypt(null, values(), -1, 1000));
+    }
+
+    @Test
+    public void differ() {
+        assertFalse(EntryDraft.differ(values(), values()));
+
+        PasswordEntry changed = values();
+        changed.setDecNote("PIN 1234");
+        assertTrue(EntryDraft.differ(values(), changed));
+
+        changed = values();
+        changed.setDecDate("2026-11-24T10:00");
+        assertTrue(EntryDraft.differ(values(), changed));
+
+        changed = values();
+        changed.setDecPassword("other");
+        assertTrue(EntryDraft.differ(values(), changed));
     }
 }
