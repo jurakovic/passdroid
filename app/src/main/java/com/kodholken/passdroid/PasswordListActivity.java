@@ -392,9 +392,6 @@ implements PasswordModelListener {
     }
 
     /**
-     * Suggest changing a master password that is too short to be set now.
-     */
-    /**
      * Report a backup restored on the welcome screen, and offer to delete
      * it if it isn't encrypted, as the import does.
      *
@@ -540,6 +537,9 @@ implements PasswordModelListener {
         startActivity(intent);
     }
 
+    /**
+     * Suggest changing a master password that is too short to be set now.
+     */
     private void showShortPasswordReminder() {
         new AlertDialog.Builder(this)
             .setTitle(R.string.master_password_short_title)
