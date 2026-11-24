@@ -440,7 +440,10 @@ Screens pass **only the entry id** in intents (`ShowActivity.EXTRA_ID`,
 decrypted values go through the system in intents. Two intents carry a
 secret that isn't stored yet: the generated password to
 `DisplayPasswordActivity`, and the text of a scanned QR code from
-`ScanActivity`.
+`ScanActivity`. The password for an encrypted import is handed back to
+`FileImportActivity` inside the process instead, like the generated password
+to the add and edit screens: `ImportPasswordActivity.takePassword()` returns
+it once and forgets it.
 
 - **`PasswordListActivity`**: `PasswordAdapter` filters by a lowercase
   substring of the system, username or email. The search field is an action
@@ -673,7 +676,9 @@ message then counts the entries that were exported incomplete.
    most 10 MB;
 2. detects the format by the first bytes (`sq2`, `sqt`, else XML);
 3. **encrypted**: tries the current session key first. If the key is
-   wrong, `ImportPasswordActivity` asks for the password, and
+   wrong, `ImportPasswordActivity` asks for the password, which
+   `FileImportActivity` takes with `takePassword()` on every result of that
+   screen, also when the session has ended meanwhile, and
    `parseEncryptedWithPassword()` derives the key: PBKDF2 with the salt and
    iterations from the header for `sq2`, the legacy HMAC for `sqt`.
    `FileImporterException.isWrongKey()` tells whether another password could
@@ -1033,6 +1038,10 @@ Android 9 and later, off by default.
   process keeps for a stopped activity: the fields that hold them don't
   save their text, and a rotation keeps it inside the process (see
   [Android platform details](#android-platform-details)).
+- The login screen empties its field as soon as it has read the password,
+  and when it is left, so the master password doesn't stay in the field
+  below the password list for the whole session. The password for an
+  encrypted import is handed over inside the process too.
 - The last generated password is forgotten once it has been used.
 - Closed password list screens are released, so their decrypted list fields
   don't stay in memory after a logout.
@@ -1256,7 +1265,11 @@ release:
   leaves the app.
 - On the login screen, a screenshot is refused or black, and the recent
   apps show a blank preview. Logging in with the password and with the
-  fingerprint still works.
+  fingerprint still works. After a wrong password the field is empty, with
+  the cursor in it.
+- Import an `sq2` export made with an earlier master password: the password
+  screen asks for it, and the import works. Cancel on that screen returns
+  to the import screen.
 - Export over an existing, longer export file and import it again.
 - Export with "Encrypt the exported file" checked: the file picker opens
   right away. Unchecked: the master password dialog appears; Cancel stops,

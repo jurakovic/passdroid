@@ -268,6 +268,9 @@ public class LoginActivity extends Activity {
         }
 
         final String password = passwordView.getText().toString();
+        // Not left in the field, which stays below the password list for
+        // the whole session
+        passwordView.setText("");
         final String record = new SystemData(this).getKey();
         final MasterKey [] keys = new MasterKey[2];
 
@@ -306,7 +309,7 @@ public class LoginActivity extends Activity {
         if (key == null) {
             Utils.alertDialog(this, "Login Failure",
             "The supplied password was incorrect.");
-            passwordView.selectAll();
+            passwordView.requestFocus();
             return;
         }
 

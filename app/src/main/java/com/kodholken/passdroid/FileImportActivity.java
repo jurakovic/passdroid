@@ -169,6 +169,13 @@ public class FileImportActivity extends SherlockTimeoutActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        // Taken on every result of the password screen, also before a
+        // logout, so that it never stays behind
+        String password = null;
+        if (requestCode == IMPORT_PASSWORD_RESULT_ID) {
+            password = ImportPasswordActivity.takePassword();
+        }
+
         // This is called before onResume() so check for timeout here as well
         Session.clearTimeoutTimer(this);
         if (!Session.getInstance().isLoggedIn()) {
@@ -176,13 +183,13 @@ public class FileImportActivity extends SherlockTimeoutActivity {
             return;
         }
 
-        if (requestCode == IMPORT_PASSWORD_RESULT_ID && resultCode == RESULT_OK && data.getExtras() != null) {
+        if (requestCode == IMPORT_PASSWORD_RESULT_ID && resultCode == RESULT_OK && password != null) {
             if (fileImporter == null) {
                 // The activity was recreated while the password was entered
                 prepareImport();
             }
 
-            importWithPassword(data.getExtras().getString("password"));
+            importWithPassword(password);
         } else if (requestCode == SELECT_FILE_RESULT_ID) {
             selectingFile = false;
 
