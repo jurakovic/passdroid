@@ -223,7 +223,9 @@ public class EditActivity extends SherlockTimeoutActivity {
     private final Session.LogoutListener logoutListener = new Session.LogoutListener() {
         @Override
         public void beforeLogout(byte [] key) {
-            if (hasChanges()) {
+            // A screen that is finishing has been saved or discarded,
+            // although it is only destroyed later
+            if (!isFinishing() && hasChanges()) {
                 EntryDraft.save(EditActivity.this, key, readFields(), passwordId);
             }
             initialValues = null;

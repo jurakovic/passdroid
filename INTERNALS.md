@@ -493,8 +493,9 @@ it once and forgets it.
   (`EntryDraft`), encrypted with the session key like an entry, in the
   `entry_draft` attribute:
   - at a logout, from a logout listener of the screen, whatever the reason
-    for the logout. The screen then empties its fields, and is finished as
-    any screen after a logout;
+    for the logout, unless the screen is finishing after a save or Discard.
+    The screen then empties its fields, and is finished as any screen after
+    a logout;
   - when the screen stops without finishing or rotating, e.g. for the
     generator or another app, since Android may kill the process in the
     background without a logout. `onResume()` deletes it again while the
