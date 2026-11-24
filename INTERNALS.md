@@ -464,8 +464,10 @@ it once and forgets it.
   [Restoring on the welcome screen](#restoring-on-the-welcome-screen)); if
   there is a draft of unsaved changes (see below), "You have an unsaved
   entry from <time> (<system>). Continue editing it?"; and the reminder
-  about a short master password. A rotation closes them, so the list keeps
-  in its saved state which are still to come, and shows them again. It
+  about a short master password. A rotation closes them without dismissing
+  them, so the list keeps in its saved state which are still to come or
+  unanswered, and shows them again; only the note that a draft could not
+  be restored isn't, since that draft is deleted when the note is shown. It
   offers a draft whenever one exists: a list only finds one until the offer
   is answered, since an editor deletes the draft it stored once it is back
   in front. The offer can't be dismissed without an answer. Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,

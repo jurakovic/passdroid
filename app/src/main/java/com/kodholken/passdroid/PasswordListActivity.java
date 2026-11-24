@@ -78,8 +78,10 @@ implements PasswordModelListener {
 
     private PasswordAdapter passwordAdapter = null;
 
-    // The dialogs after a login that are still to be shown or answered. A
-    // rotation closes them, so they are shown again after it.
+    // The result of a restore and the reminder about a short master
+    // password, while they are still to be shown or answered. A rotation
+    // closes them without dismissing them, so they are shown again after
+    // it, as is the offer of a draft, as long as the draft exists.
     private boolean restoreResultPending;
     private boolean reminderPending;
     private static final String STATE_RESTORE_RESULT = "restore_result_pending";
@@ -431,7 +433,6 @@ implements PasswordModelListener {
 
     private void showReminderIfPending() {
         if (reminderPending && !isFinishing()) {
-            reminderPending = false;
             showShortPasswordReminder();
         }
     }
@@ -590,6 +591,13 @@ implements PasswordModelListener {
                 }
             })
             .setNegativeButton(R.string.later, null)
+            .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    // Answered; a rotation closes it without this
+                    reminderPending = false;
+                }
+            })
             .show();
     }
 
