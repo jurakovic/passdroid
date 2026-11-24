@@ -706,7 +706,7 @@ message then counts the entries that were exported incomplete.
 `FileImportActivity`:
 
 1. picks a file with `ACTION_OPEN_DOCUMENT` and reads it into memory, at
-   most 10 MB;
+   most 10 MB (`FileImporter.read()`);
 2. detects the format by the first bytes (`sq2`, `sqt`, else XML);
 3. **encrypted**: tries the current session key first. If the key is
    wrong, `ImportPasswordActivity` asks for the password, which
@@ -719,7 +719,8 @@ message then counts the entries that were exported incomplete.
    such as a newer format, is an error of the file and is shown as such.
    `sqt` is not authenticated, so all its errors count as a wrong key;
 4. **cleartext**: parsed directly; afterwards the app offers to delete the
-   file (`DocumentsContract.deleteDocument()`);
+   file (`Utils.deleteDocument()`, which calls
+   `DocumentsContract.deleteDocument()`);
 5. stores the entries with `PasswordModel.setPasswords()`, which **replaces
    all entries**, and applies the settings of the file with
    `SettingsBackup.apply()`. The message lists the settings that changed,
@@ -1590,7 +1591,7 @@ Use the debug app for test vaults only.
 - The 2FA codes screen redraws the bar 20 times a second and computes all
   codes again every second.
 - Two loops read a whole stream, `FileImporter.readAll()` and
-  `FileImportActivity.readFile()`; only the second has the size limit.
+  `FileImporter.read()`; only the second has the size limit.
 - A very deeply nested import file can crash the app (`StackOverflowError`
   is not caught). Only a file the user picks; nothing is lost.
 - A carriage return in a value comes back as a line feed after export and

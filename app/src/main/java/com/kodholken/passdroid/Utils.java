@@ -36,6 +36,7 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PersistableBundle;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
@@ -154,6 +155,22 @@ public class Utils {
         // Android 13 and later confirm copying to the clipboard themselves
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Toast.makeText(context, R.string.totp_code_copied, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Delete a document of the Storage Access Framework, e.g. an imported
+     * file in the clear.
+     *
+     * @return false if it could not be deleted.
+     */
+    public static boolean deleteDocument(Context context, Uri uri) {
+        try {
+            return DocumentsContract.deleteDocument(context.getContentResolver(), uri);
+        } catch (Exception ex) {
+            // Not all document providers support deleting documents
+            ex.printStackTrace();
+            return false;
         }
     }
 
