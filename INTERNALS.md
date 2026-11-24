@@ -963,8 +963,10 @@ Other settings:
   text in the saved instance state of its activity, which Android hands to
   the system process when the activity stops. The screens keep the text
   across a rotation with `RetainedText` in
-  `onRetainNonConfigurationInstance()` instead, which stays in the process. After the process has been killed these screens
-  finish themselves, so the text would be of no use.
+  `onRetainNonConfigurationInstance()` instead, which stays in the process.
+  After the process has been killed, the screens of a session finish
+  themselves, so their text would be of no use, and the login and setup
+  screens start with empty fields.
 - Only `MainActivity` is exported. The timeout and screen off receivers are
   registered at runtime as not exported, with
   `ContextCompat.registerReceiver()` (`Utils.registerNotExportedReceiver()`):

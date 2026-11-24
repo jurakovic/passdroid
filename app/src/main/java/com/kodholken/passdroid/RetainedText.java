@@ -12,8 +12,9 @@ import android.widget.TextView;
  * activity stops, password fields included. So the fields that hold secrets
  * have android:saveEnabled="false", and their activities pass this copy
  * through onRetainNonConfigurationInstance() instead, which never leaves the
- * process. After the process has been killed nothing of the session is left
- * anyway: those screens finish themselves.
+ * process. After the process has been killed, the screens of a session
+ * finish themselves, since nothing of the session is left, and the login and
+ * setup screens start with empty fields.
  */
 public final class RetainedText {
     private final String [] texts;
