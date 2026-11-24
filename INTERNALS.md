@@ -159,7 +159,8 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 3. `InitializeActivity` creates the master key from the new password (at
    least 12 characters), stores the record and logs in. Its two fields have
    eye buttons (`PasswordToggle`), as do the three of
-   `ChangePasswordActivity`.
+   `ChangePasswordActivity`. It can also restore a backup before there is a
+   master password, see [Restoring on the welcome screen](#restoring-on-the-welcome-screen).
 4. `LoginActivity` derives the key in a background thread, runs the data
    migrations (`DbMigration.postLoginMigration()`), upgrades a legacy master
    key (see [Master key](#master-key)), and starts `PasswordListActivity`. It
@@ -734,6 +735,46 @@ element (`hasDoctype()`): Android's parser doesn't support turning off entity
 expansion, and a DTD could define entities that expand to gigabytes. Values
 inside the elements may contain the same text.
 
+### Restoring on the welcome screen
+
+`InitializeActivity` restores a backup before any master password exists.
+It can't use `FileImportActivity`, which, like `ImportPasswordActivity`,
+extends a timeout base class and finishes when nobody is logged in; it
+shares the file reading (`FileImporter.read()`) and the parsing.
+
+1. "Restore from a backup" picks a file with `ACTION_OPEN_DOCUMENT`,
+   without the extended timeout, since nobody is logged in. A file that
+   can't be read or parsed shows the `import_description_failure` text,
+   and the screen stays as it was.
+2. **Encrypted**: a dialog asks for the password the file was exported
+   with, in the field of `password_dialog.xml`, with `FLAG_SECURE` on its
+   window. `parseEncryptedWithPassword()` decrypts it in
+   `Utils.runWithProgress()`. A wrong password (`isWrongKey()`) asks again,
+   another error shows the read error. After a success the screen asks
+   whether to keep that password as the master password, and recommends a
+   new one if it is shorter than `MasterKey.MIN_PASSWORD_LENGTH`. Keeping
+   it creates a fresh key record with `MasterKey.create()`, as a setup
+   does: a new salt and the current iteration count, also for a legacy
+   `sqt` export, at the cost of a second key derivation.
+3. **Cleartext**, or "Choose a new one": the backup is **pending**. The
+   notice above the fields names the file and the number of entries, the
+   button reads "Cancel restore", and Continue sets up the master password
+   from the fields as in a setup, with the same checks.
+4. **Finishing**, either way: the `key` record is stored and the user
+   logged in as in a setup, then `PasswordModel.setPasswords()` stores the
+   entries and `SettingsBackup.apply()` the file's settings, and the list
+   opens, with `EXTRA_SHORT_PASSWORD` for a short kept password. If the
+   entries can't be stored, the `key` attribute is removed again and the
+   user logged out, so there is never a vault without them; the screen says
+   the backup could not be restored.
+
+The pending entries, the file's settings, its `Uri` and whether it is
+cleartext are kept across a rotation with `RetainedText`. In `onStop()`,
+unless the configuration changes, they are dropped and the notice is
+hidden, also when a decryption or a key derivation ends after the screen
+has left the foreground: nobody can pick up the phone later and finish a
+restore with a password of their own.
+
 ## 2FA codes
 
 ### Secrets
@@ -889,8 +930,9 @@ Other settings:
   Android 12 or later it doesn't stop a device-to-device transfer, so on
   some devices moving to a new phone can still copy the encrypted database.
 - The text fields of the add and edit screen (`add.xml`), login, setup,
-  password change and import password screens, the export's master password
-  dialog (`password_dialog.xml`) and the search field have
+  password change and import password screens, the master password dialog
+  of an export and of a restore (`password_dialog.xml`) and the search
+  field have
   `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
   `importantForAutofill="noExcludeDescendants"`.
 - The password, 2FA secret, 2FA code and generated password views, and the
@@ -898,7 +940,8 @@ Other settings:
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
 - The fields that hold secrets have `saveEnabled="false"`: the master
   password fields of the login, setup, password change and import password
-  screens and of the export's master password dialog, and the password, 2FA
+  screens and of the master password dialog of an export or a restore, and
+  the password, 2FA
   secret and note of the add and edit screen. A field otherwise saves its
   text in the saved instance state of its activity, which Android hands to
   the system process when the activity stops. The screens keep the text
@@ -994,6 +1037,11 @@ passphrase is out of reach.
 - Unencrypted exports are possible, with a warning. They ask for the master
   password, so a borrowed unlocked phone can't hand over the whole vault in
   the clear. After importing one, the app offers to delete it.
+- A backup can be restored on the welcome screen, before the first login.
+  Its decrypted entries wait there only while the screen is in the
+  foreground (and across a rotation), in a window with `FLAG_SECURE`, and
+  are dropped when it leaves. Keeping the backup's password creates a new
+  key record, never the one of the file.
 - Exports have a file format version. A newer format is refused, so an older
   app doesn't import a file and leave out what it doesn't know.
 - The settings are included in exports, except fingerprint unlock. Imported
@@ -1107,10 +1155,13 @@ Android 9 and later, off by default.
   in the recent apps. A password field shows each typed character for a
   moment, so a recording of the login screen would give the master password
   away, and the eye buttons of the setup and password change screens show
-  it whole. The 2FA QR code dialog and the master password dialog of an
-  unencrypted export set it too, since a dialog has its own window.
+  it whole. The setup screen also holds the decrypted entries of a backup
+  being restored. The 2FA QR code dialog and the master password dialogs of
+  an unencrypted export and of a restore set it too, since a dialog has its
+  own window.
 - On the entry, login, setup, password change, import password and search
-  screens, and in the master password dialog of an unencrypted export, the
+  screens, and in the master password dialogs of an unencrypted export and
+  of a restore, the
   keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
   autofill.

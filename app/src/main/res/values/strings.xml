@@ -227,6 +227,24 @@ would like to transfer this entry to</string>
 <string name="error_storage_full">the storage is full</string>
 <string name="error_logged_out">you have been logged out</string>
 <string name="error_not_encrypted">it could not be encrypted</string>
+<!-- Restoring a backup on the welcome screen, see InitializeActivity -->
+<string name="restore_backup">Restore from a backup</string>
+<string name="restore_cancel">Cancel restore</string>
+<!-- %1$s is the file name -->
+<plurals name="restore_notice">
+    <item quantity="one">%1$s: %2$d entry. Choose a master password to restore it.</item>
+    <item quantity="other">%1$s: %2$d entries. Choose a master password to restore them.</item>
+</plurals>
+<string name="restore_password_title">Backup password</string>
+<string name="restore_password_message">Enter the master password the backup was exported with.</string>
+<string name="restore_password_wrong">The password was wrong. Enter the master password the backup was exported with.</string>
+<string name="restore_keep_title">Master password</string>
+<string name="restore_keep_message">Use the backup\'s password as your master password?</string>
+<string name="restore_keep_message_short">Use the backup\'s password as your master password? It has fewer than %d characters, so choosing a new one is recommended.</string>
+<string name="restore_keep">Use it</string>
+<string name="restore_new">Choose a new one</string>
+<string name="restore_failed">The backup could not be restored.</string>
+<string name="no_file_app">No application available for opening files.</string>
 <!-- Back on the add and edit screens with unsaved changes -->
 <string name="discard_changes">Discard your changes?</string>
 <string name="discard">Discard</string>

@@ -170,6 +170,11 @@ on in Settings.
   settings in the file. The message after the import lists each setting it
   changed, with its old value.
 - After importing an unencrypted file, Passdroid++ offers to delete it.
+- **Restore a backup on the welcome screen**, before setting up a master
+  password: "Restore from a backup" picks the file. For an encrypted one,
+  enter the master password it was made with, then keep it as your master
+  password or choose a new one in the welcome screen's fields. A file in
+  the clear always takes a new one.
 
 ### Appearance
 
@@ -215,10 +220,11 @@ on in Settings.
 1. In the original app, go to Settings → Import / Export → Export to file,
    check "Encrypt the exported file" and export. It writes
    `passdroid_db.xml` to the phone's storage.
-2. In Passdroid++, set up a new master password of at least 12 characters.
-   Then go to Settings → Import / Export → Import from file, pick the file,
-   and enter the master password of the original app when you are asked for
-   it.
+2. In Passdroid++, tap "Restore from a backup" on the welcome screen, pick
+   the file, and enter the master password of the original app. Then choose
+   a new master password of at least 12 characters, since the original one
+   was used with the weak key. If Passdroid++ is set up already, go to
+   Settings → Import / Export → Import from file instead.
 3. Check that all entries are there. Then delete the export file and
    uninstall the original app.
 
@@ -233,7 +239,8 @@ email), and if one may have leaked, don't reuse that master password. See
 Android backup is off, so make an encrypted export now and then and keep it
 somewhere safe, e.g. on your computer. An export opens with the master
 password that was current when it was made, so make a new one after
-changing the master password.
+changing the master password. To move to a new phone, restore the export on
+the welcome screen of the freshly installed app.
 
 ## Changes from Passdroid 2.3
 
