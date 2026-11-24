@@ -57,6 +57,10 @@ public class EditActivity extends SherlockTimeoutActivity {
     private long passwordId;
 
     private static final String STATE_DATE = "date";
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = {
+        R.id.password, R.id.totp, R.id.note
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +105,10 @@ public class EditActivity extends SherlockTimeoutActivity {
             url.setText(entry.getDecUrl());
         }
 
+        // After the entry's values, so that a rotation keeps the changes
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
+
         date = new DateField((EditText) findViewById(R.id.date),
                              findViewById(R.id.date_clear),
                              savedInstanceState != null ?
@@ -122,6 +130,11 @@ public class EditActivity extends SherlockTimeoutActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(STATE_DATE, date.getValue());
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
     }
 
     /**

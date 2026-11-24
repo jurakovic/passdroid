@@ -46,6 +46,9 @@ import android.window.OnBackInvokedDispatcher;
  * Activity that displays the login screen and verifies the master password.
  */
 public class LoginActivity extends Activity {
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = { R.id.login_password };
+
     private Button loginButton;
     private Button fingerprintButton;
     private EditText passwordView;
@@ -98,6 +101,8 @@ public class LoginActivity extends Activity {
                 return false;
             }
         });
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
 
         loginButton = (Button) this.findViewById(R.id.login_button);
 
@@ -148,8 +153,6 @@ public class LoginActivity extends Activity {
             return;
         }
 
-        ((EditText) this.findViewById(R.id.login_password)).setText("");
-
         // Show the fingerprint prompt automatically, unless the user just
         // logged out
         if (updateFingerprintButton() && !biometricPromptShown &&
@@ -160,8 +163,19 @@ public class LoginActivity extends Activity {
     }
 
     @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
+
+        // Emptied when the screen is left, e.g. for the password list or
+        // another app, but kept across a rotation
+        if (passwordView != null && !isChangingConfigurations()) {
+            passwordView.setText("");
+        }
 
         // Show the fingerprint prompt again when we come back, also after
         // the user logged out
@@ -254,6 +268,9 @@ public class LoginActivity extends Activity {
         }
 
         final String password = passwordView.getText().toString();
+        // Not left in the field, which stays below the password list for
+        // the whole session
+        passwordView.setText("");
         final String record = new SystemData(this).getKey();
         final MasterKey [] keys = new MasterKey[2];
 
@@ -292,7 +309,7 @@ public class LoginActivity extends Activity {
         if (key == null) {
             Utils.alertDialog(this, "Login Failure",
             "The supplied password was incorrect.");
-            passwordView.selectAll();
+            passwordView.requestFocus();
             return;
         }
 

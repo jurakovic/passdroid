@@ -133,7 +133,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
 | Generator | `PasswordGenerator`, `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
-| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView` |
+| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView`, `RetainedText` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
@@ -440,7 +440,10 @@ Screens pass **only the entry id** in intents (`ShowActivity.EXTRA_ID`,
 decrypted values go through the system in intents. Two intents carry a
 secret that isn't stored yet: the generated password to
 `DisplayPasswordActivity`, and the text of a scanned QR code from
-`ScanActivity`.
+`ScanActivity`. The password for an encrypted import is handed back to
+`FileImportActivity` inside the process instead, like the generated password
+to the add and edit screens: `ImportPasswordActivity.takePassword()` returns
+it once and forgets it.
 
 - **`PasswordListActivity`**: `PasswordAdapter` filters by a lowercase
   substring of the system, username or email. The search field is an action
@@ -673,7 +676,9 @@ message then counts the entries that were exported incomplete.
    most 10 MB;
 2. detects the format by the first bytes (`sq2`, `sqt`, else XML);
 3. **encrypted**: tries the current session key first. If the key is
-   wrong, `ImportPasswordActivity` asks for the password, and
+   wrong, `ImportPasswordActivity` asks for the password, which
+   `FileImportActivity` takes with `takePassword()` on every result of that
+   screen, also when the session has ended meanwhile, and
    `parseEncryptedWithPassword()` derives the key: PBKDF2 with the salt and
    iterations from the header for `sq2`, the legacy HMAC for `sqt`.
    `FileImporterException.isWrongKey()` tells whether another password could
@@ -857,6 +862,17 @@ Other settings:
 - The password, 2FA secret, 2FA code and generated password views, and the
   master password fields of the setup and password change screens, have
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
+- The fields that hold secrets have `saveEnabled="false"`: the master
+  password fields of the login, setup, password change and import password
+  screens and of the export's master password dialog, and the password, 2FA
+  secret and note of the add and edit screen. A field otherwise saves its
+  text in the saved instance state of its activity, which Android hands to
+  the system process when the activity stops. The screens keep the text
+  across a rotation with `RetainedText` in
+  `onRetainNonConfigurationInstance()` instead, which stays in the process.
+  After the process has been killed, the screens of a session finish
+  themselves, so their text would be of no use, and the login and setup
+  screens start with empty fields.
 - Only `MainActivity` is exported. The timeout and screen off receivers are
   registered at runtime as not exported, with
   `ContextCompat.registerReceiver()` (`Utils.registerNotExportedReceiver()`):
@@ -1020,6 +1036,14 @@ Android 9 and later, off by default.
   2FA code only the code generator is kept.
 - Screens pass entries by their id, so no decrypted values go through the
   system process in intents.
+- Typed secrets aren't in the saved instance state either, which the system
+  process keeps for a stopped activity: the fields that hold them don't
+  save their text, and a rotation keeps it inside the process (see
+  [Android platform details](#android-platform-details)).
+- The login screen empties its field as soon as it has read the password,
+  and when it is left, so the master password doesn't stay in the field
+  below the password list for the whole session. The password for an
+  encrypted import is handed over inside the process too.
 - The last generated password is forgotten once it has been used.
 - Closed password list screens are released, so their decrypted list fields
   don't stay in memory after a logout.
@@ -1243,7 +1267,11 @@ release:
   leaves the app.
 - On the login screen, a screenshot is refused or black, and the recent
   apps show a blank preview. Logging in with the password and with the
-  fingerprint still works.
+  fingerprint still works. After a wrong password the field is empty, with
+  the cursor in it.
+- Import an `sq2` export made with an earlier master password: the password
+  screen asks for it, and the import works. Cancel on that screen returns
+  to the import screen.
 - Export over an existing, longer export file and import it again.
 - Export with "Encrypt the exported file" checked: the file picker opens
   right away. Unchecked: the master password dialog appears; Cancel stops,
@@ -1316,6 +1344,14 @@ release:
   offers no suggestions while a field is shown. After a rotation all fields
   are hidden and keep their text. On the setup screen a screenshot is
   refused, and the recent apps show a blank preview.
+- Rotate the add and the edit screen twice with text typed into every
+  field: every value stays, also the hidden password and 2FA secret. The
+  same for the master password fields of the login, setup, change password
+  and import password screens.
+- With the developer option "Don't keep activities" on, open the generator
+  from the add screen with every field filled in and go back: the system,
+  username, email, URL and date are back, the password, 2FA secret and note
+  are empty, since they aren't in the saved state.
 - Turn fingerprint unlock on and off, log in with it.
 - Open the password generator in portrait and landscape and change the
   length and the characters: the rating and the bar follow.

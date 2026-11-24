@@ -36,6 +36,11 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 public class ChangePasswordActivity extends TimeoutActivity {
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = {
+        R.id.old_master_password, R.id.master_password_1, R.id.master_password_2
+    };
+
     private boolean changing = false;
 
     @Override
@@ -57,6 +62,8 @@ public class ChangePasswordActivity extends TimeoutActivity {
         new PasswordToggle((EditText) findViewById(R.id.master_password_2),
                            (ImageButton) findViewById(R.id.master_password_2_toggle),
                            false);
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
 
         Button okButton = (Button) this.findViewById(R.id.ok_button);
         okButton.setOnClickListener(new OnClickListener() {
@@ -75,6 +82,11 @@ public class ChangePasswordActivity extends TimeoutActivity {
                 finish();
             }
         });
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
     }
 
     private void handleOK() {

@@ -19,7 +19,6 @@
 
 package com.kodholken.passdroid;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -27,7 +26,14 @@ import android.view.Window;
 import android.widget.EditText;
 
 public class ImportPasswordActivity extends TimeoutActivity {
+    // Kept across a rotation by RetainedText instead of the saved state
+    private static final int [] SECRET_FIELDS = { R.id.password };
+
     private EditText password;
+    // The password entered last, until FileImportActivity takes it. It is
+    // handed over in the process, not in the result intent, which would go
+    // through the system.
+    private static String enteredPassword;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,13 +42,15 @@ public class ImportPasswordActivity extends TimeoutActivity {
         this.setContentView(R.layout.import_password);
         
         password = (EditText) findViewById(R.id.password);
-        
+        RetainedText.restore(this, getLastNonConfigurationInstance(),
+                             SECRET_FIELDS);
+
         findViewById(R.id.ok_button).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent result = new Intent("com.kodholken.passdroid.IMPORT_PASSWORD_RESULT_ACTION");
-                result.putExtra("password", password.getText().toString());
-                setResult(RESULT_OK, result);
+                enteredPassword = password.getText().toString();
+                password.setText("");
+                setResult(RESULT_OK);
                 finish();
             }
         });
@@ -54,5 +62,23 @@ public class ImportPasswordActivity extends TimeoutActivity {
                 finish();
             }
         });
+    }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        return RetainedText.collect(this, SECRET_FIELDS);
+    }
+
+    /**
+     * Get the password the user entered and forget it, so it is only
+     * returned once.
+     *
+     * @return the password, or null if none was entered since the last
+     *         call.
+     */
+    public static String takePassword() {
+        String result = enteredPassword;
+        enteredPassword = null;
+        return result;
     }
 }
