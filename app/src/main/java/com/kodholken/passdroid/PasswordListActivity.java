@@ -439,7 +439,9 @@ implements PasswordModelListener {
                    .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                        @Override
                        public void onClick(DialogInterface dialog, int which) {
-                           if (Utils.deleteDocument(PasswordListActivity.this, file)) {
+                           boolean deleted = Utils.deleteDocument(PasswordListActivity.this, file);
+                           Utils.releaseDocumentAccess(PasswordListActivity.this, file);
+                           if (deleted) {
                                next.run();
                                return;
                            }
@@ -454,6 +456,7 @@ implements PasswordModelListener {
                    .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
                        @Override
                        public void onClick(DialogInterface dialog, int which) {
+                           Utils.releaseDocumentAccess(PasswordListActivity.this, file);
                            next.run();
                        }
                    });

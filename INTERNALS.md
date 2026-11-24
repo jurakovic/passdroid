@@ -771,7 +771,11 @@ shares the file reading (`FileImporter.read()`) and the parsing.
    `EXTRA_RESTORED_SETTINGS` (the settings that changed, as
    `SettingsBackup.describe()` lists them for an import) and, for a file in
    the clear, `EXTRA_RESTORED_FILE`, for which it asks whether to delete the
-   file (`Utils.deleteDocument()`). The reminder about a short master
+   file (`Utils.deleteDocument()`). The access the file picker grants ends
+   with the activity that picked the file, so the welcome screen keeps it
+   for the list with a persistable grant (`Utils.keepDocumentAccess()`),
+   which the list gives up once the question is answered
+   (`releaseDocumentAccess()`). The reminder about a short master
    password follows once that dialog is closed. If the
    entries can't be stored, the `key` attribute is removed again and the
    user logged out, so there is never a vault without them; the screen says

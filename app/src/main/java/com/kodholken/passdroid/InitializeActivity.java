@@ -88,10 +88,13 @@ public class InitializeActivity extends Activity {
         final PasswordEntry [] entries;
         final Map<String, String> settings;  // null if the file has none
         final boolean cleartext;
+        // The access the file picker granted, see Utils.keepDocumentAccess()
+        final int grantFlags;
 
-        PendingRestore(Uri uri, String name, FileImporter importer,
-                       boolean cleartext) {
+        PendingRestore(Uri uri, int grantFlags, String name,
+                       FileImporter importer, boolean cleartext) {
             this.uri = uri;
+            this.grantFlags = grantFlags;
             this.name = name;
             this.entries = importer.getPasswordEntries();
             this.settings = importer.getSettings();
@@ -314,14 +317,15 @@ public class InitializeActivity extends Activity {
         }
 
         Uri uri = data.getData();
+        int grantFlags = data.getFlags();
         String name = Utils.getDisplayName(this, uri);
         try {
             FileImporter importer = new FileImporter(FileImporter.read(getContentResolver(), uri));
             if (importer.isEncrypted()) {
-                askBackupPassword(importer, uri, name, false);
+                askBackupPassword(importer, uri, grantFlags, name, false);
             } else {
                 importer.parse();
-                setRestore(new PendingRestore(uri, name, importer, true));
+                setRestore(new PendingRestore(uri, grantFlags, name, importer, true));
             }
         } catch (Exception ex) {
             // FileImporterException, or IOException when reading the file
@@ -336,7 +340,8 @@ public class InitializeActivity extends Activity {
      * @param wrong true if the password entered before was wrong.
      */
     private void askBackupPassword(final FileImporter importer, final Uri uri,
-                                   final String name, boolean wrong) {
+                                   final int grantFlags, final String name,
+                                   boolean wrong) {
         View view = View.inflate(this, R.layout.password_dialog, null);
         final EditText field = (EditText) view.findViewById(R.id.dialog_password);
 
@@ -348,7 +353,8 @@ public class InitializeActivity extends Activity {
             .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    decryptBackup(importer, uri, name, field.getText().toString());
+                    decryptBackup(importer, uri, grantFlags, name,
+                                  field.getText().toString());
                 }
             })
             .setNegativeButton(R.string.cancel, null)
@@ -366,7 +372,8 @@ public class InitializeActivity extends Activity {
      * the key is slow.
      */
     private void decryptBackup(final FileImporter importer, final Uri uri,
-                               final String name, final String password) {
+                               final int grantFlags, final String name,
+                               final String password) {
         if (decrypting) {
             return;
         }
@@ -395,10 +402,10 @@ public class InitializeActivity extends Activity {
                 }
 
                 if (error[0] == null) {
-                    setRestore(new PendingRestore(uri, name, importer, false));
+                    setRestore(new PendingRestore(uri, grantFlags, name, importer, false));
                     askKeepPassword(password);
                 } else if (error[0].isWrongKey()) {
-                    askBackupPassword(importer, uri, name, true);
+                    askBackupPassword(importer, uri, grantFlags, name, true);
                 } else {
                     // E.g. a newer file format
                     showReadError(name, error[0]);
@@ -475,6 +482,9 @@ public class InitializeActivity extends Activity {
             }
         }
         if (restore.cleartext) {
+            // The list asks whether to delete the file. The access the file
+            // picker granted ends with this screen, so it is kept until then.
+            Utils.keepDocumentAccess(this, restore.uri, restore.grantFlags);
             intent.putExtra(PasswordListActivity.EXTRA_RESTORED_FILE, restore.uri);
         }
         startActivity(intent);
