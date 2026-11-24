@@ -126,7 +126,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
-| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField` |
+| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField`, `EntryDraft` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
@@ -181,8 +181,12 @@ when the process dies, the user is logged out.
 ### Logging out
 
 `Session.setLoggedIn(false)` is the single place where a logout happens,
-whatever the reason. It zeroes the key array, drops the reference, and calls
-`PasswordModel.clear()` to drop the decrypted entries. `logout()` (the menu
+whatever the reason. It calls the logout listeners with the key, then zeroes
+the key array, drops the reference, and calls `PasswordModel.clear()` to drop
+the decrypted entries. A `Session.LogoutListener`
+(`addLogoutListener()`, `removeLogoutListener()`) can still use the key in
+`beforeLogout()`, e.g. to encrypt something with it. A listener that throws
+a `RuntimeException` is logged and the logout goes on. `logout()` (the menu
 item and back on the list) also sets `loggedOutByUser`, so the login screen
 doesn't open the fingerprint prompt right away.
 
@@ -337,6 +341,7 @@ Every value in `data` except `id` is encrypted, see
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
 | `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
+| `entry_draft` | The unsaved changes of the add or edit screen, if any, until the next login (`EntryDraft`): `v1\|<entry id, -1 for a new entry>\|<saved at, ms>\|`, then the eight fields encrypted like an entry's, in the order of `PasswordData.COLUMNS` and separated by `\|`, each empty if it is `null` |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
 database. Either can trigger the upgrade, so both `onUpgrade()` methods only
@@ -1240,7 +1245,8 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
 | `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
-| `SessionTest` | Both kinds of logout wipe the key |
+| `SessionTest` | Both kinds of logout wipe the key; logout listeners get the key before it is wiped, a failing one doesn't stop the logout, and none is called without a key |
+| `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 | `VersionTest` | Equal versions have equal hash codes |

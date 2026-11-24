@@ -19,7 +19,9 @@
 
 package com.kodholken.passdroid;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -35,6 +37,14 @@ import android.preference.PreferenceManager;
  * the application.
  */
 public class Session {
+    /**
+     * Called at a logout, before the key is wiped, e.g. so that an editor
+     * can store its unsaved changes encrypted with it.
+     */
+    public interface LogoutListener {
+        void beforeLogout(byte [] key);
+    }
+
     public static final String TIMEOUT_ACTION = "com.kodholken.passdroid.TIMEOUT";
 
     // Time in seconds the application may be in the background before the
@@ -72,6 +82,8 @@ public class Session {
     private boolean passwordInClipboard;
 
     private boolean loggedOutByUser;
+
+    private final List<LogoutListener> logoutListeners = new ArrayList<LogoutListener>();
 
     private Session() {
         needReload = false;
@@ -114,10 +126,33 @@ public class Session {
             // Forget the key and the decrypted entries, whatever the reason
             // for the logout
             if (key != null) {
+                notifyLogoutListeners(key);
                 Arrays.fill(key, (byte) 0);
                 key = null;
             }
             PasswordModel.clear();
+        }
+    }
+
+    public void addLogoutListener(LogoutListener listener) {
+        if (!logoutListeners.contains(listener)) {
+            logoutListeners.add(listener);
+        }
+    }
+
+    public void removeLogoutListener(LogoutListener listener) {
+        logoutListeners.remove(listener);
+    }
+
+    private void notifyLogoutListeners(byte [] key) {
+        // A copy, since a listener may remove itself
+        for (LogoutListener listener : new ArrayList<LogoutListener>(logoutListeners)) {
+            try {
+                listener.beforeLogout(key);
+            } catch (RuntimeException ex) {
+                // The logout must happen all the same
+                Utils.error("A logout listener failed: " + ex);
+            }
         }
     }
 
