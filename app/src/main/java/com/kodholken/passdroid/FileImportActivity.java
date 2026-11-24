@@ -19,9 +19,6 @@
 
 package com.kodholken.passdroid;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -34,7 +31,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.DocumentsContract;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -42,10 +38,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class FileImportActivity extends SherlockTimeoutActivity {
-    // Larger files are not read, e.g. a video picked by mistake would not
-    // fit in memory. An export with thousands of entries is far smaller.
-    private static final int MAX_FILE_SIZE = 10 * 1024 * 1024;
-
 	private LinearLayout importLayout;
     private Button cancelButton;
     private Button importButton;
@@ -321,7 +313,7 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         alertDialog.setMessage(message);
         alertDialog.setButton(Dialog.BUTTON_POSITIVE, getString(R.string.yes), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                if (deleteImportFile()) {
+                if (Utils.deleteDocument(FileImportActivity.this, importUri)) {
                     finish();
                 } else {
                     showDialog(getString(R.string.failure),
@@ -338,16 +330,6 @@ public class FileImportActivity extends SherlockTimeoutActivity {
         alertDialog.show();
     }
 
-    private boolean deleteImportFile() {
-        try {
-            return DocumentsContract.deleteDocument(getContentResolver(), importUri);
-        } catch (Exception ex) {
-            // Not all document providers support deleting documents
-            ex.printStackTrace();
-            return false;
-        }
-    }
-
     private String formatString(String template, String file, int nFiles,
             String error) {
         // The file name is chosen by the user and may contain characters
@@ -357,39 +339,13 @@ public class FileImportActivity extends SherlockTimeoutActivity {
                 .replaceAll("%e", Matcher.quoteReplacement(error));
     }
 
-    /**
-     * Read the complete contents of a document.
-     */
-    private byte [] readFile(Uri uri) throws IOException {
-        InputStream input = getContentResolver().openInputStream(uri);
-        if (input == null) {
-            throw new IOException("Unable to open file");
-        }
-
-        try {
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            byte [] buffer = new byte[4096];
-            int nread;
-            while ((nread = input.read(buffer)) != -1) {
-                if (output.size() + nread > MAX_FILE_SIZE) {
-                    throw new IOException("The file is too large");
-                }
-                output.write(buffer, 0, nread);
-            }
-
-            return output.toByteArray();
-        } finally {
-            input.close();
-        }
-    }
-
     private void prepareImport() {
         String filename = Utils.getDisplayName(this, importUri);
 
         importLayout.setVisibility(View.VISIBLE);
 
         try {
-            fileImporter = new FileImporter(readFile(importUri));
+            fileImporter = new FileImporter(FileImporter.read(getContentResolver(), importUri));
 
             if (fileImporter.isEncrypted()) {
                 String desc2 = getString(R.string.import_description_encrypted_file_present, filename);

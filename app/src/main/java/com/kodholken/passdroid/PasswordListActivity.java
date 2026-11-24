@@ -27,6 +27,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -52,6 +53,12 @@ implements PasswordModelListener {
     // True if the user logged in with a master password that is shorter than
     // is required for new ones, see MasterKey.MIN_PASSWORD_LENGTH
     public static final String EXTRA_SHORT_PASSWORD = "short_password";
+    // After a backup was restored on the welcome screen: the number of
+    // entries, the settings it changed as SettingsBackup.describe() lists
+    // them (if any), and the file if it isn't encrypted
+    public static final String EXTRA_RESTORED = "restored";
+    public static final String EXTRA_RESTORED_SETTINGS = "restored_settings";
+    public static final String EXTRA_RESTORED_FILE = "restored_file";
 
     private static final int OPTION_MENU_ADD      = 1;
     private static final int OPTION_MENU_SETTINGS = 3;
@@ -70,6 +77,15 @@ implements PasswordModelListener {
     private boolean passwordCounterIsVisible = false;
 
     private PasswordAdapter passwordAdapter = null;
+
+    // The result of a restore and the reminder about a short master
+    // password, while they are still to be shown or answered. A rotation
+    // closes them without dismissing them, so they are shown again after
+    // it, as is the offer of a draft, as long as the draft exists.
+    private boolean restoreResultPending;
+    private boolean reminderPending;
+    private static final String STATE_RESTORE_RESULT = "restore_result_pending";
+    private static final String STATE_REMINDER = "reminder_pending";
 
     // The text of the search, null while it is closed. A reload of the list
     // creates a new adapter, which gets it too.
@@ -98,14 +114,20 @@ implements PasswordModelListener {
         // Make sure the password entries is loaded from the database
         Session.getInstance().setNeedReload(true);
 
-        // Once after the login, not when the activity is created again
-        boolean shortPassword = savedInstanceState == null &&
-                getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
-        if (savedInstanceState == null && EntryDraft.exists(this)) {
-            offerDraft(shortPassword);
-        } else if (shortPassword) {
-            showShortPasswordReminder();
+        // Once after the login, and again after a rotation until answered
+        if (savedInstanceState == null) {
+            // The access to a restored file whose delete question wasn't
+            // answered, e.g. because of a logout, isn't needed any more
+            Uri restoredFile = getIntent().getParcelableExtra(EXTRA_RESTORED_FILE);
+            Utils.releaseDocumentAccessExcept(this, restoredFile);
+
+            restoreResultPending = getIntent().hasExtra(EXTRA_RESTORED);
+            reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
+        } else {
+            restoreResultPending = savedInstanceState.getBoolean(STATE_RESTORE_RESULT);
+            reminderPending = savedInstanceState.getBoolean(STATE_REMINDER);
         }
+        showLoginDialogs();
 
         emptyListHelp = (TextView) findViewById(R.id.empty_list_help);
         
@@ -146,6 +168,13 @@ implements PasswordModelListener {
         }
     }
     
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(STATE_RESTORE_RESULT, restoreResultPending);
+        outState.putBoolean(STATE_REMINDER, reminderPending);
+    }
+
     @Override
     protected void onDestroy() {
         // The model outlives the screen, which would otherwise be kept with
@@ -383,24 +412,103 @@ implements PasswordModelListener {
     }
 
     /**
-     * Suggest changing a master password that is too short to be set now.
+     * Show the next of the dialogs after a login: the result of a restore,
+     * the offer of a draft, the reminder about a short master password.
      */
+    private void showLoginDialogs() {
+        if (isFinishing()) {
+            return;
+        }
+
+        if (restoreResultPending) {
+            showRestoreResult();
+        } else if (EntryDraft.exists(this)) {
+            // A list finds one only until the offer is answered: an editor
+            // deletes the draft it stored when it is back in front
+            offerDraft();
+        } else {
+            showReminderIfPending();
+        }
+    }
+
+    private void showReminderIfPending() {
+        if (reminderPending && !isFinishing()) {
+            showShortPasswordReminder();
+        }
+    }
+
     /**
-     * Offer the unsaved changes kept at the last logout, see EntryDraft.
-     *
-     * @param shortPassword show the reminder about a short master password
-     *                      once the dialog is closed.
+     * Report a backup restored on the welcome screen, and offer to delete
+     * it if it isn't encrypted, as the import does.
      */
-    private void offerDraft(final boolean shortPassword) {
-        DialogInterface.OnDismissListener next = new DialogInterface.OnDismissListener() {
+    private void showRestoreResult() {
+        final Runnable next = new Runnable() {
+            @Override
+            public void run() {
+                restoreResultPending = false;
+                showLoginDialogs();
+            }
+        };
+        final DialogInterface.OnDismissListener nextOnDismiss = new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {
-                if (shortPassword && !isFinishing()) {
-                    showShortPasswordReminder();
-                }
+                next.run();
             }
         };
 
+        int count = getIntent().getIntExtra(EXTRA_RESTORED, 0);
+        String message = getResources().getQuantityString(R.plurals.restore_done,
+                                                          count, count);
+        String settings = getIntent().getStringExtra(EXTRA_RESTORED_SETTINGS);
+        if (settings != null) {
+            message += "\n\n" + getString(R.string.import_settings_changed) +
+                       "\n" + settings;
+        }
+
+        final Uri file = getIntent().getParcelableExtra(EXTRA_RESTORED_FILE);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+            .setTitle(R.string.success);
+        if (file == null) {
+            builder.setMessage(message)
+                   .setPositiveButton(R.string.ok, null)
+                   .setOnDismissListener(nextOnDismiss);
+        } else {
+            builder.setMessage(message + "\n\n" + getString(R.string.restore_delete_question))
+                   .setCancelable(false)
+                   .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+                       @Override
+                       public void onClick(DialogInterface dialog, int which) {
+                           boolean deleted = Utils.deleteDocument(PasswordListActivity.this, file);
+                           Utils.releaseDocumentAccess(PasswordListActivity.this, file);
+                           if (deleted) {
+                               next.run();
+                               return;
+                           }
+                           // Answered, also if a rotation closes the message
+                           restoreResultPending = false;
+                           new AlertDialog.Builder(PasswordListActivity.this)
+                               .setTitle(R.string.failure)
+                               .setMessage(R.string.restore_delete_failed)
+                               .setPositiveButton(R.string.ok, null)
+                               .setOnDismissListener(nextOnDismiss)
+                               .show();
+                       }
+                   })
+                   .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                       @Override
+                       public void onClick(DialogInterface dialog, int which) {
+                           Utils.releaseDocumentAccess(PasswordListActivity.this, file);
+                           next.run();
+                       }
+                   });
+        }
+        builder.show();
+    }
+
+    /**
+     * Offer the unsaved changes kept at the last logout, see EntryDraft.
+     */
+    private void offerDraft() {
         final EntryDraft.Draft draft = EntryDraft.load(this, Session.getInstance().getKey());
         if (draft == null) {
             // E.g. stored with a legacy key that the login has replaced
@@ -408,7 +516,12 @@ implements PasswordModelListener {
             new AlertDialog.Builder(this)
                 .setMessage(R.string.draft_lost)
                 .setPositiveButton(R.string.ok, null)
-                .setOnDismissListener(next)
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        showReminderIfPending();
+                    }
+                })
                 .show();
             return;
         }
@@ -432,15 +545,16 @@ implements PasswordModelListener {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     continueDraft(entry);
+                    showReminderIfPending();
                 }
             })
             .setNegativeButton(R.string.discard, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     EntryDraft.delete(PasswordListActivity.this);
+                    showReminderIfPending();
                 }
             })
-            .setOnDismissListener(next)
             .show();
     }
 
@@ -461,6 +575,9 @@ implements PasswordModelListener {
         startActivity(intent);
     }
 
+    /**
+     * Suggest changing a master password that is too short to be set now.
+     */
     private void showShortPasswordReminder() {
         new AlertDialog.Builder(this)
             .setTitle(R.string.master_password_short_title)
@@ -474,6 +591,13 @@ implements PasswordModelListener {
                 }
             })
             .setNegativeButton(R.string.later, null)
+            .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    // Answered; a rotation closes it without this
+                    reminderPending = false;
+                }
+            })
             .show();
     }
 

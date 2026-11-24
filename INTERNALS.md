@@ -159,7 +159,8 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 3. `InitializeActivity` creates the master key from the new password (at
    least 12 characters), stores the record and logs in. Its two fields have
    eye buttons (`PasswordToggle`), as do the three of
-   `ChangePasswordActivity`.
+   `ChangePasswordActivity`. It can also restore a backup before there is a
+   master password, see [Restoring on the welcome screen](#restoring-on-the-welcome-screen).
 4. `LoginActivity` derives the key in a background thread, runs the data
    migrations (`DbMigration.postLoginMigration()`), upgrades a legacy master
    key (see [Master key](#master-key)), and starts `PasswordListActivity`. It
@@ -458,11 +459,18 @@ it once and forgets it.
   whole width it is offered. A long press asks whether to copy the password,
   which is decrypted only on "Yes". The entry is taken from the adapter, not
   the model, so the right one is used while the list is filtered.
-  Once after a login (`savedInstanceState == null`), if there is a draft of
-  unsaved changes (see below), it asks "You have an unsaved entry from
-  <time> (<system>). Continue editing it?", before the reminder about a
-  short master password. The dialog can't be dismissed without an answer.
-  Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
+  After a login it shows, one after the other: the result of a restore on
+  the welcome screen (see
+  [Restoring on the welcome screen](#restoring-on-the-welcome-screen)); if
+  there is a draft of unsaved changes (see below), "You have an unsaved
+  entry from <time> (<system>). Continue editing it?"; and the reminder
+  about a short master password. A rotation closes them without dismissing
+  them, so the list keeps in its saved state which are still to come or
+  unanswered, and shows them again; only the note that a draft could not
+  be restored isn't, since that draft is deleted when the note is shown. It
+  offers a draft whenever one exists: a list only finds one until the offer
+  is answered, since an editor deletes the draft it stored once it is back
+  in front. The offer can't be dismissed without an answer. Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
   or the add screen if the draft is of a new entry or its entry is gone;
   Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
   legacy key that the login has replaced, is deleted, and the list says it
@@ -707,7 +715,7 @@ message then counts the entries that were exported incomplete.
 `FileImportActivity`:
 
 1. picks a file with `ACTION_OPEN_DOCUMENT` and reads it into memory, at
-   most 10 MB;
+   most 10 MB (`FileImporter.read()`);
 2. detects the format by the first bytes (`sq2`, `sqt`, else XML);
 3. **encrypted**: tries the current session key first. If the key is
    wrong, `ImportPasswordActivity` asks for the password, which
@@ -720,7 +728,8 @@ message then counts the entries that were exported incomplete.
    such as a newer format, is an error of the file and is shown as such.
    `sqt` is not authenticated, so all its errors count as a wrong key;
 4. **cleartext**: parsed directly; afterwards the app offers to delete the
-   file (`DocumentsContract.deleteDocument()`);
+   file (`Utils.deleteDocument()`, which calls
+   `DocumentsContract.deleteDocument()`);
 5. stores the entries with `PasswordModel.setPasswords()`, which **replaces
    all entries**, and applies the settings of the file with
    `SettingsBackup.apply()`. The message lists the settings that changed,
@@ -733,6 +742,61 @@ another encoding. It then rejects a document type declaration before the root
 element (`hasDoctype()`): Android's parser doesn't support turning off entity
 expansion, and a DTD could define entities that expand to gigabytes. Values
 inside the elements may contain the same text.
+
+### Restoring on the welcome screen
+
+`InitializeActivity` restores a backup before any master password exists.
+It can't use `FileImportActivity`, which, like `ImportPasswordActivity`,
+extends a timeout base class and finishes when nobody is logged in; it
+shares the file reading (`FileImporter.read()`) and the parsing.
+
+1. "Restore from a backup" picks a file with `ACTION_OPEN_DOCUMENT`,
+   without the extended timeout, since nobody is logged in. A file that
+   can't be read or parsed shows the `import_description_failure` text,
+   and the screen stays as it was.
+2. **Encrypted**: a dialog asks for the password the file was exported
+   with, in the field of `password_dialog.xml`, with `FLAG_SECURE` on its
+   window. `parseEncryptedWithPassword()` decrypts it in
+   `Utils.runWithProgress()`. A wrong password (`isWrongKey()`) asks again,
+   another error shows the read error. After a success the screen asks
+   whether to keep that password as the master password, and recommends a
+   new one if it is shorter than `MasterKey.MIN_PASSWORD_LENGTH`. Keeping
+   it creates a fresh key record with `MasterKey.create()`, as a setup
+   does: a new salt and the current iteration count, also for a legacy
+   `sqt` export, at the cost of a second key derivation.
+3. **Cleartext**, or "Choose a new one": the backup is **pending**. The
+   notice above the fields names the file and the number of entries, the
+   button reads "Cancel restore", and Continue sets up the master password
+   from the fields as in a setup, with the same checks.
+4. **Finishing**, either way: the `key` record is stored and the user
+   logged in as in a setup, then `PasswordModel.setPasswords()` stores the
+   entries and `SettingsBackup.apply()` the file's settings, and the list
+   opens, with `EXTRA_SHORT_PASSWORD` for a short kept password. The list
+   reports the restore, so that its timeouts already apply while the
+   message is open: `EXTRA_RESTORED` (the number of entries),
+   `EXTRA_RESTORED_SETTINGS` (the settings that changed, as
+   `SettingsBackup.describe()` lists them for an import) and, for a file in
+   the clear, `EXTRA_RESTORED_FILE`, for which it asks whether to delete the
+   file (`Utils.deleteDocument()`). The access the file picker grants ends
+   with the activity that picked the file, so the welcome screen keeps it
+   for the list with a persistable grant (`Utils.keepDocumentAccess()`),
+   which the list gives up once the question is answered
+   (`releaseDocumentAccess()`). A question that is never answered, e.g.
+   because of a logout, leaves the grant behind; the list gives up every
+   such grant when it opens after the next login
+   (`releaseDocumentAccessExcept()`). No other code keeps grants. The reminder about a short master
+   password follows once that dialog is closed. If the
+   entries can't be stored, the `key` attribute is removed again and the
+   user logged out, so there is never a vault without them; the screen says
+   the backup could not be restored.
+
+The pending entries, the file's settings, its `Uri` and whether it is
+cleartext are kept across a rotation with `RetainedText`. In `onStop()`,
+unless the configuration changes, they are dropped, the notice is hidden
+and the question whether to keep the backup's password is closed. They are
+dropped also when a decryption or a key derivation ends after the screen
+has left the foreground: nobody can pick up the phone later and finish a
+restore with a password of their own.
 
 ## 2FA codes
 
@@ -889,8 +953,9 @@ Other settings:
   Android 12 or later it doesn't stop a device-to-device transfer, so on
   some devices moving to a new phone can still copy the encrypted database.
 - The text fields of the add and edit screen (`add.xml`), login, setup,
-  password change and import password screens, the export's master password
-  dialog (`password_dialog.xml`) and the search field have
+  password change and import password screens, the master password dialog
+  of an export and of a restore (`password_dialog.xml`) and the search
+  field have
   `imeOptions="flagNoPersonalizedLearning"`, and these layouts have
   `importantForAutofill="noExcludeDescendants"`.
 - The password, 2FA secret, 2FA code and generated password views, and the
@@ -898,8 +963,8 @@ Other settings:
   `accessibilityDataSensitive="yes"` (ignored before Android 14).
 - The fields that hold secrets have `saveEnabled="false"`: the master
   password fields of the login, setup, password change and import password
-  screens and of the export's master password dialog, and the password, 2FA
-  secret and note of the add and edit screen. A field otherwise saves its
+  screens and of the master password dialog of an export or a restore, and
+  the password, 2FA secret and note of the add and edit screen. A field otherwise saves its
   text in the saved instance state of its activity, which Android hands to
   the system process when the activity stops. The screens keep the text
   across a rotation with `RetainedText` in
@@ -996,6 +1061,11 @@ passphrase is out of reach.
 - Unencrypted exports are possible, with a warning. They ask for the master
   password, so a borrowed unlocked phone can't hand over the whole vault in
   the clear. After importing one, the app offers to delete it.
+- A backup can be restored on the welcome screen, before the first login.
+  Its decrypted entries wait there only while the screen is in the
+  foreground (and across a rotation), in a window with `FLAG_SECURE`, and
+  are dropped when it leaves. Keeping the backup's password creates a new
+  key record, never the one of the file.
 - Exports have a file format version. A newer format is refused, so an older
   app doesn't import a file and leave out what it doesn't know.
 - The settings are included in exports, except fingerprint unlock. Imported
@@ -1109,10 +1179,13 @@ Android 9 and later, off by default.
   in the recent apps. A password field shows each typed character for a
   moment, so a recording of the login screen would give the master password
   away, and the eye buttons of the setup and password change screens show
-  it whole. The 2FA QR code dialog and the master password dialog of an
-  unencrypted export set it too, since a dialog has its own window.
+  it whole. The setup screen also holds the decrypted entries of a backup
+  being restored. The 2FA QR code dialog and the master password dialogs of
+  an unencrypted export and of a restore set it too, since a dialog has its
+  own window.
 - On the entry, login, setup, password change, import password and search
-  screens, and in the master password dialog of an unencrypted export, the
+  screens, and in the master password dialogs of an unencrypted export and
+  of a restore, the
   keyboard is asked not to learn from the text fields
   (`flagNoPersonalizedLearning`), and these screens are excluded from
   autofill.
@@ -1307,6 +1380,26 @@ release:
   apps show a blank preview. Logging in with the password and with the
   fingerprint still works. After a wrong password the field is empty, with
   the cursor in it.
+- On a fresh install, or after clearing the app's data, restore from the
+  welcome screen:
+  - an encrypted export with its password, keeping it: the list says how
+    many entries were restored and which settings changed, and logging out
+    and in again works with that password. A wrong password asks again,
+    Cancel returns to the welcome screen;
+  - an encrypted export, choosing a new password: the notice names the file
+    and the number of entries; a too short or mismatched password is
+    refused as in a setup; afterwards only the new password logs in, and a
+    new encrypted export opens with it;
+  - an unencrypted export: the list asks whether to delete the file, and
+    both answers work;
+  - an export of the original Passdroid, with its password and a new
+    master password: the entries are there;
+  - keeping a backup password shorter than 12 characters: the reminder
+    follows the list's message;
+  - a pending restore survives a rotation; going home and back drops it,
+    with the notice, and the button reads "Restore from a backup" again;
+  - a file that isn't an export shows the read error, and the screen still
+    works. A setup without a restore works as before.
 - Import an `sq2` export made with an earlier master password: the password
   screen asks for it, and the import works. Cancel on that screen returns
   to the import screen.
@@ -1593,7 +1686,7 @@ Use the debug app for test vaults only.
 - The 2FA codes screen redraws the bar 20 times a second and computes all
   codes again every second.
 - Two loops read a whole stream, `FileImporter.readAll()` and
-  `FileImportActivity.readFile()`; only the second has the size limit.
+  `FileImporter.read()`; only the second has the size limit.
 - A very deeply nested import file can crash the app (`StackOverflowError`
   is not caught). Only a file the user picks; nothing is lost.
 - A carriage return in a value comes back as a line feed after export and

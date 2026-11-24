@@ -29,6 +29,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.UriPermission;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteFullException;
@@ -36,6 +37,7 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PersistableBundle;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
@@ -154,6 +156,86 @@ public class Utils {
         // Android 13 and later confirm copying to the clipboard themselves
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Toast.makeText(context, R.string.totp_code_copied, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Delete a document of the Storage Access Framework, e.g. an imported
+     * file in the clear.
+     *
+     * @return false if it could not be deleted.
+     */
+    public static boolean deleteDocument(Context context, Uri uri) {
+        try {
+            return DocumentsContract.deleteDocument(context.getContentResolver(), uri);
+        } catch (Exception ex) {
+            // Not all document providers support deleting documents
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Keep the access to a document that the system file picker granted
+     * after the activity that picked it has finished, e.g. to delete it from
+     * another screen. Release it with releaseDocumentAccess().
+     *
+     * @param flags the FLAG_GRANT_READ_URI_PERMISSION and
+     *              FLAG_GRANT_WRITE_URI_PERMISSION of the picker's result.
+     * @return false if the access can't be kept.
+     */
+    public static boolean keepDocumentAccess(Context context, Uri uri, int flags) {
+        flags &= Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+        try {
+            context.getContentResolver().takePersistableUriPermission(uri, flags);
+            return true;
+        } catch (SecurityException ex) {
+            // The picker didn't grant a persistable access
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Give up the access that keepDocumentAccess() kept, if any.
+     */
+    public static void releaseDocumentAccess(Context context, Uri uri) {
+        for (UriPermission permission :
+             context.getContentResolver().getPersistedUriPermissions()) {
+            if (permission.getUri().equals(uri)) {
+                release(context, permission);
+            }
+        }
+    }
+
+    /**
+     * Give up every access that keepDocumentAccess() kept, except the one to
+     * a document, e.g. one still to be released after a question. An access
+     * whose question was never answered, e.g. because of a logout, is
+     * released this way.
+     *
+     * @param keep the document whose access is kept, or null.
+     */
+    public static void releaseDocumentAccessExcept(Context context, Uri keep) {
+        for (UriPermission permission :
+             context.getContentResolver().getPersistedUriPermissions()) {
+            if (!permission.getUri().equals(keep)) {
+                release(context, permission);
+            }
+        }
+    }
+
+    private static void release(Context context, UriPermission permission) {
+        int flags = (permission.isReadPermission() ?
+                     Intent.FLAG_GRANT_READ_URI_PERMISSION : 0) |
+                    (permission.isWritePermission() ?
+                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION : 0);
+        try {
+            context.getContentResolver().releasePersistableUriPermission(
+                    permission.getUri(), flags);
+        } catch (SecurityException ex) {
+            ex.printStackTrace();
         }
     }
 

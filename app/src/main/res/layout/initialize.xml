@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<!-- Scrolls so that everything stays reachable with the keyboard open -->
+<ScrollView
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools"
   android:importantForAutofill="noExcludeDescendants"
   tools:targetApi="o"
-  android:layout_width="wrap_content"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent">
+
+<LinearLayout
+  android:layout_width="fill_parent"
   android:layout_height="wrap_content"
   android:padding="10dip"
   android:orientation="vertical">
@@ -21,6 +26,16 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"/>
   
+  <!-- Shown while a backup waits for a master password, see
+       InitializeActivity -->
+  <TextView
+    android:id="@+id/restore_notice"
+    android:paddingTop="10dip"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:textStyle="bold"
+    android:visibility="gone"/>
+
   <TextView
     android:paddingTop="10dip"
     android:text="@string/enter_password"
@@ -103,5 +118,14 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:text="@string/continue_s"/>
-  
+
+  <Button
+    android:id="@+id/restore_button"
+    style="?android:attr/borderlessButtonStyle"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:text="@string/restore_backup"/>
+
 </LinearLayout>
+
+</ScrollView>

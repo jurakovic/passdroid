@@ -46,9 +46,15 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import android.content.ContentResolver;
+import android.net.Uri;
 import android.util.Log;
 
 public class FileImporter {
+    // Larger files are not read, e.g. a video picked by mistake would not
+    // fit in memory. An export with thousands of entries is far smaller.
+    static final int MAX_FILE_SIZE = 10 * 1024 * 1024;
+
     private byte [] data;
     private PasswordEntry[] passwordEntries;
     private Map<String, String> settings;
@@ -143,6 +149,33 @@ public class FileImporter {
                 return false;
             }
             i += end.length();
+        }
+    }
+
+    /**
+     * Read the complete contents of a document to import, at most
+     * MAX_FILE_SIZE bytes.
+     */
+    public static byte [] read(ContentResolver resolver, Uri uri) throws IOException {
+        InputStream input = resolver.openInputStream(uri);
+        if (input == null) {
+            throw new IOException("Unable to open file");
+        }
+
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte [] buffer = new byte[4096];
+            int nread;
+            while ((nread = input.read(buffer)) != -1) {
+                if (output.size() + nread > MAX_FILE_SIZE) {
+                    throw new IOException("The file is too large");
+                }
+                output.write(buffer, 0, nread);
+            }
+
+            return output.toByteArray();
+        } finally {
+            input.close();
         }
     }
 
