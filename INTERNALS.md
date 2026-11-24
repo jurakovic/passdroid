@@ -126,7 +126,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
-| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField` |
+| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField`, `EntryDraft` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
@@ -168,7 +168,8 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
 Back handling: back on the login screen and on the welcome screen exits the
 app. It sets `Session.setExitMain(true)` so that `MainActivity` finishes
 itself instead of starting that screen again. Back on the password list
-closes the search, or else asks whether to log out. On Android 13 and later
+closes the search, or else asks whether to log out. Back on the add and
+edit screens asks whether to discard unsaved changes, if there are any. On Android 13 and later
 back is handled with an `OnBackInvokedCallback`, since Android 16 doesn't
 deliver `onBackPressed()` to apps that target it.
 
@@ -181,8 +182,12 @@ when the process dies, the user is logged out.
 ### Logging out
 
 `Session.setLoggedIn(false)` is the single place where a logout happens,
-whatever the reason. It zeroes the key array, drops the reference, and calls
-`PasswordModel.clear()` to drop the decrypted entries. `logout()` (the menu
+whatever the reason. It calls the logout listeners with the key, then zeroes
+the key array, drops the reference, and calls `PasswordModel.clear()` to drop
+the decrypted entries. A `Session.LogoutListener`
+(`addLogoutListener()`, `removeLogoutListener()`) can still use the key in
+`beforeLogout()`, e.g. to encrypt something with it. A listener that throws
+a `RuntimeException` is logged and the logout goes on. `logout()` (the menu
 item and back on the list) also sets `loggedOutByUser`, so the login screen
 doesn't open the fingerprint prompt right away.
 
@@ -337,6 +342,7 @@ Every value in `data` except `id` is encrypted, see
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
 | `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
+| `entry_draft` | The unsaved changes of the add or edit screen, if any, until the next login (`EntryDraft`): `v1\|<entry id, -1 for a new entry>\|<saved at, ms>\|`, then the eight fields encrypted like an entry's, in the order of `PasswordData.COLUMNS` and separated by `\|`, each empty if it is `null` |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
 database. Either can trigger the upgrade, so both `onUpgrade()` methods only
@@ -452,6 +458,15 @@ it once and forgets it.
   whole width it is offered. A long press asks whether to copy the password,
   which is decrypted only on "Yes". The entry is taken from the adapter, not
   the model, so the right one is used while the list is filtered.
+  Once after a login (`savedInstanceState == null`), if there is a draft of
+  unsaved changes (see below), it asks "You have an unsaved entry from
+  <time> (<system>). Continue editing it?", before the reminder about a
+  short master password. The dialog can't be dismissed without an answer.
+  Continue opens the edit screen of the draft's entry with `EXTRA_DRAFT`,
+  or the add screen if the draft is of a new entry or its entry is gone;
+  Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
+  legacy key that the login has replaced, is deleted, and the list says it
+  could not be restored.
 - **`ShowActivity`**: decrypts the note, URL and date for display, and the
   2FA secret once into a `Totp` generator for the live code, refreshed every
   second. The password and the 2FA secret are shown with `PasswordToggle` in
@@ -468,6 +483,25 @@ it once and forgets it.
   required, as on `AddActivity`.
 - **`AddActivity`**: inserts a new row. The date defaults to the current
   time.
+- **Unsaved changes** on the add and edit screens: the values that differ
+  from those the screen opened with (`initialValues`, kept across a
+  rotation; `EntryDraft.differ()`). Back with changes asks "Discard your
+  changes?", with Discard and Keep editing. They are kept as a **draft**
+  (`EntryDraft`), encrypted with the session key like an entry, in the
+  `entry_draft` attribute:
+  - at a logout, from a logout listener of the screen, whatever the reason
+    for the logout, unless the screen is finishing after a save or Discard.
+    The screen then empties its fields, and is finished as any screen after
+    a logout;
+  - when the screen stops without finishing or rotating, e.g. for the
+    generator or another app, since Android may kill the process in the
+    background without a logout. `onResume()` deletes it again while the
+    user is still logged in, since the screen still has the changes.
+
+  A save and Discard delete it, as does Discard in the list's offer after
+  the next login. With `EXTRA_DRAFT`, the screen fills its
+  fields from the draft once it is set up, so they count as changes; the
+  edit screen only from a draft of its entry.
 - A save on the add and edit screens counts only with the session key,
   every field encrypted (`PasswordEntry.isEncrypted()`) and exactly one row
   written; a delete on the entry screen only if exactly one row was
@@ -1045,6 +1079,9 @@ Android 9 and later, off by default.
   below the password list for the whole session. The password for an
   encrypted import is handed over inside the process too.
 - The last generated password is forgotten once it has been used.
+- Unsaved changes of the add and edit screens are stored at a logout as a
+  draft encrypted with the vault key, like an entry, until the next login;
+  the screen then empties its fields. Nothing decrypted is stored.
 - Closed password list screens are released, so their decrypted list fields
   don't stay in memory after a logout.
 - Limits: the key is in memory while the user is logged in, and decrypted
@@ -1242,7 +1279,8 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
 | `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
-| `SessionTest` | Both kinds of logout wipe the key |
+| `SessionTest` | Both kinds of logout wipe the key; logout listeners get the key before it is wiped, a failing one doesn't stop the logout, and none is called without a key |
+| `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one; editor values compared field by field |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 | `VersionTest` | Equal versions have equal hash codes |
@@ -1313,6 +1351,17 @@ release:
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
   same codes.
 - Edit an entry, clear the system name and save: it is refused.
+- On the add and the edit screen, Back without changes closes at once. With
+  a change it asks first: Keep editing keeps the change, Discard closes the
+  screen. A rotation with changes asks nothing.
+- With the default settings (logout after 5 seconds), on the add screen
+  type a system and generate a password, then switch to another app for 10
+  seconds and come back: the login screen. After the login the list offers
+  the unsaved entry by its system and time; Continue shows the values, and
+  Save stores them. The same on the edit screen opens that entry with the
+  changes, and Discard leaves the entry as it was. Turning the screen off
+  with the editor in front, then logging in, offers the draft too. Without
+  changes, or after Back and Discard, nothing is offered.
 - In a debug build, open an entry's edit screen and change the password,
   then make the database read-only with
   `adb shell run-as com.jurakovic.passdroid.debug chmod 400 databases/password.db`.

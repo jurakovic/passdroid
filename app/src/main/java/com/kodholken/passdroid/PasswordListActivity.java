@@ -19,6 +19,8 @@
 
 package com.kodholken.passdroid;
 
+import java.util.Date;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 
@@ -97,8 +99,11 @@ implements PasswordModelListener {
         Session.getInstance().setNeedReload(true);
 
         // Once after the login, not when the activity is created again
-        if (savedInstanceState == null &&
-            getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false)) {
+        boolean shortPassword = savedInstanceState == null &&
+                getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
+        if (savedInstanceState == null && EntryDraft.exists(this)) {
+            offerDraft(shortPassword);
+        } else if (shortPassword) {
             showShortPasswordReminder();
         }
 
@@ -380,6 +385,82 @@ implements PasswordModelListener {
     /**
      * Suggest changing a master password that is too short to be set now.
      */
+    /**
+     * Offer the unsaved changes kept at the last logout, see EntryDraft.
+     *
+     * @param shortPassword show the reminder about a short master password
+     *                      once the dialog is closed.
+     */
+    private void offerDraft(final boolean shortPassword) {
+        DialogInterface.OnDismissListener next = new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                if (shortPassword && !isFinishing()) {
+                    showShortPasswordReminder();
+                }
+            }
+        };
+
+        final EntryDraft.Draft draft = EntryDraft.load(this, Session.getInstance().getKey());
+        if (draft == null) {
+            // E.g. stored with a legacy key that the login has replaced
+            EntryDraft.delete(this);
+            new AlertDialog.Builder(this)
+                .setMessage(R.string.draft_lost)
+                .setPositiveButton(R.string.ok, null)
+                .setOnDismissListener(next)
+                .show();
+            return;
+        }
+
+        final PasswordEntry entry = draft.entryId >= 0 ?
+                PasswordModel.getInstance(this).getById(draft.entryId) : null;
+        String name = draft.values.getDecSystem();
+        if (name == null || name.trim().isEmpty()) {
+            name = entry != null ? Utils.systemName(this, entry) :
+                                   getString(R.string.draft_new_entry);
+        }
+        String time = DateField.format(this, DateField.toValue(new Date(draft.savedAt), true));
+
+        new AlertDialog.Builder(this)
+            .setTitle(R.string.draft_title)
+            .setMessage(getString(R.string.draft_message, time, name))
+            // Answered either way, so that an editor opened later doesn't
+            // replace it unseen
+            .setCancelable(false)
+            .setPositiveButton(R.string.draft_continue, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    continueDraft(entry);
+                }
+            })
+            .setNegativeButton(R.string.discard, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    EntryDraft.delete(PasswordListActivity.this);
+                }
+            })
+            .setOnDismissListener(next)
+            .show();
+    }
+
+    /**
+     * Open the draft in the edit screen of its entry, or in the add screen
+     * if it is of a new entry or its entry is gone.
+     */
+    private void continueDraft(PasswordEntry entry) {
+        Intent intent;
+        if (entry != null) {
+            intent = new Intent(this, EditActivity.class);
+            intent.putExtra(EditActivity.EXTRA_ID, entry.getId());
+            intent.putExtra(EditActivity.EXTRA_DRAFT, true);
+        } else {
+            intent = new Intent(this, AddActivity.class);
+            intent.putExtra(AddActivity.EXTRA_DRAFT, true);
+        }
+        startActivity(intent);
+    }
+
     private void showShortPasswordReminder() {
         new AlertDialog.Builder(this)
             .setTitle(R.string.master_password_short_title)

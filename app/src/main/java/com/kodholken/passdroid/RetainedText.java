@@ -17,15 +17,33 @@ import android.widget.TextView;
  * setup screens start with empty fields.
  */
 public final class RetainedText {
-    private RetainedText() {
+    private final String [] texts;
+    // Another object the activity keeps across the rotation, or null
+    private final Object extra;
+
+    private RetainedText(String [] texts, Object extra) {
+        this.texts = texts;
+        this.extra = extra;
     }
 
     /**
-     * @return the text of the fields, in the order of the ids, or null if
-     *         the activity has no such fields, e.g. because it finished
-     *         before setting its content.
+     * @return the text of the fields, for onRetainNonConfigurationInstance(),
+     *         or null if the activity has no such fields, e.g. because it
+     *         finished before setting its content.
      */
-    public static String [] collect(Activity activity, int... ids) {
+    public static RetainedText collect(Activity activity, int... ids) {
+        return collect(activity, ids, null);
+    }
+
+    /**
+     * @param extra another object to keep across the rotation, which
+     *              restore() returns.
+     * @return the text of the fields and the object, for
+     *         onRetainNonConfigurationInstance(), or null if the activity has
+     *         no such fields.
+     */
+    public static RetainedText collect(Activity activity, int [] ids,
+                                       Object extra) {
         String [] texts = new String[ids.length];
         for (int i = 0; i < ids.length; i++) {
             TextView field = (TextView) activity.findViewById(ids[i]);
@@ -34,26 +52,29 @@ public final class RetainedText {
             }
             texts[i] = field.getText().toString();
         }
-        return texts;
+        return new RetainedText(texts, extra);
     }
 
     /**
      * Put back the text that collect() returned before a rotation. Anything
      * else, e.g. null when the activity is created for the first time, is
      * ignored.
+     *
+     * @return the extra object given to collect(), or null.
      */
-    public static void restore(Activity activity, Object retained, int... ids) {
-        if (!(retained instanceof String []) ||
-            ((String []) retained).length != ids.length) {
-            return;
+    public static Object restore(Activity activity, Object retained, int... ids) {
+        if (!(retained instanceof RetainedText) ||
+            ((RetainedText) retained).texts.length != ids.length) {
+            return null;
         }
 
-        String [] texts = (String []) retained;
+        RetainedText kept = (RetainedText) retained;
         for (int i = 0; i < ids.length; i++) {
             TextView field = (TextView) activity.findViewById(ids[i]);
             if (field != null) {
-                field.setText(texts[i]);
+                field.setText(kept.texts[i]);
             }
         }
+        return kept.extra;
     }
 }
