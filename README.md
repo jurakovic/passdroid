@@ -82,7 +82,8 @@ is encrypted.
 - A new master password needs at least 15 characters. The setup and change
   screens show how many are still missing. If an existing master password is
   shorter, a reminder with a "Change" button appears after each login with
-  it, until you tap "Don't remind me".
+  it, until you tap "Don't remind me". That choice is stored unencrypted,
+  so someone with a copy of the app's data can tell the password is short.
 - On the setup and change screens an eye button next to each password field
   shows what you typed, and hides it again.
 - The master password can be changed in Settings. If it is forgotten, the
