@@ -157,7 +157,7 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
      there is none (see [Database](#database)), and starts `LoginActivity`
      if a master key record exists, else `InitializeActivity`.
 3. `InitializeActivity` creates the master key from the new password (at
-   least 12 characters), stores the record and logs in. Its two fields have
+   least 15 characters), stores the record and logs in. Its two fields have
    eye buttons (`PasswordToggle`), as do the three of
    `ChangePasswordActivity`. It can also restore a backup before there is a
    master password, see [Restoring on the welcome screen](#restoring-on-the-welcome-screen).
@@ -280,7 +280,7 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
 - Iteration counts read from files and from the database's record are
   capped at `MAX_ITERATIONS` (10,000,000); a record with more, or with fewer
   than 1, doesn't unlock.
-- `MIN_PASSWORD_LENGTH` (12) is counted in code points. It only applies to
+- `MIN_PASSWORD_LENGTH` (15) is counted in code points. It only applies to
   new master passwords; a login with a shorter one passes
   `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder. On the setup
   and change screens `PasswordLengthHint` shows the minimum below the field
@@ -1025,10 +1025,11 @@ can try passwords offline, as fast as their hardware allows.
 - Iteration counts read from files and from the key record are capped at
   10,000,000, so a crafted file or a damaged record can't make the
   derivation run (almost) forever.
-- **New master passwords need at least 12 characters.** An existing shorter
-  password still works, but logging in with it shows a reminder with a
-  "Change" button. The setup and change screens show the minimum below the
-  field and count the missing characters.
+- **New master passwords need at least 15 characters**, as NIST SP 800-63B-4
+  asks for a password that is the only factor (see [Sources](#sources)). An
+  existing shorter password still works, but logging in with it shows a
+  reminder with a "Change" button. The setup and change screens show the
+  minimum below the field and count the missing characters.
 - There is no strength meter for the master password, since the
   generator's estimate assumes random characters and would rate a typed
   password like `Password1234!` as excellent.
@@ -1253,7 +1254,7 @@ Android 9 and later, off by default.
 Trade-offs that were made on purpose:
 
 - **Shorter existing master passwords still work**, with a reminder after
-  each login, so nobody is locked out. Only new master passwords need 12
+  each login, so nobody is locked out. Only new master passwords need 15
   characters.
 - **2FA secrets next to the passwords.** They still protect against the most
   common attacks: a service's password database leaking, reused passwords,
@@ -1280,7 +1281,7 @@ Trade-offs that were made on purpose:
   [Open items](#open-items).
 - **PBKDF2 instead of Argon2id.** Argon2id is memory-hard and today's first
   choice, but needs a library and an amount of memory that fits old phones.
-  With the 12 character minimum, PBKDF2 is adequate. Also part of the
+  With the 15 character minimum, PBKDF2 is adequate. Also part of the
   "vault format v2".
 - **Decrypted values are Java strings**, which can't be wiped from memory.
   That can't be solved on Android; on-demand decryption keeps it to what is
@@ -1290,13 +1291,10 @@ Trade-offs that were made on purpose:
 
 Not done, in rough order of value:
 
-1. **Master password minimum 15** instead of 12, to match NIST SP 800-63B-4
-   for a password that is the only factor. A one-line change; existing
-   shorter passwords would only get the reminder.
-2. **zxcvbn strength meter for the master password**, which knows common
+1. **zxcvbn strength meter for the master password**, which knows common
    words, patterns and leaked passwords. Needs a library with word lists of
    about 1–2 MB.
-3. **"Vault format v2"**: AES-GCM for the database fields with the entry id
+2. **"Vault format v2"**: AES-GCM for the database fields with the entry id
    and field name as associated data, and Argon2id instead of PBKDF2, in one
    migration at login. The riskiest kind of change, since it rewrites the
    whole vault. Only with device testing and a fresh export at hand.
@@ -1309,7 +1307,7 @@ Limitations that are not about security are listed in
 - **Delete old exports and backups of the original Passdroid** wherever they
   are (cloud, email). They use the weak legacy key. If one may have leaked,
   **change the master password**, since cracking an old copy reveals it.
-- If your master password is shorter than 12 characters, change it. The app
+- If your master password is shorter than 15 characters, change it. The app
   reminds you after each login with it.
 - Move the 2FA secrets of critical accounts to a separate authenticator app
   or replace them with passkeys or hardware keys, then delete them from
@@ -1394,7 +1392,7 @@ release:
     both answers work;
   - an export of the original Passdroid, with its password and a new
     master password: the entries are there;
-  - keeping a backup password shorter than 12 characters: the reminder
+  - keeping a backup password shorter than 15 characters: the reminder
     follows the list's message;
   - a pending restore survives a rotation; going home and back drops it,
     with the notice, and the button reads "Restore from a backup" again;
@@ -1478,7 +1476,7 @@ release:
   time picker: the time the date had stays, or no time if it had none.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
   file again.
-- Set up or change the master password with fewer than 12 characters: the
+- Set up or change the master password with fewer than 15 characters: the
   note below the field counts the missing characters, and the password is
   refused. Log in with an existing short one: the reminder appears.
 - On the setup and the change password screen, each eye button shows and
@@ -1695,5 +1693,5 @@ Use the debug app for test vaults only.
 - Import replaces all entries; there is no merge.
 - Many strings are hardcoded in English in the code instead of resources.
 
-The open security items, e.g. a longer minimum for the master password, are
-listed in [Open items](#open-items).
+The open security items, e.g. a strength meter for the master password,
+are listed in [Open items](#open-items).

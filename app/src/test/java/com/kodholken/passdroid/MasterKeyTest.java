@@ -175,12 +175,12 @@ public class MasterKeyTest {
     @Test
     public void minimumPasswordLength() {
         assertTrue(MasterKey.isTooShort(""));
-        assertTrue(MasterKey.isTooShort("12345678901"));
-        assertFalse(MasterKey.isTooShort("123456789012"));
+        assertTrue(MasterKey.isTooShort("12345678901234"));
+        assertFalse(MasterKey.isTooShort("123456789012345"));
         assertFalse(MasterKey.isTooShort("correct horse battery staple"));
 
-        // Characters, not UTF-16 units: 11 emoji are too short
-        assertTrue(MasterKey.isTooShort(new String(new char[11]).replace("\0", "\uD83D\uDE00")));
-        assertFalse(MasterKey.isTooShort("åäöåäöåäöåäö"));
+        // Characters, not UTF-16 units: 14 emoji are too short
+        assertTrue(MasterKey.isTooShort(new String(new char[14]).replace("\0", "\uD83D\uDE00")));
+        assertFalse(MasterKey.isTooShort("åäöåäöåäöåäöåäö"));
     }
 }

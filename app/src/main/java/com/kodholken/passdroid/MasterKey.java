@@ -29,7 +29,7 @@ public class MasterKey {
     // New master passwords must be at least this long. The key derivation
     // slows down guessing, but a short password can still be found by
     // someone who has a copy of the database or an export.
-    public static final int MIN_PASSWORD_LENGTH = 12;
+    public static final int MIN_PASSWORD_LENGTH = 15;
 
     private static final String RECORD_PREFIX = "pbkdf2-sha256";
     private static final int SALT_LENGTH = 16;
