@@ -1054,6 +1054,10 @@ passphrase is out of reach.
   [Decisions](#decisions).
 - The ciphertext length shows the rough length of each value to someone with
   a copy of the database.
+- The `short_password_reminder_off` attribute is in the clear, and only a
+  login with a master password of fewer than 15 characters can lead to it.
+  So once "Don't remind me" was chosen, a copy of the database shows that
+  its master password is that short.
 - The conversions of old entries are chosen by a data version stored in the
   database, never by the app version, so a version number can't make the
   app convert current entries again and destroy them.
@@ -1266,7 +1270,10 @@ Trade-offs that were made on purpose:
   comes back after every login gets tapped away unread. The choice is kept
   next to the key record, not as a setting, so that an import or a restore
   of settings can't turn it off for another vault's password, and changing
-  the master password deletes it.
+  the master password deletes it. The cost: while it is there, a copy of
+  the database shows that the master password has fewer than 15
+  characters, see "Database" under [Design](#design). Only a flag stored
+  encrypted for every vault, short password or not, would hide that.
 - **2FA secrets next to the passwords.** They still protect against the most
   common attacks: a service's password database leaking, reused passwords,
   password guessing. They don't protect when the vault itself is opened,
