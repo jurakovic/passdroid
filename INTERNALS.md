@@ -1519,12 +1519,17 @@ release:
   `SELECT value FROM system WHERE attribute = 'short_password_reminder';`
   gives 40 characters after each login, different each time, also for a
   vault with a long master password.
-- Set Font to Monospace, then to Default. On the setup and change password
-  screens, a password shown with the eye button is in Roboto Mono, then in
-  the default font, and so is the hint of the master password dialog before
-  an unencrypted export. Font size doesn't change these fields. Change Font
-  in the settings and log out: the last character typed in the login field,
-  shown for a moment, is in the font chosen.
+- Set Font to Monospace, then to Default. On the change password screen, a
+  password shown with the eye button is in Roboto Mono, then in the default
+  font, and so is the hint of the master password dialog before an
+  unencrypted export. Font size doesn't change these fields. Change Font in
+  the settings and log out: the last character typed in the login field,
+  shown for a moment, is in the font chosen. The setup screen is only
+  reached without a vault: on a fresh install it has the default font; for
+  Roboto Mono, set Font to Monospace in a debug build with a test vault,
+  force-stop the app, delete the vault with
+  `adb shell run-as com.jurakovic.passdroid.debug rm databases/password.db`
+  (the settings stay) and open the app again.
 - On the setup and the change password screen, each eye button shows and
   hides only its field, the cursor stays where it was, and the keyboard
   offers no suggestions while a field is shown. After a rotation all fields
