@@ -96,6 +96,7 @@ public class FileExportActivity extends SherlockTimeoutActivity {
     private void askMasterPassword() {
         View view = View.inflate(this, R.layout.password_dialog, null);
         final EditText field = (EditText) view.findViewById(R.id.dialog_password);
+        FontSetting.applyToPasswordField(field);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
             .setTitle(R.string.export_password_title)

@@ -48,6 +48,9 @@ public class ChangePasswordActivity extends TimeoutActivity {
         super.onCreate(savedInstanceState);
 
         this.setContentView(R.layout.change_password);
+        FontSetting.applyToPasswordFields(this, R.id.old_master_password,
+                                          R.id.master_password_1,
+                                          R.id.master_password_2);
 
         new PasswordLengthHint((EditText) findViewById(R.id.master_password_1),
                                (TextView) findViewById(R.id.master_password_hint));

@@ -87,6 +87,7 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.login);
 
         passwordView = (EditText) findViewById(R.id.login_password);
+        FontSetting.applyToPasswordField(passwordView);
         passwordView.setOnKeyListener(new OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {

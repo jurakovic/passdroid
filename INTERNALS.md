@@ -940,7 +940,12 @@ when it comes back.
 - **Fonts**: `FontSetting` applies Roboto Mono (from `assets/fonts`) and a
   scale of 0.85, 1 or 1.2 to the values on the entry screens and in the
   lists. Labels keep their size. Sizes are in `sp`, so the system font size
-  applies on top.
+  applies on top. The master password fields get the font alone
+  (`applyToPasswordField()`): on the login, setup, change password and
+  import password screens, and in the password dialog of an unencrypted
+  export and of a restore. It is set either way, Roboto Mono or the
+  default font, since Android gives a `textPassword` field a monospace
+  font of its own.
 
 ## Android platform details
 
@@ -1514,6 +1519,10 @@ release:
   `SELECT value FROM system WHERE attribute = 'short_password_reminder';`
   gives 40 characters after each login, different each time, also for a
   vault with a long master password.
+- Set Font to Monospace, then to Default. On the setup and change password
+  screens, a password shown with the eye button is in Roboto Mono, then in
+  the default font, and so is the hint of the master password dialog before
+  an unencrypted export. Font size doesn't change these fields.
 - On the setup and the change password screen, each eye button shows and
   hides only its field, the cursor stays where it was, and the keyboard
   offers no suggestions while a field is shown. After a rotation all fields

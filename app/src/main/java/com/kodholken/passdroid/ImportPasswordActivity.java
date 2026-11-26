@@ -42,6 +42,7 @@ public class ImportPasswordActivity extends TimeoutActivity {
         this.setContentView(R.layout.import_password);
         
         password = (EditText) findViewById(R.id.password);
+        FontSetting.applyToPasswordField(password);
         RetainedText.restore(this, getLastNonConfigurationInstance(),
                              SECRET_FIELDS);
 

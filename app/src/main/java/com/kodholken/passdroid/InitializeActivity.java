@@ -120,6 +120,8 @@ public class InitializeActivity extends Activity {
         getWindow().setFlags(LayoutParams.FLAG_SECURE, LayoutParams.FLAG_SECURE);
 
         setContentView(R.layout.initialize);
+        FontSetting.applyToPasswordFields(this, R.id.master_password_1,
+                                          R.id.master_password_2);
 
         new PasswordLengthHint((EditText) findViewById(R.id.master_password_1),
                                (TextView) findViewById(R.id.master_password_hint));
@@ -344,6 +346,7 @@ public class InitializeActivity extends Activity {
                                    boolean wrong) {
         View view = View.inflate(this, R.layout.password_dialog, null);
         final EditText field = (EditText) view.findViewById(R.id.dialog_password);
+        FontSetting.applyToPasswordField(field);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
             .setTitle(R.string.restore_password_title)
