@@ -469,7 +469,8 @@ it once and forgets it.
   [Restoring on the welcome screen](#restoring-on-the-welcome-screen)); if
   there is a draft of unsaved changes (see below), "You have an unsaved
   entry from <time> (<system>). Continue editing it?"; and the reminder
-  about a short master password. A rotation closes them without dismissing
+  about a short master password, unless it was turned off (see
+  [Master key](#master-key)). A rotation closes them without dismissing
   them, so the list keeps in its saved state which are still to come or
   unanswered, and shows them again; only the note that a draft could not
   be restored isn't, since that draft is deleted when the note is shown. It
