@@ -122,7 +122,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 
 | Area | Classes |
 |---|---|
-| Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `PasswordLengthHint`, `LoginActivity` |
+| Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `PasswordLengthHint`, `LoginActivity`, `ShortPasswordReminder` |
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
@@ -283,13 +283,19 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
 - `MIN_PASSWORD_LENGTH` (15) is counted in code points. It only applies to
   new master passwords; a login with a shorter one passes
   `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder with Change,
-  Later and "Don't remind me". The last stores the
-  `short_password_reminder_off` attribute, and the list doesn't remind
-  while it exists; `DbMigration.changeKey()` deletes it with the old key
-  record. On the setup and change screens `PasswordLengthHint` shows the
-  minimum below the field and counts the missing characters while typing.
-  There is no strength meter: `PasswordStrength` assumes random characters
-  and would rate a typed password like `Password1234!` as excellent.
+  Later and "Don't remind me", unless that was chosen before. The choice
+  is kept by `ShortPasswordReminder` in the `short_password_reminder`
+  attribute, for every vault: one byte, on or off, encrypted with the
+  vault key in AES-256-GCM with a random nonce and the attribute name as
+  associated data, 40 characters in Base64 either way. The list reads it
+  and stores it again with a fresh nonce once after every login
+  (`renew()`), so a vault has it from its first login on, short master
+  password or not; it is on while it is missing or doesn't decrypt.
+  `DbMigration.changeKey()` stores it turned on, with the new key. On the
+  setup and change screens `PasswordLengthHint` shows the minimum below
+  the field and counts the missing characters while typing. There is no
+  strength meter: `PasswordStrength` assumes random characters and would
+  rate a typed password like `Password1234!` as excellent.
 
 ### Legacy format
 
@@ -320,9 +326,9 @@ key is the old one.
 
 `DbMigration.changeKey()` decrypts every entry with the old key and only
 continues if every field decrypted. It then re-encrypts all entries, updates
-the `key` record and deletes the stored fingerprint key and the
-`short_password_reminder_off` attribute, all in one SQLite transaction. It
-runs on the UI thread.
+the `key` record, deletes the stored fingerprint key and stores the
+reminder setting turned on, with the new key (see [Master key](#master-key)),
+all in one SQLite transaction. It runs on the UI thread.
 
 ## Database
 
@@ -347,7 +353,7 @@ Every value in `data` except `id` is encrypted, see
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
 | `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
-| `short_password_reminder_off` | `1` once "Don't remind me" was chosen in the reminder about a short master password, until `DbMigration.changeKey()` stores a new key record, see [Master key](#master-key) |
+| `short_password_reminder` | Whether the list reminds of a short master password after a login, encrypted with the vault key (`ShortPasswordReminder`). Stored for every vault after each login, see [Master key](#master-key) |
 | `entry_draft` | The unsaved changes of the add or edit screen, if any, until the next login (`EntryDraft`): `v1\|<entry id, -1 for a new entry>\|<saved at, ms>\|`, then the eight fields encrypted like an entry's, in the order of `PasswordData.COLUMNS` and separated by `\|`, each empty if it is `null` |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
@@ -1035,8 +1041,8 @@ can try passwords offline, as fast as their hardware allows.
   asks for a password that is the only factor (see [Sources](#sources)). An
   existing shorter password still works, but logging in with it shows a
   reminder with a "Change" button, until the user chooses "Don't remind
-  me" for that password. The setup and change screens show the minimum
-  below the field and count the missing characters.
+  me", which a new master password resets. The setup and change screens
+  show the minimum below the field and count the missing characters.
 - There is no strength meter for the master password, since the
   generator's estimate assumes random characters and would rate a typed
   password like `Password1234!` as excellent.
@@ -1055,10 +1061,12 @@ passphrase is out of reach.
   [Decisions](#decisions).
 - The ciphertext length shows the rough length of each value to someone with
   a copy of the database.
-- The `short_password_reminder_off` attribute is in the clear, and only a
-  login with a master password of fewer than 15 characters can lead to it.
-  So once "Don't remind me" was chosen, a copy of the database shows that
-  its master password is that short.
+- The setting of the reminder about a short master password is stored for
+  every vault, encrypted with the vault key in AES-256-GCM, again with a
+  fresh nonce after every login, and of the same length on and off. So a
+  copy of the database shows neither whether the master password is short
+  nor whether the reminder was turned off, and two copies don't show a
+  change.
 - The conversions of old entries are chosen by a data version stored in the
   database, never by the app version, so a version number can't make the
   app convert current entries again and destroy them.
@@ -1269,12 +1277,12 @@ Trade-offs that were made on purpose:
   characters.
 - **The reminder can be turned off** with "Don't remind me": one that
   comes back after every login gets tapped away unread. The choice is kept
-  next to the key record, not as a setting, so that an import or a restore
-  of settings can't turn it off for another vault's password, and changing
-  the master password deletes it. The cost: while it is there, a copy of
-  the database shows that the master password has fewer than 15
-  characters, see "Database" under [Design](#design). Only a flag stored
-  encrypted for every vault, short password or not, would hide that.
+  in the database, encrypted, not as a setting, so that an import or a
+  restore of settings can't turn it off for another vault's password, and
+  changing the master password turns the reminder on again. It is stored
+  for every vault, short password or not, and with a fresh nonce after
+  every login: a value only vaults with a short password had, even
+  encrypted, would show in a copy of the database which ones do.
 - **2FA secrets next to the passwords.** They still protect against the most
   common attacks: a service's password database leaking, reused passwords,
   password guessing. They don't protect when the vault itself is opened,
@@ -1370,6 +1378,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `PasswordStrengthTest` | Bits and ratings |
 | `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
 | `SessionTest` | Both kinds of logout wipe the key; logout listeners get the key before it is wiped, a failing one doesn't stop the logout, and none is called without a key |
+| `ShortPasswordReminderTest` | The reminder setting encrypted and decrypted, both values of the same length, a fresh nonce each time; not with another key or without one; modified, truncated and other text, other values and other associated data rejected |
 | `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one; editor values compared field by field |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
@@ -1500,6 +1509,11 @@ release:
   refused. Log in with an existing short one: the reminder appears, also
   again after a rotation. After Later it comes back at the next login;
   after "Don't remind me" it doesn't, also not after a restart of the app.
+  In a debug build, in
+  `adb shell run-as com.jurakovic.passdroid.debug sqlite3 databases/password.db`,
+  `SELECT value FROM system WHERE attribute = 'short_password_reminder';`
+  gives 40 characters after each login, different each time, also for a
+  vault with a long master password.
 - On the setup and the change password screen, each eye button shows and
   hides only its field, the cursor stays where it was, and the keyboard
   offers no suggestions while a field is shown. After a rotation all fields

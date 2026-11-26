@@ -23,6 +23,7 @@ import com.kodholken.passdroid.BiometricUnlock;
 import com.kodholken.passdroid.MasterKey;
 import com.kodholken.passdroid.PasswordEntry;
 import com.kodholken.passdroid.Session;
+import com.kodholken.passdroid.ShortPasswordReminder;
 import com.kodholken.passdroid.Utils;
 import com.kodholken.passdroid.Version;
 
@@ -297,10 +298,21 @@ public class DbMigration {
             String [] biometricAttrs = { BiometricUnlock.DB_ATTRIBUTE };
             db.delete("system", "attribute=?", biometricAttrs);
 
-            // Not being reminded of a short master password was chosen for
-            // the old key record
-            String [] reminderAttrs = { SystemData.SHORT_PASSWORD_REMINDER_OFF };
+            // The reminder about a short master password is on again,
+            // stored with the new key, see ShortPasswordReminder
+            String reminder = ShortPasswordReminder.encrypt(newKey, true);
+            if (reminder == null) {
+                // Rolled back below, the old key stays
+                throw new SQLiteException("Failed to encrypt the reminder setting");
+            }
+            String [] reminderAttrs = { ShortPasswordReminder.ATTRIBUTE };
             db.delete("system", "attribute=?", reminderAttrs);
+            ContentValues reminderValues = new ContentValues();
+            reminderValues.put("attribute", ShortPasswordReminder.ATTRIBUTE);
+            reminderValues.put("value", reminder);
+            if (db.insert("system", null, reminderValues) == -1) {
+                throw new SQLiteException("Failed to store the reminder setting");
+            }
 
             db.setTransactionSuccessful();
             result = true;

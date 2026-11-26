@@ -21,15 +21,12 @@ package com.kodholken.passdroid;
 
 import java.util.Date;
 
-import com.kodholken.passdroid.db.SystemData;
-
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.SQLException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -125,8 +122,11 @@ implements PasswordModelListener {
             Utils.releaseDocumentAccessExcept(this, restoredFile);
 
             restoreResultPending = getIntent().hasExtra(EXTRA_RESTORED);
+            // Stored again after every login, for every vault
+            boolean remind = ShortPasswordReminder.renew(this,
+                                                         Session.getInstance().getKey());
             reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false) &&
-                              !new SystemData(this).isShortPasswordReminderOff();
+                              remind;
         } else {
             restoreResultPending = savedInstanceState.getBoolean(STATE_RESTORE_RESULT);
             reminderPending = savedInstanceState.getBoolean(STATE_REMINDER);
@@ -581,7 +581,8 @@ implements PasswordModelListener {
 
     /**
      * Suggest changing a master password that is too short to be set now.
-     * "Don't remind me" turns this off until a new key record is stored.
+     * "Don't remind me" turns this off until the master password changes,
+     * see ShortPasswordReminder.
      */
     private void showShortPasswordReminder() {
         new AlertDialog.Builder(this)
@@ -599,12 +600,10 @@ implements PasswordModelListener {
             .setNeutralButton(R.string.dont_remind, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    try {
-                        new SystemData(PasswordListActivity.this).setShortPasswordReminderOff();
-                    } catch (SQLException ex) {
-                        // Then it reminds again after the next login
-                        ex.printStackTrace();
-                    }
+                    // If it can't be stored, the list reminds again after
+                    // the next login
+                    ShortPasswordReminder.set(PasswordListActivity.this,
+                                              Session.getInstance().getKey(), false);
                 }
             })
             .setOnDismissListener(new DialogInterface.OnDismissListener() {
