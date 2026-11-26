@@ -1522,7 +1522,9 @@ release:
 - Set Font to Monospace, then to Default. On the setup and change password
   screens, a password shown with the eye button is in Roboto Mono, then in
   the default font, and so is the hint of the master password dialog before
-  an unencrypted export. Font size doesn't change these fields.
+  an unencrypted export. Font size doesn't change these fields. Change Font
+  in the settings and log out: the last character typed in the login field,
+  shown for a moment, is in the font chosen.
 - On the setup and the change password screen, each eye button shows and
   hides only its field, the cursor stays where it was, and the keyboard
   offers no suggestions while a field is shown. After a rotation all fields

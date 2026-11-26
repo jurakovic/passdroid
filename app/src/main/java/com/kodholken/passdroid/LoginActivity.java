@@ -87,7 +87,6 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.login);
 
         passwordView = (EditText) findViewById(R.id.login_password);
-        FontSetting.applyToPasswordField(passwordView);
         passwordView.setOnKeyListener(new OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
@@ -152,6 +151,12 @@ public class LoginActivity extends Activity {
         if (!theme.equals(ThemeSetting.get(this))) {
             recreate();
             return;
+        }
+
+        // Here rather than in onCreate(), so that a font chosen in the
+        // settings applies after a logout too
+        if (passwordView != null) {
+            FontSetting.applyToPasswordField(passwordView);
         }
 
         // Show the fingerprint prompt automatically, unless the user just
