@@ -282,11 +282,14 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
   than 1, doesn't unlock.
 - `MIN_PASSWORD_LENGTH` (15) is counted in code points. It only applies to
   new master passwords; a login with a shorter one passes
-  `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder. On the setup
-  and change screens `PasswordLengthHint` shows the minimum below the field
-  and counts the missing characters while typing. There is no strength
-  meter: `PasswordStrength` assumes random characters and would rate a typed
-  password like `Password1234!` as excellent.
+  `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder with Change,
+  Later and "Don't remind me". The last stores the
+  `short_password_reminder_off` attribute, and the list doesn't remind
+  while it exists; `DbMigration.changeKey()` deletes it with the old key
+  record. On the setup and change screens `PasswordLengthHint` shows the
+  minimum below the field and counts the missing characters while typing.
+  There is no strength meter: `PasswordStrength` assumes random characters
+  and would rate a typed password like `Password1234!` as excellent.
 
 ### Legacy format
 
@@ -317,8 +320,9 @@ key is the old one.
 
 `DbMigration.changeKey()` decrypts every entry with the old key and only
 continues if every field decrypted. It then re-encrypts all entries, updates
-the `key` record and deletes the stored fingerprint key, all in one SQLite
-transaction. It runs on the UI thread.
+the `key` record and deletes the stored fingerprint key and the
+`short_password_reminder_off` attribute, all in one SQLite transaction. It
+runs on the UI thread.
 
 ## Database
 
@@ -343,6 +347,7 @@ Every value in `data` except `id` is encrypted, see
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
 | `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
+| `short_password_reminder_off` | `1` once "Don't remind me" was chosen in the reminder about a short master password, until `DbMigration.changeKey()` stores a new key record, see [Master key](#master-key) |
 | `entry_draft` | The unsaved changes of the add or edit screen, if any, until the next login (`EntryDraft`): `v1\|<entry id, -1 for a new entry>\|<saved at, ms>\|`, then the eight fields encrypted like an entry's, in the order of `PasswordData.COLUMNS` and separated by `\|`, each empty if it is `null` |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
@@ -1028,8 +1033,9 @@ can try passwords offline, as fast as their hardware allows.
 - **New master passwords need at least 15 characters**, as NIST SP 800-63B-4
   asks for a password that is the only factor (see [Sources](#sources)). An
   existing shorter password still works, but logging in with it shows a
-  reminder with a "Change" button. The setup and change screens show the
-  minimum below the field and count the missing characters.
+  reminder with a "Change" button, until the user chooses "Don't remind
+  me" for that password. The setup and change screens show the minimum
+  below the field and count the missing characters.
 - There is no strength meter for the master password, since the
   generator's estimate assumes random characters and would rate a typed
   password like `Password1234!` as excellent.
@@ -1256,6 +1262,11 @@ Trade-offs that were made on purpose:
 - **Shorter existing master passwords still work**, with a reminder after
   each login, so nobody is locked out. Only new master passwords need 15
   characters.
+- **The reminder can be turned off** with "Don't remind me": one that
+  comes back after every login gets tapped away unread. The choice is kept
+  next to the key record, not as a setting, so that an import or a restore
+  of settings can't turn it off for another vault's password, and changing
+  the master password deletes it.
 - **2FA secrets next to the passwords.** They still protect against the most
   common attacks: a service's password database leaking, reused passwords,
   password guessing. They don't protect when the vault itself is opened,
@@ -1308,7 +1319,7 @@ Limitations that are not about security are listed in
   are (cloud, email). They use the weak legacy key. If one may have leaked,
   **change the master password**, since cracking an old copy reveals it.
 - If your master password is shorter than 15 characters, change it. The app
-  reminds you after each login with it.
+  reminds you after each login with it, unless you chose "Don't remind me".
 - Move the 2FA secrets of critical accounts to a separate authenticator app
   or replace them with passkeys or hardware keys, then delete them from
   Passdroid++.
@@ -1478,7 +1489,9 @@ release:
   file again.
 - Set up or change the master password with fewer than 15 characters: the
   note below the field counts the missing characters, and the password is
-  refused. Log in with an existing short one: the reminder appears.
+  refused. Log in with an existing short one: the reminder appears, also
+  again after a rotation. After Later it comes back at the next login;
+  after "Don't remind me" it doesn't, also not after a restart of the app.
 - On the setup and the change password screen, each eye button shows and
   hides only its field, the cursor stays where it was, and the keyboard
   offers no suggestions while a field is shown. After a rotation all fields

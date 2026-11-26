@@ -21,12 +21,15 @@ package com.kodholken.passdroid;
 
 import java.util.Date;
 
+import com.kodholken.passdroid.db.SystemData;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.SQLException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -122,7 +125,8 @@ implements PasswordModelListener {
             Utils.releaseDocumentAccessExcept(this, restoredFile);
 
             restoreResultPending = getIntent().hasExtra(EXTRA_RESTORED);
-            reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
+            reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false) &&
+                              !new SystemData(this).isShortPasswordReminderOff();
         } else {
             restoreResultPending = savedInstanceState.getBoolean(STATE_RESTORE_RESULT);
             reminderPending = savedInstanceState.getBoolean(STATE_REMINDER);
@@ -577,6 +581,7 @@ implements PasswordModelListener {
 
     /**
      * Suggest changing a master password that is too short to be set now.
+     * "Don't remind me" turns this off until a new key record is stored.
      */
     private void showShortPasswordReminder() {
         new AlertDialog.Builder(this)
@@ -591,6 +596,17 @@ implements PasswordModelListener {
                 }
             })
             .setNegativeButton(R.string.later, null)
+            .setNeutralButton(R.string.dont_remind, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    try {
+                        new SystemData(PasswordListActivity.this).setShortPasswordReminderOff();
+                    } catch (SQLException ex) {
+                        // Then it reminds again after the next login
+                        ex.printStackTrace();
+                    }
+                }
+            })
             .setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {

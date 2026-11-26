@@ -31,6 +31,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class SystemData extends SQLiteOpenHelper {
     private static final String DATA_VERSION = "data_version";
     private static final String LEGACY_VERSION = "version";
+    // Present once the user chose not to be reminded of a short master
+    // password. DbMigration.changeKey() deletes it with the old key record.
+    static final String SHORT_PASSWORD_REMINDER_OFF = "short_password_reminder_off";
 
     public SystemData(Context ctx) {
         super(ctx, Constants.DBNAME, null, Constants.DBVERSION);
@@ -99,6 +102,24 @@ public class SystemData extends SQLiteOpenHelper {
 
     public String getKey() {
         return getAttribute("key");
+    }
+
+    /**
+     * @return true if the user turned off the reminder about a short master
+     *         password, for the current key record.
+     */
+    public boolean isShortPasswordReminderOff() {
+        return hasAttribute(SHORT_PASSWORD_REMINDER_OFF);
+    }
+
+    /**
+     * Turn off the reminder about a short master password until a new key
+     * record is stored, see DbMigration.changeKey().
+     */
+    public void setShortPasswordReminderOff() {
+        if (!hasAttribute(SHORT_PASSWORD_REMINDER_OFF)) {
+            setAttribute(SHORT_PASSWORD_REMINDER_OFF, "1");
+        }
     }
 
     /**

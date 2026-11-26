@@ -82,7 +82,7 @@ is encrypted.
 - A new master password needs at least 15 characters. The setup and change
   screens show how many are still missing. If an existing master password is
   shorter, a reminder with a "Change" button appears after each login with
-  it.
+  it, until you tap "Don't remind me".
 - On the setup and change screens an eye button next to each password field
   shows what you typed, and hides it again.
 - The master password can be changed in Settings. If it is forgotten, the

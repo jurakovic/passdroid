@@ -297,6 +297,11 @@ public class DbMigration {
             String [] biometricAttrs = { BiometricUnlock.DB_ATTRIBUTE };
             db.delete("system", "attribute=?", biometricAttrs);
 
+            // Not being reminded of a short master password was chosen for
+            // the old key record
+            String [] reminderAttrs = { SystemData.SHORT_PASSWORD_REMINDER_OFF };
+            db.delete("system", "attribute=?", reminderAttrs);
+
             db.setTransactionSuccessful();
             result = true;
         } catch (SQLiteException ex) {
