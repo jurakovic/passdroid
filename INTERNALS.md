@@ -129,7 +129,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
-| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField`, `EntryDraft`, `Statistics` |
+| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField`, `EntryDraft`, `StatisticsActivity`, `Statistics` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
@@ -440,8 +440,8 @@ fails the padding check. An entry with such a field is **damaged**.
   `decryptPassword()` etc. and don't keep the result, except the screen that
   shows them.
 - `getById()` finds an entry by its database id. `getDecryptedPasswords()`
-  returns fully decrypted copies for an export, which the caller drops
-  afterwards.
+  returns fully decrypted copies for an export and the statistics screen,
+  which the caller drops afterwards.
 - `setPasswords()` replaces **all** rows in one transaction, for an import.
   It encrypts the entries with the session key, and fails if the user has
   been logged out.
@@ -490,6 +490,16 @@ it once and forgets it.
   Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
   legacy key that the login has replaced, is deleted, and the list says it
   could not be restored.
+- **`StatisticsActivity`**, opened from the list menu: in `onResume()`, so
+  the numbers are current after a change, it counts the fully decrypted
+  copies of `getDecryptedPasswords()` with `Statistics.count()` and drops
+  them; only the numbers are kept. It shows them as label and value rows
+  (`statistics_row.xml`) in a panel: all entries; the entries with each
+  field, where a value that is empty or only spaces doesn't count, nor does
+  a field that didn't decrypt; the different emails, ignoring case and the
+  spaces around them, and usernames, ignoring only the spaces; and the
+  passwords used by more than one entry, compared exactly, with the number
+  of entries using them. Without entries it shows only the Entries row, 0.
 - **`ShowActivity`**: decrypts the note, URL and date for display, and the
   2FA secret once into a `Totp` generator for the live code, refreshed every
   second. The password and the 2FA secret are shown with `PasswordToggle` in
@@ -1167,6 +1177,9 @@ Android 9 and later, off by default.
   shown as `********`, so their length is not shown either.
 - The note, URL and date are decrypted when an entry is opened. For the live
   2FA code only the code generator is kept.
+- The statistics screen decrypts every field of copies of the entries, as
+  an export does, each time it is shown, and drops the copies once they are
+  counted: it keeps only the numbers.
 - Screens pass entries by their id, so no decrypted values go through the
   system process in intents.
 - Typed secrets aren't in the saved instance state either, which the system
@@ -1481,6 +1494,11 @@ release:
   show, and the x is gone. Edit or delete an entry found by a search and go
   back: the list is still filtered.
 - Open the 2FA codes screen, with "Display username" on and off.
+- Open Statistics from the list menu: the numbers match the entries. Add an
+  entry with the password of another entry and go back to Statistics:
+  Entries, Passwords and Reused passwords have changed. In a vault without
+  entries it shows only Entries, 0. A screenshot of it is refused, and it
+  logs out like the other screens.
 - Scan a setup QR code with the camera and from a screenshot.
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
   same codes.
@@ -1593,6 +1611,8 @@ release:
 6. The add, edit and show layouts and activities, `FontSetting` if it shows
    a value.
 7. Tests in `FileExportImportTest` and `PasswordEntryTest`.
+8. `Statistics.count()` and its row in `StatisticsActivity`, with a label in
+   `strings.xml`, and a test in `StatisticsTest`.
 
 ### Adding a setting
 

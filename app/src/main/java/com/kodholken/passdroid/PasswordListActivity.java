@@ -67,6 +67,7 @@ implements PasswordModelListener {
     private static final int OPTION_MENU_GENERATE = 7;
     private static final int OPTION_MENU_SEARCH   = 8;
     private static final int OPTION_MENU_TOTP     = 9;
+    private static final int OPTION_MENU_STATISTICS = 10;
 
     private ListView list;
     private int listPosition;
@@ -282,6 +283,9 @@ implements PasswordModelListener {
                 getString(R.string.options_generate_password))
         .setIcon(R.drawable.ic_menu_rotate);
 
+        menu.add(Menu.NONE, OPTION_MENU_STATISTICS, Menu.NONE,
+                getString(R.string.options_statistics));
+
         menu.add(Menu.NONE, OPTION_MENU_SETTINGS, Menu.NONE,
                 getString(R.string.options_settings))
         .setIcon(R.drawable.ic_menu_preferences);
@@ -316,6 +320,10 @@ implements PasswordModelListener {
             break;
         case OPTION_MENU_TOTP:
             startActivity(new Intent(this, TotpListActivity.class));
+            listPosition = list.getFirstVisiblePosition();
+            break;
+        case OPTION_MENU_STATISTICS:
+            startActivity(new Intent(this, StatisticsActivity.class));
             listPosition = list.getFirstVisiblePosition();
             break;
         case OPTION_MENU_GENERATE:

@@ -44,6 +44,9 @@
         <activity android:label="@string/totp_list_title"
                   android:name=".TotpListActivity"/>
 
+        <activity android:label="@string/statistics_title"
+                  android:name=".StatisticsActivity"/>
+
         <activity android:label="@string/scan_qr_code"
                   android:name=".ScanActivity"/>
 

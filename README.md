@@ -65,6 +65,9 @@ is encrypted.
   is no username, unless "Display username" is off. Search matches the
   system, username and email, and the x in the search field clears it.
 - A long press on an entry in the list asks whether to copy its password.
+- **Statistics** in the list menu counts the entries, how many have each
+  field, how many different emails and usernames they have, and how many
+  passwords are used by more than one entry.
 - On the entry screen a tap on the system, email, username or note copies
   it. The password and the 2FA secret are hidden behind an eye button and ask
   before they are copied. The URL opens in the browser. With "Tap to copy"
