@@ -149,9 +149,10 @@ public class StatisticsTest {
 
     @Test
     public void otherCharactersCount() {
-        // Not spaces for String.trim() either, which only removes the
+        // A no-break space, a u with an umlaut and the euro sign aren't
+        // spaces for String.trim() either, which only removes the
         // characters up to U+0020
-        String [] values = { "a", " a ", " ", "ü", "€" };
+        String [] values = { "a", " a ", "\u00a0", "\u00fc", "\u20ac" };
         PasswordEntry [] entries = new PasswordEntry[values.length];
         for (int i = 0; i < values.length; i++) {
             PasswordEntry entry = values(null, null, values[i]);
