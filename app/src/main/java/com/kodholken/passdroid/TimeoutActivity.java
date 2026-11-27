@@ -24,6 +24,14 @@ public class TimeoutActivity extends Activity {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                // E.g. the alarm of an earlier process, which an update or
+                // swiping the app away ended, is not this session's timeout
+                if (!Session.getInstance().isTimeoutDue()) {
+                    Utils.debug("Timeout broadcast ignored: no timeout is due");
+                    return;
+                }
+
+                Utils.debug("Timeout broadcast: logout");
                 Session.getInstance().setLoggedIn(false);
                 finish();
             }

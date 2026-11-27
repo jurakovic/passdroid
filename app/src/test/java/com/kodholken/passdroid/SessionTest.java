@@ -122,4 +122,25 @@ public class SessionTest {
 
         assertEquals(0, calls[0]);
     }
+
+    @Test
+    public void timeoutNotDueAfterLogin() {
+        Session session = Session.getInstance();
+        session.setLoggedIn(false);
+        session.setLoggedIn();
+
+        // E.g. the broadcast of an alarm an earlier process set
+        assertFalse(session.isTimeoutDue());
+    }
+
+    @Test
+    public void timeoutDueAfterLogout() {
+        Session session = Session.getInstance();
+        session.setLoggedIn();
+
+        // As in the screen off logout, which logs out before the broadcast
+        session.setLoggedIn(false);
+
+        assertTrue(session.isTimeoutDue());
+    }
 }

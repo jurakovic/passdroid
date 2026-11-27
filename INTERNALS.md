@@ -204,7 +204,8 @@ platform base classes, and `SherlockTimeoutActivity` is identical to
 - sets `FLAG_SECURE` on its window,
 - registers a receiver for the timeout broadcast that is not exported on any
   Android version (see [Android platform details](#android-platform-details)),
-  which logs out and finishes the activity,
+  which logs out and finishes the activity if a timeout is due (see
+  [The timeout](#the-timeout)),
 - applies the theme and recreates itself when the theme setting changed,
 - keeps its content clear of the system bars (`Utils.applySystemBarInsets()`),
 - counts resumes and pauses in the session. When the count drops to 0, the
@@ -232,8 +233,21 @@ set `FLAG_SECURE` themselves, first thing in `onCreate()`.
   minutes. The activity that started the picker calls `clearTimeoutTimer()`
   itself in `onActivityResult()`, which runs before `onResume()`, and
   finishes if the session ended.
+- **The alarm outlives the process** that set it, which an update or
+  swiping the app away from the recent apps ends. So `setTimeoutTimer()`
+  and `clearTimeoutTimer()` look its `PendingIntent` up (the same intent,
+  request code and flags, with `FLAG_NO_CREATE`) and cancel it, whichever
+  process set it, and the receivers log out only if
+  `Session.isTimeoutDue()`: the session has already ended, or its own
+  deadline has passed. They ignore any other timeout broadcast, so the alarm
+  of an earlier process, or a broadcast held back past a later login,
+  doesn't end the session.
+- Each automatic logout logs its reason with `Utils.debug()`, and the
+  receivers log each broadcast they get, ignored or not
+  (`adb logcat -s Passdroid`).
 - A login clears a timer and a pause time left from before it, so the login
-  isn't undone right away.
+  isn't undone right away, also not by the alarm of an earlier process: the
+  receivers ignore it, and the next resume cancels it.
 
 ### Screen off
 
@@ -1175,7 +1189,8 @@ Android 9 and later, off by default.
 - A master password change wipes the old key, which would still decrypt the
   exports made before the change.
 - A login clears a logout timer and a pause time left from before it, so it
-  isn't undone right away.
+  isn't undone right away, also not by the logout alarm of an earlier
+  process, e.g. one that an update or swiping the app away ended.
 - The screen off listener is registered whenever the process starts, also
   after Android restored the app.
 
@@ -1427,7 +1442,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
 | `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
-| `SessionTest` | Both kinds of logout wipe the key; logout listeners get the key before it is wiped, a failing one doesn't stop the logout, and none is called without a key |
+| `SessionTest` | Both kinds of logout wipe the key; logout listeners get the key before it is wiped, a failing one doesn't stop the logout, and none is called without a key; a timeout is due after a logout, not right after a login |
 | `ShortPasswordReminderTest` | The reminder setting encrypted and decrypted, both values of the same length, a fresh nonce each time; not with another key or without one; modified, truncated and other text, other values and other associated data rejected |
 | `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one; editor values compared field by field |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
@@ -1450,6 +1465,13 @@ What the unit tests don't cover, worth checking on a device before a
 release:
 
 - Log in, turn the screen off and on, log in again: no second logout.
+- With "Log out on close" at 30 seconds, log in, open the recent apps from
+  the list and swipe the app away, open it again, log in and stay on the
+  list for 2 minutes, past the alarm the list set when it paused (30
+  seconds and Android's window of up to 22.5 seconds): no logout. The same
+  with the build installed over itself (`adb install -r`) in place of the
+  swipe. `adb logcat -s Passdroid` shows an ignored timeout broadcast, or
+  none if the alarm was cancelled first.
 - On a fresh install, Back on the welcome screen leaves the app, and
   opening it again shows the welcome screen. On the login screen Back also
   leaves the app.

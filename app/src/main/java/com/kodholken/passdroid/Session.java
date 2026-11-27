@@ -66,8 +66,6 @@ public class Session {
     // exit when it receives control (onResume)
 
     private static Session session;  // Singleton instance of this class
-    
-    private PendingIntent timeoutIntent;
 
     private long timeoutEnd;  // elapsedRealtime() when the user is logged
     // out. 0 if no timer is running.
@@ -89,7 +87,6 @@ public class Session {
         needReload = false;
         isLoggedIn = false;
         exitMain = false;
-        timeoutIntent = null;
     }
 
     public static Session getInstance() {
@@ -117,8 +114,10 @@ public class Session {
 
         if (isLoggedIn) {
             // Make sure a timer or a pause left from before the login does
-            // not log out the user. The login screen does not clear them,
-            // see clearTimeoutTimer().
+            // not log out the user, also the alarm of an earlier process:
+            // the timeout receivers ignore it (isTimeoutDue()), and the next
+            // resume cancels it. The login screen does not clear them, see
+            // clearTimeoutTimer().
             timeoutEnd = 0;
             sleepTimeAtPause = -1;
             loggedOutByUser = false;
@@ -212,11 +211,7 @@ public class Session {
     public static void setTimeoutTimer(Context context) {
         Session session = getInstance();
 
-        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (session.timeoutIntent != null) {
-            am.cancel(session.timeoutIntent);
-            session.timeoutIntent = null;
-        }
+        cancelTimeoutAlarm(context);
 
         session.sleepTimeAtPause = getSleepTime();
 
@@ -226,34 +221,27 @@ public class Session {
             return;
         }
 
-        // Only deliver the timeout broadcast to this application
-        Intent intent = new Intent(TIMEOUT_ACTION);
-        intent.setPackage(context.getPackageName());
-
-        session.timeoutIntent = PendingIntent.getBroadcast(context, 0, intent,
-                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         session.timeoutEnd = SystemClock.elapsedRealtime() +
                              session.getTimeout(context);
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         am.set(AlarmManager.ELAPSED_REALTIME, session.timeoutEnd,
-               session.timeoutIntent);
+               getTimeoutIntent(context, true));
     }
 
     /**
-     * Cancel the timeout timer. If the timeout has already passed the user is
-     * logged out, since the alarm is inexact and its broadcast may be held
-     * back while the application is in the background.
+     * Cancel the timeout timer, also an alarm an earlier process of the
+     * application set, see cancelTimeoutAlarm(). If the timeout has already
+     * passed the user is logged out, since the alarm is inexact and its
+     * broadcast may be held back while the application is in the background.
      */
     public static void clearTimeoutTimer(Context context) {
         Session session = getInstance();
 
-        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (session.timeoutIntent != null) {
-            am.cancel(session.timeoutIntent);
-            session.timeoutIntent = null;
-        }
+        cancelTimeoutAlarm(context);
 
         if (session.timeoutEnd != 0 &&
             SystemClock.elapsedRealtime() >= session.timeoutEnd) {
+            Utils.debug("Logout: the logout delay passed in the background");
             session.setLoggedIn(false);
         }
 
@@ -264,12 +252,59 @@ public class Session {
         if (session.sleepTimeAtPause >= 0 &&
             getSleepTime() - session.sleepTimeAtPause > 1000 &&
             isScreenOffLogout(context)) {
+            Utils.debug("Logout: the device slept in the background");
             session.setLoggedIn(false);
         }
 
         session.timeoutEnd = 0;
         session.sleepTimeAtPause = -1;
         session.extendedTimeout = false;
+    }
+
+    /**
+     * Whether a timeout broadcast logs out: the session has already ended,
+     * e.g. in screenOff(), or its own logout delay has passed. A broadcast
+     * that arrives after a later login, held back or from the alarm of an
+     * earlier process, finds neither and is ignored.
+     */
+    public boolean isTimeoutDue() {
+        return !isLoggedIn ||
+               (timeoutEnd != 0 && SystemClock.elapsedRealtime() >= timeoutEnd);
+    }
+
+    /**
+     * Cancel the logout alarm, whichever process of the application set it.
+     * The alarm outlives the process, which an update or swiping the app away
+     * from the recent apps ends, and would log out a later session.
+     */
+    private static void cancelTimeoutAlarm(Context context) {
+        PendingIntent intent = getTimeoutIntent(context, false);
+        if (intent != null) {
+            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            am.cancel(intent);
+            intent.cancel();
+        }
+    }
+
+    /**
+     * Get the PendingIntent of the logout alarm. The same intent, request code
+     * and flags give the same PendingIntent in every process, so the alarm of
+     * an earlier process can be found.
+     *
+     * @param create false to only look up an existing one
+     * @return null if create is false and there is none
+     */
+    private static PendingIntent getTimeoutIntent(Context context,
+                                                  boolean create) {
+        // Only deliver the timeout broadcast to this application
+        Intent intent = new Intent(TIMEOUT_ACTION);
+        intent.setPackage(context.getPackageName());
+
+        int flags = PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE;
+        if (!create) {
+            flags |= PendingIntent.FLAG_NO_CREATE;
+        }
+        return PendingIntent.getBroadcast(context, 0, intent, flags);
     }
 
     /**
@@ -283,6 +318,7 @@ public class Session {
             return;
         }
 
+        Utils.debug("Logout: a screen broadcast");
         session.setLoggedIn(false);
 
         Intent intent = new Intent(TIMEOUT_ACTION);
