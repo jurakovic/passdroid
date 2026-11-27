@@ -51,8 +51,9 @@ import android.widget.Toast;
  * delete the entry.
  *
  * The password and the 2FA secret are only decrypted when they are shown or
- * copied. The entry is passed by its id, so that no decrypted values are
- * passed through the system in the intent.
+ * copied, and the 2FA secret once more for the live code, of which only the
+ * code generator is kept. The entry is passed by its id, so that no
+ * decrypted values are passed through the system in the intent.
  */
 public class ShowActivity extends SherlockTimeoutActivity {	
     public static final String EXTRA_ID = "id";

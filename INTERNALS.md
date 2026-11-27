@@ -415,8 +415,8 @@ fails the padding check. An entry with such a field is **damaged**.
   database with the wrong key, or with a damaged entry.
 - `canDecrypt()` checks every stored field of an entry without creating a
   string of any value: it decrypts into byte arrays and wipes them. The
-  entry screen uses it to find a damaged entry, so the password and the
-  2FA secret are still only decrypted when they are shown or copied.
+  entry screen uses it to find a damaged entry, so that finding one
+  creates no string of the password or the 2FA secret.
 - `hasTotp()`, `hasNote()`, `hasUrl()` and `hasDate()` tell the same way
   whether a field has a value that isn't empty or only spaces; null and a
   field that can't be decrypted have none. The check is on the UTF-8
@@ -1183,11 +1183,18 @@ Android 9 and later, off by default.
 
 - Only the **system, username and email** are decrypted when the entries are
   loaded, for the list and its search.
-- Apart from an export, the **password and the 2FA secret are decrypted
-  only when they are shown with the eye button or copied**, and dropped
-  again; the statistics screen checks them in byte arrays that it wipes
-  (see below). Hidden values are shown as `********`, so their length is
-  not shown either.
+- The **password and the 2FA secret are decrypted when they are shown with
+  the eye button or copied**, and dropped again. Hidden values are shown as
+  `********`, so their length is not shown either. Otherwise they are
+  decrypted only where they are needed:
+  - the edit screen decrypts all fields of its entry into its fields;
+  - the entry screen and the 2FA codes screen decrypt the 2FA secrets for
+    the live codes, and keep only the code generators;
+  - an export, a master password change and the upgrade of a legacy key
+    decrypt all fields of every entry, into copies that are dropped
+    afterwards;
+  - the statistics screen checks them in byte arrays that it wipes (see
+    below).
 - The note, URL and date are decrypted when an entry is opened. For the live
   2FA code only the code generator is kept.
 - The statistics screen checks the password, 2FA secret, note, URL and
@@ -1353,8 +1360,9 @@ Trade-offs that were made on purpose:
   "vault format v2".
 - **Decrypted values are Java strings**, which can't be wiped from memory.
   That can't be solved on Android; on-demand decryption keeps it to what is
-  shown, copied or exported. The statistics screen decrypts into byte
-  arrays, which are wiped.
+  shown, copied or edited, the 2FA secrets for their codes, and every entry
+  during an export or a change of the key. The statistics screen decrypts
+  into byte arrays, which are wiped.
 
 ### Open items
 
