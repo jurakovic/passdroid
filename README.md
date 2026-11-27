@@ -314,8 +314,8 @@ of Passdroid++.
   doesn't show anything without a login.
 - Material themes, so the app looks the same on all devices.
 - A new application id, so it installs next to the original.
-- Unit tests, a GitHub workflow that checks every change, and one that
-  publishes signed releases.
+- Unit tests, a GitHub workflow that checks every change to the code, and
+  one that publishes signed releases.
 
 ## Documentation
 

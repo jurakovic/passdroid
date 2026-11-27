@@ -1,8 +1,10 @@
 name: Build
 
-# Runs the tests and lint and builds the APKs for every push and pull request.
+# Runs the tests and lint and builds the APKs for every push and pull request
+# that changes the app or its build, see paths below; changes to the docs
+# alone don't run it. "Run workflow" on the Actions tab runs it on any branch.
 # The version is the next release computed from the tags, see publish.sh,
-# with the run number: <next release>-build.<run number>, e.g. 3.0.1-build.42.
+# with the run number: <next release>-build.<run number>, e.g. 3.1.0-build.42.
 # The version code is the run number, so that each build updates the one
 # before. Keep the name of this file: GitHub counts the run numbers per
 # workflow file, and a renamed one starts at 1 again. Releases are made with
@@ -18,7 +20,17 @@ name: Build
 on:
   push:
     branches: ['**']
+    # The inputs of the build: only a change to one of them starts a run.
+    # Add a new one here, e.g. a gradle.properties or another module.
+    paths: &build-inputs
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle'
+      - 'gradlew'
+      - 'publish.sh'
+      - '.github/workflows/build.yml'
   pull_request:
+    paths: *build-inputs
   workflow_dispatch:
 
 permissions:

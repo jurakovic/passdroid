@@ -100,10 +100,13 @@ Point `ANDROID_HOME` or `sdk.dir` in `local.properties` to the SDK.
   `android.util.Log`, which is a stub in local unit tests.
 
 The "Build" workflow, `.github/workflows/build.yml`, runs on every push and
-pull request. It installs platform `android-37.0` and build tools 36.0.0,
+pull request that changes the app, the Gradle build or wrapper,
+`publish.sh` or the workflow itself (`paths` in the file), not on changes to
+the docs or screenshots alone; "Run workflow" on the Actions tab runs it on
+any branch. It installs platform `android-37.0` and build tools 36.0.0,
 runs `testDebugUnitTest lintDebug assembleDebug assembleRelease`, and
 uploads the debug APK, not zipped, as `Passdroid_v<version>_debug.apk`. The
-version is `<next release>-build.<run number>`, e.g. 3.0.1-build.42: the
+version is `<next release>-build.<run number>`, e.g. 3.1.0-build.42: the
 next release is computed from the tags as in [Releasing](#releasing)
 (`publish.sh version -p false`), so the checkout fetches them. The version
 code is the run number, so each CI build updates the one before. Keep the
@@ -1574,15 +1577,15 @@ The work is done by `publish.sh`, which runs locally as well, see
 ### Version and version code
 
 - **Version** (`publish.sh version`): the latest tag of the major version
-  stream, bumped by "Bump Type" (major, minor or patch, by default patch).
+  stream, bumped by "Bump Type" (major, minor or patch, by default minor).
   The stream ("Major version stream", `base_ver`) is by default `auto`: the
   major of the latest `v<major>.x.y` tag, release or preview, but at least
   3, since the version numbers continue those of Passdroid. So a major
   release, or its first preview, moves the stream on by itself; a lower
   number picks an older stream, e.g. for a 3.x fix after 4.0.0. Run from
-  master, the version is the next release, e.g. 3.2.1 after 3.2.0. Run from
+  master, the version is the next release, e.g. 3.3.0 after 3.2.0. Run from
   another branch, or with "Preview", it is the next preview, e.g.
-  3.2.1-preview.1, then 3.2.1-preview.2, published as a pre-release. While
+  3.3.0-preview.1, then 3.3.0-preview.2, published as a pre-release. While
   a preview is open (ahead of the latest release), a bump it covers
   continues it and a bump past it starts a new version from the latest
   release: after 3.0.0 and 3.0.1-preview.2, patch gives 3.0.1 (or
