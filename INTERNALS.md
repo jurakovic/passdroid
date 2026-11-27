@@ -1528,10 +1528,11 @@ release:
   font, and so is the hint of the master password dialog before an
   unencrypted export. Font size doesn't change these fields. Change Font in
   the settings and log out: the last character typed in the login field,
-  shown for a moment, is in the font chosen. The setup screen is only
-  reached without a vault: on a fresh install it has the default font; for
-  Roboto Mono, set Font to Monospace in a debug build with a test vault,
-  force-stop the app, delete the vault with
+  shown for a moment while the system's "Show passwords" setting is on, is
+  in the font chosen. The setup screen is only reached without a vault: on
+  a fresh install it has the default font; for Roboto Mono, set Font to
+  Monospace in a debug build with a test vault, force-stop the app, delete
+  the vault with
   `adb shell run-as com.jurakovic.passdroid.debug rm databases/password.db`
   (the settings stay) and open the app again.
 - On the setup and the change password screen, each eye button shows and
