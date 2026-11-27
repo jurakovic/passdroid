@@ -351,7 +351,7 @@ public class PasswordEntry {
      * the password is created.
      *
      * @return null if the password has no value, see hasValue(), or can't
-     *         be decrypted.
+     *         be decrypted. The caller wipes the MAC when it is done with it.
      */
     public byte [] passwordMac(byte [] key, Mac mac) {
         byte [] decrypted = encPassword != null ? decryptBytes(key, encPassword) : null;

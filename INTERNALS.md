@@ -422,8 +422,8 @@ fails the padding check. An entry with such a field is **damaged**.
   field that can't be decrypted have none. The check is on the UTF-8
   bytes: the characters that `String.trim()` removes, up to U+0020, are
   exactly the bytes up to 0x20. `passwordMac()` gives a MAC of the
-  password, computed from its wiped bytes, or null without a value. The
-  statistics screen uses them.
+  password, computed from its wiped bytes, or null without a value; the
+  caller wipes the MAC. The statistics screen uses them.
 
 ## Loading entries
 
@@ -1194,8 +1194,8 @@ Android 9 and later, off by default.
   date of every entry each time it is shown without creating a string of
   any of them: it decrypts them into byte arrays and wipes them, as
   `canDecrypt()` does. For the reused passwords it holds a MAC of each
-  password, with a random key made for that count, until the count is
-  done; only the numbers stay.
+  password, with a random key made for that count, and wipes the MACs once
+  counted; only the numbers stay.
 - Screens pass entries by their id, so no decrypted values go through the
   system process in intents.
 - Typed secrets aren't in the saved instance state either, which the system

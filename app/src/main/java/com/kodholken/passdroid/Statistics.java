@@ -22,7 +22,7 @@ import javax.crypto.spec.SecretKeySpec;
  * secret, note, URL and date are checked with PasswordEntry.hasTotp() etc.
  * and passwordMac(), which decrypt into byte arrays and wipe them, so none
  * of them becomes a string. Passwords are compared by their MACs, with a
- * random key made for each count.
+ * random key made for each count, and the MACs are wiped once counted.
  *
  * A field counts when it has a value that isn't empty or only spaces. A
  * field that can't be decrypted doesn't count either.
@@ -111,6 +111,10 @@ public final class Statistics {
                 ByteBuffer password = ByteBuffer.wrap(passwordMac);
                 Integer uses = passwordUses.get(password);
                 passwordUses.put(password, uses == null ? 1 : uses + 1);
+                if (uses != null) {
+                    // The map keeps the equal MAC it has
+                    Arrays.fill(passwordMac, (byte) 0);
+                }
             }
 
             if (entry.hasTotp(key)) {
@@ -135,6 +139,12 @@ public final class Statistics {
                 entriesWithReusedPassword += uses;
             }
         }
+        // Until they are collected, the MACs would let a copy of the
+        // memory test guessed passwords against them. The map isn't used
+        // after this, so its keys may change.
+        for (ByteBuffer password : passwordUses.keySet()) {
+            Arrays.fill(password.array(), (byte) 0);
+        }
 
         return new Statistics(entries.length, withEmail, emails.size(),
                               withUsername, usernames.size(), withPassword,
@@ -145,7 +155,7 @@ public final class Statistics {
     /**
      * @return an HMAC-SHA256 with a random key, so that its MACs of the
      *         passwords can only be compared with each other, and can't be
-     *         looked up for a guessed password after the count.
+     *         computed for a guessed password without the key.
      */
     private static Mac newMac() {
         byte [] macKey = new byte[32];
