@@ -3,6 +3,8 @@ package com.kodholken.passdroid;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.util.Locale;
+
 import org.junit.Test;
 
 public class StatisticsTest {
@@ -203,6 +205,23 @@ public class StatisticsTest {
 
         assertEquals(4, statistics.withEmail);
         assertEquals(2, statistics.differentEmails);
+    }
+
+    @Test
+    public void emailsIgnoreCaseInATurkishLocale() {
+        Locale locale = Locale.getDefault();
+        try {
+            // Where "I" lower-cases to a dotless i
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            Statistics statistics = count(
+                entry("ALICE@EXAMPLE.COM", null, null),
+                entry("alice@example.com", null, null));
+
+            assertEquals(1, statistics.differentEmails);
+        } finally {
+            Locale.setDefault(locale);
+        }
     }
 
     @Test
