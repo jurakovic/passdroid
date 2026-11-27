@@ -267,8 +267,8 @@ of Passdroid++.
 - Every logout, also the automatic ones, wipes the key and the decrypted
   entries; 2.3 only did that for a logout from the menu. Passwords and 2FA
   secrets are only decrypted while they are shown or copied, and for an
-  export or the statistics, which decrypt copies of all entries and drop
-  them afterwards.
+  export, which decrypts copies of all entries and drops them afterwards.
+  The statistics decrypt them only into memory that is wiped right away.
 - Copied passwords are removed from the clipboard after 45 seconds and are
   hidden in the clipboard preview. 2.3 only cleared the clipboard when the
   screen turned off.

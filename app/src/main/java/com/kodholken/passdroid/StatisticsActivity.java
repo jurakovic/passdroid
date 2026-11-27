@@ -33,9 +33,10 @@ public class StatisticsActivity extends TimeoutActivity {
         }
 
         // Counted each time, so the numbers are current after a change to
-        // the entries. All fields are decrypted for it, as for an export;
-        // the copies are dropped once counted and only the numbers are kept.
-        show(Statistics.count(PasswordModel.getInstance(this).getDecryptedPasswords()));
+        // the entries. Only the numbers are kept, and no password, 2FA
+        // secret, note, URL or date becomes a string, see Statistics.
+        show(Statistics.count(PasswordModel.getInstance(this).getPasswords(),
+                              Session.getInstance().getKey()));
     }
 
     private void show(Statistics statistics) {

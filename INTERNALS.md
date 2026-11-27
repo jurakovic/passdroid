@@ -417,6 +417,13 @@ fails the padding check. An entry with such a field is **damaged**.
   string of any value: it decrypts into byte arrays and wipes them. The
   entry screen uses it to find a damaged entry, so the password and the
   2FA secret are still only decrypted when they are shown or copied.
+- `hasTotp()`, `hasNote()`, `hasUrl()` and `hasDate()` tell the same way
+  whether a field has a value that isn't empty or only spaces; null and a
+  field that can't be decrypted have none. The check is on the UTF-8
+  bytes: the characters that `String.trim()` removes, up to U+0020, are
+  exactly the bytes up to 0x20. `passwordMac()` gives a MAC of the
+  password, computed from its wiped bytes, or null without a value. The
+  statistics screen uses them.
 
 ## Loading entries
 
@@ -440,8 +447,8 @@ fails the padding check. An entry with such a field is **damaged**.
   `decryptPassword()` etc. and don't keep the result, except the screen that
   shows them.
 - `getById()` finds an entry by its database id. `getDecryptedPasswords()`
-  returns fully decrypted copies for an export and the statistics screen,
-  which the caller drops afterwards.
+  returns fully decrypted copies for an export, which the caller drops
+  afterwards.
 - `setPasswords()` replaces **all** rows in one transaction, for an import.
   It encrypts the entries with the session key, and fails if the user has
   been logged out.
@@ -491,9 +498,13 @@ it once and forgets it.
   legacy key that the login has replaced, is deleted, and the list says it
   could not be restored.
 - **`StatisticsActivity`**, opened from the list menu: in `onResume()`, so
-  the numbers are current after a change, it counts the fully decrypted
-  copies of `getDecryptedPasswords()` with `Statistics.count()` and drops
-  them; only the numbers are kept. It shows them as label and value rows
+  the numbers are current after a change, it counts the entries of
+  `getPasswords()` with `Statistics.count()` and the session key; only the
+  numbers are kept. The email and username are the decrypted list fields.
+  The password, 2FA secret, note, URL and date are checked without
+  creating a string of any of them (see [Entry encryption](#entry-encryption)),
+  and passwords are compared by their HMAC-SHA256 with a random key made
+  for each count. It shows the numbers as label and value rows
   (`statistics_row.xml`) in a panel: all entries; the entries with each
   field, where a value that is empty or only spaces doesn't count, nor does
   a field that didn't decrypt; the different emails, ignoring case and the
@@ -1172,15 +1183,19 @@ Android 9 and later, off by default.
 
 - Only the **system, username and email** are decrypted when the entries are
   loaded, for the list and its search.
-- Apart from an export and the statistics screen (see below), the
-  **password and the 2FA secret are decrypted only when they are shown with
-  the eye button or copied**, and dropped again. Hidden values are shown as
-  `********`, so their length is not shown either.
+- Apart from an export, the **password and the 2FA secret are decrypted
+  only when they are shown with the eye button or copied**, and dropped
+  again; the statistics screen checks them in byte arrays that it wipes
+  (see below). Hidden values are shown as `********`, so their length is
+  not shown either.
 - The note, URL and date are decrypted when an entry is opened. For the live
   2FA code only the code generator is kept.
-- The statistics screen decrypts every field of copies of the entries, as
-  an export does, each time it is shown, and drops the copies once they are
-  counted: it keeps only the numbers.
+- The statistics screen checks the password, 2FA secret, note, URL and
+  date of every entry each time it is shown without creating a string of
+  any of them: it decrypts them into byte arrays and wipes them, as
+  `canDecrypt()` does. For the reused passwords it holds a MAC of each
+  password, with a random key made for that count, until the count is
+  done; only the numbers stay.
 - Screens pass entries by their id, so no decrypted values go through the
   system process in intents.
 - Typed secrets aren't in the saved instance state either, which the system
@@ -1338,7 +1353,8 @@ Trade-offs that were made on purpose:
   "vault format v2".
 - **Decrypted values are Java strings**, which can't be wiped from memory.
   That can't be solved on Android; on-demand decryption keeps it to what is
-  shown, copied or exported, and to what the statistics screen counts.
+  shown, copied or exported. The statistics screen decrypts into byte
+  arrays, which are wiped.
 
 ### Open items
 
@@ -1407,7 +1423,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `ShortPasswordReminderTest` | The reminder setting encrypted and decrypted, both values of the same length, a fresh nonce each time; not with another key or without one; modified, truncated and other text, other values and other associated data rejected |
 | `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one; editor values compared field by field |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
-| `StatisticsTest` | No entries; every field counted, but not one that is `null`, empty or only spaces; different emails ignoring case and spaces, different usernames ignoring only spaces; reused passwords and the entries using them, compared exactly |
+| `StatisticsTest` | Entries as the list has them: no entries; every field counted, but not one that is `null`, empty, only spaces or damaged, while any other character counts, as for `String.trim()`; the password, 2FA secret, note, URL and date not decrypted into the entry; different emails ignoring case and spaces, different usernames ignoring only spaces; reused passwords and the entries using them, compared exactly |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 | `VersionTest` | Equal versions have equal hash codes |
 | `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored; every exported setting in `ORDER`, with a title and, for a list, labels |
@@ -1612,8 +1628,9 @@ release:
 6. The add, edit and show layouts and activities, `FontSetting` if it shows
    a value.
 7. Tests in `FileExportImportTest` and `PasswordEntryTest`.
-8. `Statistics.count()` and its row in `StatisticsActivity`, with a label in
-   `strings.xml`, and a test in `StatisticsTest`.
+8. `Statistics.count()`, with a `hasX()` in `PasswordEntry` for a field
+   the list doesn't decrypt, its row in `StatisticsActivity`, with a label
+   in `strings.xml`, and a test in `StatisticsTest`.
 
 ### Adding a setting
 
