@@ -327,7 +327,7 @@ key is the old one.
 `DbMigration.changeKey()` decrypts every entry with the old key and only
 continues if every field decrypted. It then re-encrypts all entries, updates
 the `key` record, deletes the stored fingerprint key and stores the
-reminder setting turned on, with the new key (see [Master key](#master-key)),
+reminder setting turned on, with the new key (see [Current format](#current-format)),
 all in one SQLite transaction. It runs on the UI thread.
 
 ## Database
