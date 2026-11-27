@@ -1172,9 +1172,10 @@ Android 9 and later, off by default.
 
 - Only the **system, username and email** are decrypted when the entries are
   loaded, for the list and its search.
-- The **password and the 2FA secret are decrypted only when they are shown
-  with the eye button or copied**, and dropped again. Hidden values are
-  shown as `********`, so their length is not shown either.
+- Apart from an export and the statistics screen (see below), the
+  **password and the 2FA secret are decrypted only when they are shown with
+  the eye button or copied**, and dropped again. Hidden values are shown as
+  `********`, so their length is not shown either.
 - The note, URL and date are decrypted when an entry is opened. For the live
   2FA code only the code generator is kept.
 - The statistics screen decrypts every field of copies of the entries, as
@@ -1337,7 +1338,7 @@ Trade-offs that were made on purpose:
   "vault format v2".
 - **Decrypted values are Java strings**, which can't be wiped from memory.
   That can't be solved on Android; on-demand decryption keeps it to what is
-  shown or copied.
+  shown, copied or exported, and to what the statistics screen counts.
 
 ### Open items
 
