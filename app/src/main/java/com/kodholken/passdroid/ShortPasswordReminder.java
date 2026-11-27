@@ -17,8 +17,9 @@ import android.database.SQLException;
  * encrypted with the vault key, and stored again with a fresh nonce after
  * every login. Both values encrypt to the same length. So a copy of the
  * database shows neither which vaults have a short master password nor
- * whether the reminder was turned off, and neither do two copies of
- * different days compared.
+ * whether the reminder was turned off. Two copies of different days show
+ * whether there was a login between them, but not whether the setting
+ * changed.
  */
 public final class ShortPasswordReminder {
     public static final String ATTRIBUTE = "short_password_reminder";

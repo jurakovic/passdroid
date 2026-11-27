@@ -1070,8 +1070,9 @@ passphrase is out of reach.
   every vault, encrypted with the vault key in AES-256-GCM, again with a
   fresh nonce after every login, and of the same length on and off. So a
   copy of the database shows neither whether the master password is short
-  nor whether the reminder was turned off, and two copies don't show a
-  change.
+  nor whether the reminder was turned off. Two copies show whether there
+  was a login between them, since every login stores the setting again,
+  but not whether it changed.
 - The conversions of old entries are chosen by a data version stored in the
   database, never by the app version, so a version number can't make the
   app convert current entries again and destroy them.
@@ -1287,7 +1288,10 @@ Trade-offs that were made on purpose:
   changing the master password turns the reminder on again. It is stored
   for every vault, short password or not, and with a fresh nonce after
   every login: a value only vaults with a short password had, even
-  encrypted, would show in a copy of the database which ones do.
+  encrypted, would show in a copy of the database which ones do, and one
+  that only changed when "Don't remind me" is tapped would show the tap in
+  two copies. The cost is that every login writes to the database, so two
+  copies show whether there was a login between them.
 - **2FA secrets next to the passwords.** They still protect against the most
   common attacks: a service's password database leaking, reused passwords,
   password guessing. They don't protect when the vault itself is opened,
