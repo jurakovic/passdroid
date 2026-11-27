@@ -72,9 +72,6 @@ implements PasswordModelListener {
     private int listPosition;
 
     private TextView     emptyListHelp;
-    private TextView     passwordCountTextView;
-
-    private boolean passwordCounterIsVisible = false;
 
     private PasswordAdapter passwordAdapter = null;
 
@@ -135,7 +132,6 @@ implements PasswordModelListener {
 
         emptyListHelp = (TextView) findViewById(R.id.empty_list_help);
         
-        passwordCountTextView = (TextView) findViewById(R.id.password_count);
         getListView().setTextFilterEnabled(true);
 
         PasswordModel.getInstance(this).addListener(this);
@@ -244,7 +240,6 @@ implements PasswordModelListener {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
                 searchFilter = "";
-                passwordCountTextView.setVisibility(View.GONE);
                 searchField.post(new Runnable() {
                     @Override
                     public void run() {
@@ -265,9 +260,6 @@ implements PasswordModelListener {
                 searchField.setFocusable(false);
                 searchField.setFocusableInTouchMode(false);
 
-                if (passwordCounterIsVisible) {
-                    passwordCountTextView.setVisibility(View.VISIBLE);
-                }
                 searchFilter = null;
                 passwordAdapter.setFilterString(null);
                 passwordAdapter.notifyDataSetChanged();
@@ -647,26 +639,13 @@ implements PasswordModelListener {
         passwordAdapter.setFilterString(searchFilter);
         setListAdapter(passwordAdapter); 
 
-        updateTitlebar();
-
         if (entries.length == 0) {
             emptyListHelp.setVisibility(View.VISIBLE);
-            passwordCounterIsVisible = false;
-            passwordCountTextView.setVisibility(View.GONE);
             list.setVisibility(View.GONE);
         } else {
             emptyListHelp.setVisibility(View.GONE);
             list.setVisibility(View.VISIBLE);
-            passwordCounterIsVisible = true;
-            passwordCountTextView.setVisibility(View.VISIBLE);
         }
-    }
-
-    private void updateTitlebar() {		
-        int count = PasswordModel.getInstance(this).getPasswords().length;
-        String quantifier = count == 1 ? "" : "s";
-
-        passwordCountTextView.setText(count + " password" + quantifier);
     }
 
     @Override

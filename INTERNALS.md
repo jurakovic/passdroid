@@ -136,7 +136,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
 | Generator | `PasswordGenerator`, `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
-| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView`, `RetainedText` |
+| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `RetainedText` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
@@ -1473,6 +1473,8 @@ release:
   with a long press in the list, also while searching. Turn "Tap to copy"
   off and open an entry: a tap copies nothing, a long press copies, asking
   first for the password and the 2FA secret; the URL still opens with a tap.
+- Pull the list down at its top, also while searching: it stops at the
+  first entry, with no gap above it and no text behind it.
 - Open the search: the field fills the action bar, without an x. Type: the
   x appears. Tap it: the field is empty and keeps the keyboard, all entries
   show, and the x is gone. Edit or delete an entry found by a search and go
