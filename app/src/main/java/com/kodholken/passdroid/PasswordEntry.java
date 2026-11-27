@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -320,6 +321,86 @@ public class PasswordEntry {
             Arrays.fill(decrypted, (byte) 0);
         }
         return true;
+    }
+
+    /*
+     * Whether the 2FA secret, note, URL or date has a value, see hasValue(),
+     * found without creating a string of it, e.g. for the statistics.
+     */
+
+    /**
+     * A secret of only spaces has no value here. The entry screen and the
+     * 2FA codes screen show a code for any secret that isn't empty, so they
+     * don't use this.
+     */
+    public boolean hasTotp(byte [] key) {
+        return hasValue(key, encTotp);
+    }
+
+    public boolean hasNote(byte [] key) {
+        return hasValue(key, encNote);
+    }
+
+    public boolean hasUrl(byte [] key) {
+        return hasValue(key, encUrl);
+    }
+
+    public boolean hasDate(byte [] key) {
+        return hasValue(key, encDate);
+    }
+
+    /**
+     * The MAC of the password, e.g. to find passwords that several entries
+     * use: equal passwords give equal MACs with the same key of the Mac. It
+     * is computed from the decrypted bytes, which are wiped, so no string of
+     * the password is created.
+     *
+     * @return null if the password has no value, see hasValue(), or can't
+     *         be decrypted. The caller wipes the MAC when it is done with it.
+     */
+    public byte [] passwordMac(byte [] key, Mac mac) {
+        byte [] decrypted = encPassword != null ? decryptBytes(key, encPassword) : null;
+        if (decrypted == null) {
+            return null;
+        }
+
+        try {
+            return hasValue(decrypted) ? mac.doFinal(decrypted) : null;
+        } finally {
+            Arrays.fill(decrypted, (byte) 0);
+        }
+    }
+
+    /**
+     * @return whether a stored field has a value: false for null, a field
+     *         that can't be decrypted, and a value that is empty or only
+     *         spaces. The value is decrypted into a byte array, which is
+     *         wiped.
+     */
+    private static boolean hasValue(byte [] key, String encrypted) {
+        byte [] decrypted = encrypted != null ? decryptBytes(key, encrypted) : null;
+        if (decrypted == null) {
+            return false;
+        }
+
+        boolean result = hasValue(decrypted);
+        Arrays.fill(decrypted, (byte) 0);
+        return result;
+    }
+
+    /**
+     * @return whether a UTF-8 value isn't empty or only spaces, as
+     *         !String.trim().isEmpty() of its text: trim() removes the
+     *         characters up to U+0020, which are the bytes up to 0x20 in
+     *         UTF-8, while every byte of any other character is above it.
+     */
+    private static boolean hasValue(byte [] utf8) {
+        for (byte b : utf8) {
+            if ((b & 0xff) > 0x20) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

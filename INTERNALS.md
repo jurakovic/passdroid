@@ -129,14 +129,14 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
-| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField`, `EntryDraft` |
+| Entries | `PasswordListActivity`, `PasswordAdapter`, `FullWidthLayout`, `ShowActivity`, `AddActivity`, `EditActivity`, `PasswordToggle`, `DateField`, `EntryDraft`, `StatisticsActivity`, `Statistics` |
 | Clipboard | `Utils.copyPasswordToClipboard()`, `Utils.copyToClipboard()`, `ClipboardClearReceiver` |
 | Fingerprint | `BiometricUnlock`, `SettingsActivity` |
 | Export and import | `ImportExportActivity`, `FileExportActivity`, `FileExporter`, `FileImportActivity`, `FileImporter`, `FileImporterException`, `ImportPasswordActivity`, `SettingsBackup` |
 | 2FA | `Totp`, `TotpListActivity`, `QrScan`, `ScanActivity`, `QrDecoder`, `QrEncoder` |
 | Generator | `PasswordGenerator`, `GeneratePasswordActivity`, `DisplayPasswordActivity`, `PasswordStrength` |
 | Settings | `SettingsActivity`, `res/xml/settings.xml`, `ThemeSetting`, `FontSetting`, `ChangePasswordActivity` |
-| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `OverscrollListView`, `RetainedText` |
+| Misc | `Utils`, `Version`, `Constants`, `AboutActivity`, `RetainedText` |
 
 Resources worth knowing: `res/values-night/` (dark theme colors),
 `res/layout-land/` (landscape layouts of the About screen and the
@@ -415,8 +415,15 @@ fails the padding check. An entry with such a field is **damaged**.
   database with the wrong key, or with a damaged entry.
 - `canDecrypt()` checks every stored field of an entry without creating a
   string of any value: it decrypts into byte arrays and wipes them. The
-  entry screen uses it to find a damaged entry, so the password and the
-  2FA secret are still only decrypted when they are shown or copied.
+  entry screen uses it to find a damaged entry, so that finding one
+  creates no string of the password or the 2FA secret.
+- `hasTotp()`, `hasNote()`, `hasUrl()` and `hasDate()` tell the same way
+  whether a field has a value that isn't empty or only spaces; null and a
+  field that can't be decrypted have none. The check is on the UTF-8
+  bytes: the characters that `String.trim()` removes, up to U+0020, are
+  exactly the bytes up to 0x20. `passwordMac()` gives a MAC of the
+  password, computed from its wiped bytes, or null without a value; the
+  caller wipes the MAC. The statistics screen uses them.
 
 ## Loading entries
 
@@ -490,6 +497,20 @@ it once and forgets it.
   Discard deletes it. A draft that doesn't decrypt, e.g. one stored with a
   legacy key that the login has replaced, is deleted, and the list says it
   could not be restored.
+- **`StatisticsActivity`**, opened from the list menu: in `onResume()`, so
+  the numbers are current after a change, it counts the entries of
+  `getPasswords()` with `Statistics.count()` and the session key; only the
+  numbers are kept. The email and username are the decrypted list fields.
+  The password, 2FA secret, note, URL and date are checked without
+  creating a string of any of them (see [Entry encryption](#entry-encryption)),
+  and passwords are compared by their HMAC-SHA256 with a random key made
+  for each count. It shows the numbers as label and value rows
+  (`statistics_row.xml`) in a panel: all entries; the entries with each
+  field, where a value that is empty or only spaces doesn't count, nor does
+  a field that didn't decrypt; the different emails, ignoring case and the
+  spaces around them, and usernames, ignoring only the spaces; and the
+  passwords used by more than one entry, compared exactly, with the number
+  of entries using them. Without entries it shows only the Entries row, 0.
 - **`ShowActivity`**: decrypts the note, URL and date for display, and the
   2FA secret once into a `Totp` generator for the live code, refreshed every
   second. The password and the 2FA secret are shown with `PasswordToggle` in
@@ -1162,11 +1183,26 @@ Android 9 and later, off by default.
 
 - Only the **system, username and email** are decrypted when the entries are
   loaded, for the list and its search.
-- The **password and the 2FA secret are decrypted only when they are shown
-  with the eye button or copied**, and dropped again. Hidden values are
-  shown as `********`, so their length is not shown either.
+- The **password and the 2FA secret are decrypted when they are shown with
+  the eye button or copied**, and dropped again. Hidden values are shown as
+  `********`, so their length is not shown either. Otherwise they are
+  decrypted only where they are needed:
+  - the edit screen decrypts all fields of its entry into its fields;
+  - the entry screen and the 2FA codes screen decrypt the 2FA secrets for
+    the live codes, and keep only the code generators;
+  - an export, a master password change and the upgrade of a legacy key
+    decrypt all fields of every entry, into copies that are dropped
+    afterwards;
+  - the statistics screen checks them in byte arrays that it wipes (see
+    below).
 - The note, URL and date are decrypted when an entry is opened. For the live
   2FA code only the code generator is kept.
+- The statistics screen checks the password, 2FA secret, note, URL and
+  date of every entry each time it is shown without creating a string of
+  any of them: it decrypts them into byte arrays and wipes them, as
+  `canDecrypt()` does. For the reused passwords it holds a MAC of each
+  password, with a random key made for that count, and wipes the MACs once
+  counted; only the numbers stay.
 - Screens pass entries by their id, so no decrypted values go through the
   system process in intents.
 - Typed secrets aren't in the saved instance state either, which the system
@@ -1324,7 +1360,9 @@ Trade-offs that were made on purpose:
   "vault format v2".
 - **Decrypted values are Java strings**, which can't be wiped from memory.
   That can't be solved on Android; on-demand decryption keeps it to what is
-  shown or copied.
+  shown, copied or edited, the 2FA secrets for their codes, and every entry
+  during an export or a change of the key. The statistics screen decrypts
+  into byte arrays, which are wiped.
 
 ### Open items
 
@@ -1393,6 +1431,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `ShortPasswordReminderTest` | The reminder setting encrypted and decrypted, both values of the same length, a fresh nonce each time; not with another key or without one; modified, truncated and other text, other values and other associated data rejected |
 | `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one; editor values compared field by field |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
+| `StatisticsTest` | Entries as the list has them: no entries; every field counted, but not one that is `null`, empty, only spaces or damaged, while any other character counts, as for `String.trim()`; the password, 2FA secret, note, URL and date not decrypted into the entry; different emails ignoring case and spaces, also in a Turkish locale, different usernames ignoring only spaces; reused passwords and the entries using them, compared exactly |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
 | `VersionTest` | Equal versions have equal hash codes |
 | `SettingsBackupTest` | The settings an import changes: only differing values, in the order of the settings screen, unknown settings ignored; every exported setting in `ORDER`, with a title and, for a list, labels |
@@ -1473,11 +1512,18 @@ release:
   with a long press in the list, also while searching. Turn "Tap to copy"
   off and open an entry: a tap copies nothing, a long press copies, asking
   first for the password and the 2FA secret; the URL still opens with a tap.
+- Pull the list down at its top, also while searching: it stops at the
+  first entry, with no gap above it and no text behind it.
 - Open the search: the field fills the action bar, without an x. Type: the
   x appears. Tap it: the field is empty and keeps the keyboard, all entries
   show, and the x is gone. Edit or delete an entry found by a search and go
   back: the list is still filtered.
 - Open the 2FA codes screen, with "Display username" on and off.
+- Open Statistics from the list menu: the numbers match the entries. Add an
+  entry with the password of another entry and go back to Statistics:
+  Entries, Passwords and Reused passwords have changed. In a vault without
+  entries it shows only Entries, 0. A screenshot of it is refused, and it
+  logs out like the other screens.
 - Scan a setup QR code with the camera and from a screenshot.
 - Show a 2FA secret as a QR code and scan it with an authenticator app:
   same codes.
@@ -1590,6 +1636,9 @@ release:
 6. The add, edit and show layouts and activities, `FontSetting` if it shows
    a value.
 7. Tests in `FileExportImportTest` and `PasswordEntryTest`.
+8. `Statistics.count()`, with a `hasX()` in `PasswordEntry` for a field
+   the list doesn't decrypt, its row in `StatisticsActivity`, with a label
+   in `strings.xml`, and a test in `StatisticsTest`.
 
 ### Adding a setting
 

@@ -112,6 +112,7 @@ longer password made of a few random words is easy to remember and hard to guess
 <string name="options_delete">Delete</string>
 <string name="options_impexp">Import / Export</string>
 <string name="options_generate_password">Password Generator</string>
+<string name="options_statistics">Statistics</string>
 
 <string name="add_password_text">Add Password</string>
 <string name="empty_list_help">Press the menu button and choose <b>Add Password</b> to create new password entries.</string>
@@ -268,6 +269,31 @@ would like to transfer this entry to</string>
 <!-- 2FA codes screen -->
 <string name="totp_list_title">2FA codes</string>
 <string name="totp_list_empty">No entries have a 2FA secret yet. Add the 2FA secret of an entry when you edit it, and its code is shown here.</string>
+
+<!-- Statistics screen, see StatisticsActivity -->
+<string name="statistics_title">Statistics</string>
+<string name="statistics_entries">Entries</string>
+<string name="statistics_emails">Emails</string>
+<string name="statistics_usernames">Usernames</string>
+<string name="statistics_passwords">Passwords</string>
+<string name="statistics_reused_passwords">Reused passwords</string>
+<string name="statistics_totp">2FA secrets</string>
+<string name="statistics_notes">Notes</string>
+<string name="statistics_urls">URLs</string>
+<string name="statistics_dates">Dates</string>
+<!-- How many entries have a field -->
+<plurals name="statistics_entry_count">
+    <item quantity="one">%d entry</item>
+    <item quantity="other">%d entries</item>
+</plurals>
+<!-- %1$s is statistics_entry_count, %2$d how many different values they have -->
+<plurals name="statistics_different">
+    <item quantity="one">%1$s, %2$d different</item>
+    <item quantity="other">%1$s, %2$d different</item>
+</plurals>
+<!-- %1$d is how many passwords more than one entry uses, %2$s the entries
+     that use them as statistics_entry_count -->
+<string name="statistics_reused">%1$d, in %2$s</string>
 
 <!-- QR code scanning -->
 <string name="scan_qr_code">Scan QR code</string>

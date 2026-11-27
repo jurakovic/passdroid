@@ -67,14 +67,12 @@ implements PasswordModelListener {
     private static final int OPTION_MENU_GENERATE = 7;
     private static final int OPTION_MENU_SEARCH   = 8;
     private static final int OPTION_MENU_TOTP     = 9;
+    private static final int OPTION_MENU_STATISTICS = 10;
 
     private ListView list;
     private int listPosition;
 
     private TextView     emptyListHelp;
-    private TextView     passwordCountTextView;
-
-    private boolean passwordCounterIsVisible = false;
 
     private PasswordAdapter passwordAdapter = null;
 
@@ -135,7 +133,6 @@ implements PasswordModelListener {
 
         emptyListHelp = (TextView) findViewById(R.id.empty_list_help);
         
-        passwordCountTextView = (TextView) findViewById(R.id.password_count);
         getListView().setTextFilterEnabled(true);
 
         PasswordModel.getInstance(this).addListener(this);
@@ -244,7 +241,6 @@ implements PasswordModelListener {
             @Override
             public boolean onMenuItemActionExpand(MenuItem item) {
                 searchFilter = "";
-                passwordCountTextView.setVisibility(View.GONE);
                 searchField.post(new Runnable() {
                     @Override
                     public void run() {
@@ -265,9 +261,6 @@ implements PasswordModelListener {
                 searchField.setFocusable(false);
                 searchField.setFocusableInTouchMode(false);
 
-                if (passwordCounterIsVisible) {
-                    passwordCountTextView.setVisibility(View.VISIBLE);
-                }
                 searchFilter = null;
                 passwordAdapter.setFilterString(null);
                 passwordAdapter.notifyDataSetChanged();
@@ -289,6 +282,9 @@ implements PasswordModelListener {
         menu.add(Menu.NONE, OPTION_MENU_GENERATE, Menu.NONE,
                 getString(R.string.options_generate_password))
         .setIcon(R.drawable.ic_menu_rotate);
+
+        menu.add(Menu.NONE, OPTION_MENU_STATISTICS, Menu.NONE,
+                getString(R.string.options_statistics));
 
         menu.add(Menu.NONE, OPTION_MENU_SETTINGS, Menu.NONE,
                 getString(R.string.options_settings))
@@ -324,6 +320,10 @@ implements PasswordModelListener {
             break;
         case OPTION_MENU_TOTP:
             startActivity(new Intent(this, TotpListActivity.class));
+            listPosition = list.getFirstVisiblePosition();
+            break;
+        case OPTION_MENU_STATISTICS:
+            startActivity(new Intent(this, StatisticsActivity.class));
             listPosition = list.getFirstVisiblePosition();
             break;
         case OPTION_MENU_GENERATE:
@@ -647,26 +647,13 @@ implements PasswordModelListener {
         passwordAdapter.setFilterString(searchFilter);
         setListAdapter(passwordAdapter); 
 
-        updateTitlebar();
-
         if (entries.length == 0) {
             emptyListHelp.setVisibility(View.VISIBLE);
-            passwordCounterIsVisible = false;
-            passwordCountTextView.setVisibility(View.GONE);
             list.setVisibility(View.GONE);
         } else {
             emptyListHelp.setVisibility(View.GONE);
             list.setVisibility(View.VISIBLE);
-            passwordCounterIsVisible = true;
-            passwordCountTextView.setVisibility(View.VISIBLE);
         }
-    }
-
-    private void updateTitlebar() {		
-        int count = PasswordModel.getInstance(this).getPasswords().length;
-        String quantifier = count == 1 ? "" : "s";
-
-        passwordCountTextView.setText(count + " password" + quantifier);
     }
 
     @Override
