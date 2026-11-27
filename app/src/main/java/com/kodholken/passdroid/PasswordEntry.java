@@ -328,6 +328,11 @@ public class PasswordEntry {
      * found without creating a string of it, e.g. for the statistics.
      */
 
+    /**
+     * A secret of only spaces has no value here. The entry screen and the
+     * 2FA codes screen show a code for any secret that isn't empty, so they
+     * don't use this.
+     */
     public boolean hasTotp(byte [] key) {
         return hasValue(key, encTotp);
     }
