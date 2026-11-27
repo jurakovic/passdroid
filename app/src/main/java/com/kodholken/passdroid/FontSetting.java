@@ -13,6 +13,7 @@ import android.widget.TextView;
  * - The font: the default font or the monospace font Roboto Mono, which makes
  *   characters like 0 and O easier to tell apart. Roboto Mono is licensed
  *   under the SIL Open Font License, see assets/fonts/RobotoMono-OFL.txt.
+ *   The master password fields use it too, see applyToPasswordFields().
  * - The size: small, normal or large, relative to the size of each value.
  */
 public class FontSetting {
@@ -81,6 +82,27 @@ public class FontSetting {
         Typeface current = view.getTypeface();
         boolean isBold = current != null && current.isBold();
         view.setTypeface(getMonospace(view.getContext(), isBold));
+    }
+
+    /**
+     * Use the selected font for the master password fields with the given
+     * ids, see applyToPasswordField(TextView).
+     */
+    public static void applyToPasswordFields(Activity activity, int... ids) {
+        for (int id : ids) {
+            applyToPasswordField((TextView) activity.findViewById(id));
+        }
+    }
+
+    /**
+     * Use the selected font for a master password field, without changing
+     * the size. Android gives a textPassword field a monospace font whatever
+     * the setting, so the default font is set too.
+     */
+    public static void applyToPasswordField(TextView view) {
+        view.setTypeface(isMonospace(view.getContext()) ?
+                         getMonospace(view.getContext(), false) :
+                         Typeface.DEFAULT);
     }
 
     private static synchronized Typeface getMonospace(Context context, boolean isBold) {

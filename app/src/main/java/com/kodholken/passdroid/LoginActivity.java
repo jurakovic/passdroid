@@ -153,6 +153,12 @@ public class LoginActivity extends Activity {
             return;
         }
 
+        // Here rather than in onCreate(), so that a font chosen in the
+        // settings applies after a logout too
+        if (passwordView != null) {
+            FontSetting.applyToPasswordField(passwordView);
+        }
+
         // Show the fingerprint prompt automatically, unless the user just
         // logged out
         if (updateFingerprintButton() && !biometricPromptShown &&

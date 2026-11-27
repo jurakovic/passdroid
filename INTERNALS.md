@@ -125,7 +125,7 @@ All code is in `app/src/main/java/com/kodholken/passdroid/`.
 
 | Area | Classes |
 |---|---|
-| Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `PasswordLengthHint`, `LoginActivity` |
+| Startup | `PassdroidApplication`, `MainActivity`, `InitializeActivity`, `PasswordLengthHint`, `LoginActivity`, `ShortPasswordReminder` |
 | Session | `Session`, the four `Timeout*Activity` base classes, `ScreenOffListener` |
 | Crypto | `MasterKey` (key derivation), `Crypto` (legacy key, AES helpers), `PasswordEntry` (field encryption), `Base64` |
 | Data | `db/PasswordData`, `db/SystemData`, `db/DbMigration`, `PasswordModel`, `PasswordModelListener` |
@@ -160,7 +160,7 @@ Unit tests are in `app/src/test/java/com/kodholken/passdroid/`, see
      there is none (see [Database](#database)), and starts `LoginActivity`
      if a master key record exists, else `InitializeActivity`.
 3. `InitializeActivity` creates the master key from the new password (at
-   least 12 characters), stores the record and logs in. Its two fields have
+   least 15 characters), stores the record and logs in. Its two fields have
    eye buttons (`PasswordToggle`), as do the three of
    `ChangePasswordActivity`. It can also restore a backup before there is a
    master password, see [Restoring on the welcome screen](#restoring-on-the-welcome-screen).
@@ -283,13 +283,22 @@ comparing the verifier in constant time (`MessageDigest.isEqual`).
 - Iteration counts read from files and from the database's record are
   capped at `MAX_ITERATIONS` (10,000,000); a record with more, or with fewer
   than 1, doesn't unlock.
-- `MIN_PASSWORD_LENGTH` (12) is counted in code points. It only applies to
+- `MIN_PASSWORD_LENGTH` (15) is counted in code points. It only applies to
   new master passwords; a login with a shorter one passes
-  `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder. On the setup
-  and change screens `PasswordLengthHint` shows the minimum below the field
-  and counts the missing characters while typing. There is no strength
-  meter: `PasswordStrength` assumes random characters and would rate a typed
-  password like `Password1234!` as excellent.
+  `EXTRA_SHORT_PASSWORD` to the list, which shows a reminder with Change,
+  Later and "Don't remind me", unless that was chosen before. The choice
+  is kept by `ShortPasswordReminder` in the `short_password_reminder`
+  attribute, for every vault: one byte, on or off, encrypted with the
+  vault key in AES-256-GCM with a random nonce and the attribute name as
+  associated data, 40 characters in Base64 either way. The list reads it
+  and stores it again with a fresh nonce once after every login
+  (`renew()`), so a vault has it from its first login on, short master
+  password or not; it is on while it is missing or doesn't decrypt.
+  `DbMigration.changeKey()` stores it turned on, with the new key. On the
+  setup and change screens `PasswordLengthHint` shows the minimum below
+  the field and counts the missing characters while typing. There is no
+  strength meter: `PasswordStrength` assumes random characters and would
+  rate a typed password like `Password1234!` as excellent.
 
 ### Legacy format
 
@@ -320,8 +329,9 @@ key is the old one.
 
 `DbMigration.changeKey()` decrypts every entry with the old key and only
 continues if every field decrypted. It then re-encrypts all entries, updates
-the `key` record and deletes the stored fingerprint key, all in one SQLite
-transaction. It runs on the UI thread.
+the `key` record, deletes the stored fingerprint key and stores the
+reminder setting turned on, with the new key (see [Current format](#current-format)),
+all in one SQLite transaction. It runs on the UI thread.
 
 ## Database
 
@@ -346,6 +356,7 @@ Every value in `data` except `id` is encrypted, see
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
 | `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
+| `short_password_reminder` | Whether the list reminds of a short master password after a login (`ShortPasswordReminder`): `base64(nonce (12 bytes) \|\| AES-256-GCM(1 byte, 1 on or 0 off) \|\| tag (16 bytes))`, encrypted with the vault key, with the attribute name as associated data. Stored for every vault after each login, see [Master key](#master-key) |
 | `entry_draft` | The unsaved changes of the add or edit screen, if any, until the next login (`EntryDraft`): `v1\|<entry id, -1 for a new entry>\|<saved at, ms>\|`, then the eight fields encrypted like an entry's, in the order of `PasswordData.COLUMNS` and separated by `\|`, each empty if it is `null` |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
@@ -467,7 +478,8 @@ it once and forgets it.
   [Restoring on the welcome screen](#restoring-on-the-welcome-screen)); if
   there is a draft of unsaved changes (see below), "You have an unsaved
   entry from <time> (<system>). Continue editing it?"; and the reminder
-  about a short master password. A rotation closes them without dismissing
+  about a short master password, unless it was turned off (see
+  [Master key](#master-key)). A rotation closes them without dismissing
   them, so the list keeps in its saved state which are still to come or
   unanswered, and shows them again; only the note that a draft could not
   be restored isn't, since that draft is deleted when the note is shown. It
@@ -931,7 +943,12 @@ when it comes back.
 - **Fonts**: `FontSetting` applies Roboto Mono (from `assets/fonts`) and a
   scale of 0.85, 1 or 1.2 to the values on the entry screens and in the
   lists. Labels keep their size. Sizes are in `sp`, so the system font size
-  applies on top.
+  applies on top. The master password fields get the font alone
+  (`applyToPasswordField()`): on the login, setup, change password and
+  import password screens, and in the password dialog of an unencrypted
+  export and of a restore. It is set either way, Roboto Mono or the
+  default font, since Android gives a `textPassword` field a monospace
+  font of its own.
 
 ## Android platform details
 
@@ -1028,10 +1045,12 @@ can try passwords offline, as fast as their hardware allows.
 - Iteration counts read from files and from the key record are capped at
   10,000,000, so a crafted file or a damaged record can't make the
   derivation run (almost) forever.
-- **New master passwords need at least 12 characters.** An existing shorter
-  password still works, but logging in with it shows a reminder with a
-  "Change" button. The setup and change screens show the minimum below the
-  field and count the missing characters.
+- **New master passwords need at least 15 characters**, as NIST SP 800-63B-4
+  asks for a password that is the only factor (see [Sources](#sources)). An
+  existing shorter password still works, but logging in with it shows a
+  reminder with a "Change" button, until the user chooses "Don't remind
+  me", which a new master password resets. The setup and change screens
+  show the minimum below the field and count the missing characters.
 - There is no strength meter for the master password, since the
   generator's estimate assumes random characters and would rate a typed
   password like `Password1234!` as excellent.
@@ -1050,6 +1069,13 @@ passphrase is out of reach.
   [Decisions](#decisions).
 - The ciphertext length shows the rough length of each value to someone with
   a copy of the database.
+- The setting of the reminder about a short master password is stored for
+  every vault, encrypted with the vault key in AES-256-GCM, again with a
+  fresh nonce after every login, and of the same length on and off. So a
+  copy of the database shows neither whether the master password is short
+  nor whether the reminder was turned off. Two copies show whether there
+  was a login between them, since every login stores the setting again,
+  but not whether it changed.
 - The conversions of old entries are chosen by a data version stored in the
   database, never by the app version, so a version number can't make the
   app convert current entries again and destroy them.
@@ -1256,8 +1282,19 @@ Android 9 and later, off by default.
 Trade-offs that were made on purpose:
 
 - **Shorter existing master passwords still work**, with a reminder after
-  each login, so nobody is locked out. Only new master passwords need 12
+  each login, so nobody is locked out. Only new master passwords need 15
   characters.
+- **The reminder can be turned off** with "Don't remind me": one that
+  comes back after every login gets tapped away unread. The choice is kept
+  in the database, encrypted, not as a setting, so that an import or a
+  restore of settings can't turn it off for another vault's password, and
+  changing the master password turns the reminder on again. It is stored
+  for every vault, short password or not, and with a fresh nonce after
+  every login: a value only vaults with a short password had, even
+  encrypted, would show in a copy of the database which ones do, and one
+  that only changed when "Don't remind me" is tapped would show the tap in
+  two copies. The cost is that every login writes to the database, so two
+  copies show whether there was a login between them.
 - **2FA secrets next to the passwords.** They still protect against the most
   common attacks: a service's password database leaking, reused passwords,
   password guessing. They don't protect when the vault itself is opened,
@@ -1283,7 +1320,7 @@ Trade-offs that were made on purpose:
   [Open items](#open-items).
 - **PBKDF2 instead of Argon2id.** Argon2id is memory-hard and today's first
   choice, but needs a library and an amount of memory that fits old phones.
-  With the 12 character minimum, PBKDF2 is adequate. Also part of the
+  With the 15 character minimum, PBKDF2 is adequate. Also part of the
   "vault format v2".
 - **Decrypted values are Java strings**, which can't be wiped from memory.
   That can't be solved on Android; on-demand decryption keeps it to what is
@@ -1293,13 +1330,10 @@ Trade-offs that were made on purpose:
 
 Not done, in rough order of value:
 
-1. **Master password minimum 15** instead of 12, to match NIST SP 800-63B-4
-   for a password that is the only factor. A one-line change; existing
-   shorter passwords would only get the reminder.
-2. **zxcvbn strength meter for the master password**, which knows common
+1. **zxcvbn strength meter for the master password**, which knows common
    words, patterns and leaked passwords. Needs a library with word lists of
    about 1–2 MB.
-3. **"Vault format v2"**: AES-GCM for the database fields with the entry id
+2. **"Vault format v2"**: AES-GCM for the database fields with the entry id
    and field name as associated data, and Argon2id instead of PBKDF2, in one
    migration at login. The riskiest kind of change, since it rewrites the
    whole vault. Only with device testing and a fresh export at hand.
@@ -1312,8 +1346,8 @@ Limitations that are not about security are listed in
 - **Delete old exports and backups of the original Passdroid** wherever they
   are (cloud, email). They use the weak legacy key. If one may have leaked,
   **change the master password**, since cracking an old copy reveals it.
-- If your master password is shorter than 12 characters, change it. The app
-  reminds you after each login with it.
+- If your master password is shorter than 15 characters, change it. The app
+  reminds you after each login with it, unless you chose "Don't remind me".
 - Move the 2FA secrets of critical accounts to a separate authenticator app
   or replace them with passkeys or hardware keys, then delete them from
   Passdroid++.
@@ -1356,6 +1390,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `PasswordStrengthTest` | Bits and ratings |
 | `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
 | `SessionTest` | Both kinds of logout wipe the key; logout listeners get the key before it is wiped, a failing one doesn't stop the logout, and none is called without a key |
+| `ShortPasswordReminderTest` | The reminder setting encrypted and decrypted, both values of the same length, a fresh nonce each time; not with another key or without one; modified, truncated and other text, other values and other associated data rejected |
 | `EntryDraftTest` | Drafts encoded and decoded with empty fields and both kinds of entry id, other text rejected; encrypted and decrypted, not with another key or without one; editor values compared field by field |
 | `DateFieldTest` | Dates with and without a time, invalid values, the year-month-day format |
 | `DbMigrationTest` | Data versions of databases that stored the app version, invalid versions |
@@ -1397,7 +1432,7 @@ release:
     both answers work;
   - an export of the original Passdroid, with its password and a new
     master password: the entries are there;
-  - keeping a backup password shorter than 12 characters: the reminder
+  - keeping a backup password shorter than 15 characters: the reminder
     follows the list's message;
   - a pending restore survives a rotation; going home and back drops it,
     with the notice, and the button reads "Restore from a backup" again;
@@ -1481,9 +1516,28 @@ release:
   time picker: the time the date had stays, or no time if it had none.
 - Export an entry whose note contains `<!DOCTYPE html>`, then import the
   file again.
-- Set up or change the master password with fewer than 12 characters: the
+- Set up or change the master password with fewer than 15 characters: the
   note below the field counts the missing characters, and the password is
-  refused. Log in with an existing short one: the reminder appears.
+  refused. Log in with an existing short one: the reminder appears, also
+  again after a rotation. After Later it comes back at the next login;
+  after "Don't remind me" it doesn't, also not after a restart of the app.
+  In a debug build, in
+  `adb shell run-as com.jurakovic.passdroid.debug sqlite3 databases/password.db`,
+  `SELECT value FROM system WHERE attribute = 'short_password_reminder';`
+  gives 40 characters after each login, different each time, also for a
+  vault with a long master password.
+- Set Font to Monospace, then to Default. On the change password screen, a
+  password shown with the eye button is in Roboto Mono, then in the default
+  font, and so is the hint of the master password dialog before an
+  unencrypted export. Font size doesn't change these fields. Change Font in
+  the settings and log out: the last character typed in the login field,
+  shown for a moment while the system's "Show passwords" setting is on, is
+  in the font chosen. The setup screen is only reached without a vault: on
+  a fresh install it has the default font; for Roboto Mono, set Font to
+  Monospace in a debug build with a test vault, force-stop the app, delete
+  the vault with
+  `adb shell run-as com.jurakovic.passdroid.debug rm databases/password.db`
+  (the settings stay) and open the app again.
 - On the setup and the change password screen, each eye button shows and
   hides only its field, the cursor stays where it was, and the keyboard
   offers no suggestions while a field is shown. After a rotation all fields
@@ -1698,5 +1752,5 @@ Use the debug app for test vaults only.
 - Import replaces all entries; there is no merge.
 - Many strings are hardcoded in English in the code instead of resources.
 
-The open security items, e.g. a longer minimum for the master password, are
-listed in [Open items](#open-items).
+The open security items, e.g. a strength meter for the master password,
+are listed in [Open items](#open-items).

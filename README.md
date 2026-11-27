@@ -79,10 +79,11 @@ is encrypted.
 - The master password is turned into the encryption key with
   PBKDF2-HMAC-SHA256 and 600,000 iterations, which makes every guess slow for
   someone who has a copy of the data. Each field is encrypted with AES-256.
-- A new master password needs at least 12 characters. The setup and change
+- A new master password needs at least 15 characters. The setup and change
   screens show how many are still missing. If an existing master password is
   shorter, a reminder with a "Change" button appears after each login with
-  it.
+  it, until you tap "Don't remind me". That choice is stored encrypted,
+  and a copy of the app's data doesn't show it.
 - On the setup and change screens an eye button next to each password field
   shows what you typed, and hides it again.
 - The master password can be changed in Settings. If it is forgotten, the
@@ -179,9 +180,10 @@ on in Settings.
 ### Appearance
 
 - Light or dark theme, or follow the system setting.
-- The values of the entries can use a monospace font (Roboto Mono), which
-  makes characters like 0 and O or l and 1 easier to tell apart, in a small,
-  normal or large size. Text follows the system font size.
+- The values of the entries and the master password fields can use a
+  monospace font (Roboto Mono), which makes characters like 0 and O or l
+  and 1 easier to tell apart; the values also in a small, normal or large
+  size. Text follows the system font size.
 - Dates in the format of the device, or as year-month-day (2026-10-25 14:30).
 
 ### Privacy
@@ -222,7 +224,7 @@ on in Settings.
    `passdroid_db.xml` to the phone's storage.
 2. In Passdroid++, tap "Restore from a backup" on the welcome screen, pick
    the file, and enter the master password of the original app. Then choose
-   a new master password of at least 12 characters, since the original one
+   a new master password of at least 15 characters, since the original one
    was used with the weak key. If Passdroid++ is set up already, go to
    Settings → Import / Export → Import from file instead.
 3. Check that all entries are there. Then delete the export file and
@@ -257,7 +259,7 @@ of Passdroid++.
   2.3 used AES-CBC with a fixed IV and no authentication.
 - Random values (IVs and salts) come from `SecureRandom` instead of
   `java.util.Random`, which is not secure.
-- Master passwords need at least 12 characters. 2.3 accepted any, even an
+- Master passwords need at least 15 characters. 2.3 accepted any, even an
   empty one.
 - Every logout, also the automatic ones, wipes the key and the decrypted
   entries; 2.3 only did that for a logout from the menu. Passwords and 2FA

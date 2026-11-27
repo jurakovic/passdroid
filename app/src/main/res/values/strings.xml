@@ -95,6 +95,7 @@ characters. Someone with a copy of your passwords, such as an export, could gues
 longer password made of a few random words is easy to remember and hard to guess.</string>
 <string name="change">Change</string>
 <string name="later">Later</string>
+<string name="dont_remind">Don\'t remind me</string>
 
 <!-- Change master password -->
 <string name="change_password_title">Change master password</string>

@@ -122,7 +122,11 @@ implements PasswordModelListener {
             Utils.releaseDocumentAccessExcept(this, restoredFile);
 
             restoreResultPending = getIntent().hasExtra(EXTRA_RESTORED);
-            reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false);
+            // Stored again after every login, for every vault
+            boolean remind = ShortPasswordReminder.renew(this,
+                                                         Session.getInstance().getKey());
+            reminderPending = getIntent().getBooleanExtra(EXTRA_SHORT_PASSWORD, false) &&
+                              remind;
         } else {
             restoreResultPending = savedInstanceState.getBoolean(STATE_RESTORE_RESULT);
             reminderPending = savedInstanceState.getBoolean(STATE_REMINDER);
@@ -577,6 +581,8 @@ implements PasswordModelListener {
 
     /**
      * Suggest changing a master password that is too short to be set now.
+     * "Don't remind me" turns this off until the master password changes,
+     * see ShortPasswordReminder.
      */
     private void showShortPasswordReminder() {
         new AlertDialog.Builder(this)
@@ -591,6 +597,15 @@ implements PasswordModelListener {
                 }
             })
             .setNegativeButton(R.string.later, null)
+            .setNeutralButton(R.string.dont_remind, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // If it can't be stored, the list reminds again after
+                    // the next login
+                    ShortPasswordReminder.set(PasswordListActivity.this,
+                                              Session.getInstance().getKey(), false);
+                }
+            })
             .setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
