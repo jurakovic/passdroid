@@ -353,7 +353,7 @@ Every value in `data` except `id` is encrypted, see
 | `data_version` | The data version, `DbMigration.DATA_VERSION` (3) |
 | `version` | An app version, e.g. `2.4`, which older databases have instead of `data_version`. Replaced by `data_version` at the next start |
 | `biometric_key` | The master key encrypted for fingerprint unlock, see [Fingerprint unlock](#fingerprint-unlock) |
-| `short_password_reminder` | Whether the list reminds of a short master password after a login, encrypted with the vault key (`ShortPasswordReminder`). Stored for every vault after each login, see [Master key](#master-key) |
+| `short_password_reminder` | Whether the list reminds of a short master password after a login (`ShortPasswordReminder`): `base64(nonce (12 bytes) \|\| AES-256-GCM(1 byte, 1 on or 0 off) \|\| tag (16 bytes))`, encrypted with the vault key, with the attribute name as associated data. Stored for every vault after each login, see [Master key](#master-key) |
 | `entry_draft` | The unsaved changes of the add or edit screen, if any, until the next login (`EntryDraft`): `v1\|<entry id, -1 for a new entry>\|<saved at, ms>\|`, then the eight fields encrypted like an entry's, in the order of `PasswordData.COLUMNS` and separated by `\|`, each empty if it is `null` |
 
 Two `SQLiteOpenHelper` classes, `PasswordData` and `SystemData`, open the same
