@@ -224,13 +224,7 @@ on in Settings.
 | Independent security audit | No | None published | Yes | Yes | Yes | None published |
 
 Passdroid++ suits you if you want your passwords on one phone, with no
-account, no cloud and no internet access. If you need them on several
-devices, or want autofill in other apps or passkeys, one of the others
-serves you better. KeePassDX is the closest alternative: it is offline and
-open source too, has autofill and passkeys, and its files also open on a
-computer.
-
-As of November 2026, from each app's own website and documentation.
+account, no cloud and no internet access.
 
 ## Installing
 
