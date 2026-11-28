@@ -345,8 +345,8 @@ public class Totp {
 
     /**
      * @param time milliseconds since the epoch.
-     * @return the number of the period the time is in, the same for all times
-     *         with the same code.
+     * @return the number of the period the time is in. All times in one period
+     *         have the same code.
      */
     public long getCounter(long time) {
         return time / 1000 / period;
