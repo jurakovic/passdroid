@@ -26,8 +26,8 @@ Passdroid++ is based on Passdroid by Magnus Eriksson, whose last release was
 2.3 (2012). It runs on Android 7.0 and later. See [Changes from Passdroid
 2.3](#changes-from-passdroid-23) for what is new, and [Moving from the
 original Passdroid](#moving-from-the-original-passdroid) if you used it. To
-choose between it and the well-known alternatives, see [Compared with other
-password managers](#compared-with-other-password-managers).
+choose between Passdroid++ and other password managers, see [Compared with
+other password managers](#compared-with-other-password-managers).
 
 ## Highlights
 
