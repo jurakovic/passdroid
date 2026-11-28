@@ -32,7 +32,7 @@ public class TotpListActivity extends SherlockTimeoutActivity {
     private ProgressBar timeBar;
     private TextView emptyText;
     private CodeAdapter adapter;
-    private long shownSecond;  // When the codes were last updated
+    private long checkedSecond;  // When the rows were last checked for a change
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -41,9 +41,9 @@ public class TotpListActivity extends SherlockTimeoutActivity {
             long period = PERIOD * 1000L;
             timeBar.setProgress((int) (period - now % period));
 
-            if (now / 1000 != shownSecond) {
-                shownSecond = now / 1000;
-                adapter.notifyDataSetChanged();
+            if (now / 1000 != checkedSecond) {
+                checkedSecond = now / 1000;
+                adapter.update(now);
             }
 
             handler.postDelayed(this, 50);
@@ -96,7 +96,7 @@ public class TotpListActivity extends SherlockTimeoutActivity {
 
         // Entries may have been changed on the entry screen
         loadEntries();
-        shownSecond = 0;
+        checkedSecond = 0;
         handler.post(ticker);
     }
 
@@ -108,7 +108,8 @@ public class TotpListActivity extends SherlockTimeoutActivity {
 
     /**
      * Load the entries with a 2FA secret. The secrets are only decrypted while
-     * this activity is open, and only their code generators are kept.
+     * this activity is open, and only their code generators are kept, with the
+     * code each row shows.
      */
     private void loadEntries() {
         byte [] key = Session.getInstance().getKey();
@@ -133,6 +134,8 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         final PasswordEntry entry;
         final String title;
         final Totp totp;  // null if the secret is not valid
+        private long shownCounter;
+        private String shownCode;  // Formatted, null until computed
 
         /**
          * @param system      the name to show, see Utils.systemName().
@@ -152,6 +155,41 @@ public class TotpListActivity extends SherlockTimeoutActivity {
             title = account != null && account.length() > 0 ?
                     system + " (" + account + ")" : system;
         }
+
+        /**
+         * @param now milliseconds since the epoch.
+         * @return the formatted code, computed again only when its period has
+         *         ended. Only for a valid secret.
+         */
+        String getCode(long now) {
+            long counter = totp.getCounter(now);
+            if (shownCode == null || counter != shownCounter) {
+                shownCounter = counter;
+                shownCode = Totp.format(totp.getCode(now));
+            }
+
+            return shownCode;
+        }
+
+        /**
+         * @param time milliseconds since the epoch, at or before the time the
+         *             row was bound.
+         * @param now  milliseconds since the epoch.
+         * @return true if the row shows something else now than at the given
+         *         time: the code once its period has ended, and the seconds
+         *         left of a code with another period every second.
+         */
+        boolean changedSince(long time, long now) {
+            if (totp == null) {
+                return false;
+            }
+
+            if (totp.getPeriod() != PERIOD) {
+                return time / 1000 != now / 1000;
+            }
+
+            return totp.getCounter(time) != totp.getCounter(now);
+        }
     }
 
     private static class CodeAdapter extends BaseAdapter {
@@ -159,6 +197,10 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         private final LayoutInflater inflater;
         private final float scale;  // Of the font size setting
         private List<Code> codes = new ArrayList<Code>();
+        // When the rows were last rebound, by setCodes() or update(). Every
+        // row on screen was bound at or after it, so a change since then is
+        // never missed.
+        private long boundTime;
 
         CodeAdapter(Context context) {
             this.context = context;
@@ -168,7 +210,25 @@ public class TotpListActivity extends SherlockTimeoutActivity {
 
         void setCodes(List<Code> codes) {
             this.codes = codes;
+            boundTime = System.currentTimeMillis();
             notifyDataSetChanged();
+        }
+
+        /**
+         * Bind the rows again if one of them shows something new since they
+         * were last rebound: a code whose period has ended, or the seconds
+         * left of a code with another period.
+         *
+         * @param now milliseconds since the epoch.
+         */
+        void update(long now) {
+            for (Code code : codes) {
+                if (code.changedSince(boundTime, now)) {
+                    boundTime = now;
+                    notifyDataSetChanged();
+                    return;
+                }
+            }
         }
 
         @Override
@@ -209,7 +269,7 @@ public class TotpListActivity extends SherlockTimeoutActivity {
             }
 
             long now = System.currentTimeMillis();
-            codeView.setText(Totp.format(code.totp.getCode(now)));
+            codeView.setText(code.getCode(now));
             codeView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32 * scale);
             codeView.setTextColor(context.getColor(R.color.totp_code));
 

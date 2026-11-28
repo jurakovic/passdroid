@@ -317,7 +317,7 @@ public class Totp {
      * @return the code at the given time, with leading zeros.
      */
     public String getCode(long time) {
-        long counter = time / 1000 / period;
+        long counter = getCounter(time);
 
         byte [] hash;
         try {
@@ -341,6 +341,15 @@ public class Totp {
         }
 
         return code;
+    }
+
+    /**
+     * @param time milliseconds since the epoch.
+     * @return the number of the period the time is in. All times in one period
+     *         have the same code.
+     */
+    public long getCounter(long time) {
+        return time / 1000 / period;
     }
 
     /**

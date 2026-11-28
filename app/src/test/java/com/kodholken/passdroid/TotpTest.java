@@ -88,6 +88,23 @@ public class TotpTest {
     }
 
     @Test
+    public void counterIsThePeriodOfTheTime() {
+        Totp totp = Totp.parse(SHA1_KEY);
+        assertNotNull(totp);
+        assertEquals(1, totp.getCounter(59999));
+        assertEquals(2, totp.getCounter(60000));
+        assertEquals(2, totp.getCounter(89999));
+
+        // The same code for the whole period
+        assertEquals(totp.getCode(60000), totp.getCode(89999));
+
+        totp = Totp.parse("otpauth://totp/x?secret=" + SHA1_KEY + "&period=60");
+        assertNotNull(totp);
+        assertEquals(0, totp.getCounter(59999));
+        assertEquals(1, totp.getCounter(60000));
+    }
+
+    @Test
     public void invalidSecrets() {
         assertNull(Totp.parse(null));
         assertNull(Totp.parse(""));

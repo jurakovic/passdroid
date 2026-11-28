@@ -903,11 +903,15 @@ since a dialog has its own window, and is dismissed in `onPause()`.
 ### 2FA codes screen
 
 `TotpListActivity` decrypts the secrets of all entries each time it is
-shown and keeps only the `Totp` generators, which hold the decoded keys. A
-handler runs every 50 ms to move the bar for the 30 second period and
-rebinds the list once a second. Entries with another period show their own
-seconds left. A tap copies the code, a long press opens the entry. The title
-is the system, followed by the username (or the email) in parentheses if
+shown and keeps only the `Totp` generators, which hold the decoded keys,
+and the code each row shows. Entries with another period than the 30
+seconds of the bar show their own seconds left. A handler runs every 50 ms
+to move the bar, and once a second rebinds the list if a row shows
+something new: a code whose period has ended, or the seconds left of a code
+with another period. A row computes its code again only when the code's
+period has ended (`Totp.getCounter()`), however often it is bound. A tap
+copies the code, a long press opens the entry. The title is the system,
+followed by the username (or the email) in parentheses if
 `display_username` is on.
 
 ## Password generator
@@ -1204,7 +1208,8 @@ Android 9 and later, off by default.
   decrypted only where they are needed:
   - the edit screen decrypts all fields of its entry into its fields;
   - the entry screen and the 2FA codes screen decrypt the 2FA secrets for
-    the live codes, and keep only the code generators;
+    the live codes, and keep only the code generators and, on the 2FA codes
+    screen, the code each row shows;
   - an export, a master password change and the upgrade of a legacy key
     decrypt all fields of every entry, into copies that are dropped
     afterwards;
@@ -1438,7 +1443,7 @@ Local JVM unit tests (`./gradlew testDebugUnitTest`):
 | `MasterKeyTest` | PBKDF2 against the RFC 7914 vectors, empty and long passwords, UTF-8, create/unlock, random salts, legacy records, damaged legacy records, malformed records, iteration counts out of range, minimum length |
 | `Base64Test` | Round trips, empty and truncated input rejected |
 | `PasswordEntryTest` | Reading and writing entries compatible with BouncyCastle, the zero IV and ECB conversions, on-demand decryption, decrypted copies, old entries without the newer fields; damaged fields (`canDecrypt()`, `isDecrypted()`), `isEncrypted()` with and without a key, the list order with damaged entries and no username, the same order in a Turkish locale |
-| `TotpTest` | RFC 6238 vectors, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
+| `TotpTest` | RFC 6238 vectors, the period a time is in, key formats, URI parameters, invalid secrets, what is stored for a scan, issuer and account, URIs for QR codes |
 | `QrDecoderTest` | Decoding images and luminance data, light on dark codes, no code, encoder round trip |
 | `PasswordStrengthTest` | Bits and ratings |
 | `PasswordGeneratorTest` | Lengths, the characters of each set, an unknown set, two passwords differ |
@@ -1540,7 +1545,10 @@ release:
   x appears. Tap it: the field is empty and keeps the keyboard, all entries
   show, and the x is gone. Edit or delete an entry found by a search and go
   back: the list is still filtered.
-- Open the 2FA codes screen, with "Display username" on and off.
+- Open the 2FA codes screen, with "Display username" on and off: the codes
+  change when the bar runs out. A code with another period, e.g. an
+  `otpauth://totp/` secret with `period=60`, counts its seconds down and
+  changes when they run out.
 - Open Statistics from the list menu: the numbers match the entries. Add an
   entry with the password of another entry and go back to Statistics:
   Entries, Passwords and Reused passwords have changed. In a vault without
@@ -1811,8 +1819,7 @@ Use the debug app for test vaults only.
   result; the user has to repeat the action. The same goes for the date and
   time pickers of `DateField`: a date picked before the screen rotates while
   the time picker is open is lost, since only the time picker stores it.
-- The 2FA codes screen redraws the bar 20 times a second and computes all
-  codes again every second.
+- The 2FA codes screen redraws the bar 20 times a second.
 - Two loops read a whole stream, `FileImporter.readAll()` and
   `FileImporter.read()`; only the second has the size limit.
 - A very deeply nested import file can crash the app (`StackOverflowError`
