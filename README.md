@@ -226,6 +226,8 @@ on in Settings.
 Passdroid++ suits you if you want your passwords on one phone, with no
 account, no cloud and no internet access.
 
+As of November 2026, from each app's own website and documentation.
+
 ## Installing
 
 - Android 7.0 or later. Fingerprint unlock needs Android 9 or later. A camera
