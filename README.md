@@ -221,7 +221,7 @@ on in Settings.
 | Passkeys | No | Yes | Yes | Yes | Yes | Yes |
 | 2FA codes (TOTP) | Yes | Yes | Paid plans | Paid plans | Yes | No |
 | Import from other managers | Only from the original Passdroid | KeePass files | Yes | Yes | Yes | CSV |
-| Independent security audit | No | No | Yes | Yes | Yes | None published |
+| Independent security audit | No | None published | Yes | Yes | Yes | None published |
 
 Passdroid++ suits you if you want your passwords on one phone, with no
 account, no cloud and no internet access. If you need them on several
