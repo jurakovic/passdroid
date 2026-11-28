@@ -25,7 +25,9 @@ holds can leave the phone through the app.
 Passdroid++ is based on Passdroid by Magnus Eriksson, whose last release was
 2.3 (2012). It runs on Android 7.0 and later. See [Changes from Passdroid
 2.3](#changes-from-passdroid-23) for what is new, and [Moving from the
-original Passdroid](#moving-from-the-original-passdroid) if you used it.
+original Passdroid](#moving-from-the-original-passdroid) if you used it. To
+choose between it and the well-known alternatives, see [Compared with other
+password managers](#compared-with-other-password-managers).
 
 ## Highlights
 
@@ -204,6 +206,31 @@ on in Settings.
   from what you type, and autofill services are kept out.
 - On Android 14 and later, passwords and 2FA codes are hidden from
   accessibility services, except tools such as screen readers.
+
+## Compared with other password managers
+
+| | Passdroid++ | [KeePassDX](https://www.keepassdx.com) | [Bitwarden](https://bitwarden.com) | [Proton Pass](https://proton.me/pass) | [1Password](https://1password.com) | [Google Password Manager](https://passwords.google) |
+|---|---|---|---|---|---|---|
+| Open source | Yes (GPL-3.0) | Yes (GPL-3.0) | Yes | Yes | No | No |
+| Price | Free | Free | Free, paid plans | Free, paid plans | Paid only | Free |
+| Account needed | No | No | Yes | Yes | Yes | Yes (Google) |
+| Internet access | None | None | Yes | Yes | Yes | Yes |
+| Sync between devices | No, encrypted exports by hand | Through a file you sync yourself | Its cloud or your own server | Its cloud | Its cloud | Your Google account |
+| Platforms | Android | Android; its files open in KeePass apps on all platforms | Android, iOS, desktop, browsers | Android, iOS, desktop, browsers | Android, iOS, desktop, browsers | Android, Chrome, iOS |
+| Autofill in other apps | No | Yes | Yes | Yes | Yes | Yes |
+| Passkeys | No | Yes | Yes | Yes | Yes | Yes |
+| 2FA codes (TOTP) | Yes | Yes | Paid plans | Paid plans | Yes | No |
+| Import from other managers | Only from the original Passdroid | KeePass files | Yes | Yes | Yes | CSV |
+| Independent security audit | No | No | Yes | Yes | Yes | None published |
+
+Passdroid++ suits you if you want your passwords on one phone, with no
+account, no cloud and no internet access. If you need them on several
+devices, or want autofill in other apps or passkeys, one of the others
+serves you better. KeePassDX is the closest alternative: it is offline and
+open source too, has autofill and passkeys, and its files also open on a
+computer.
+
+As of November 2026, from each app's own website and documentation.
 
 ## Installing
 
