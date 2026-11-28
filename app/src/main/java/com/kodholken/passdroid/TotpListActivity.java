@@ -172,7 +172,8 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         }
 
         /**
-         * @param time when the row was bound, milliseconds since the epoch.
+         * @param time milliseconds since the epoch, at or before the time the
+         *             row was bound.
          * @param now  milliseconds since the epoch.
          * @return true if the row shows something else now than at the given
          *         time: the code once its period has ended, and the seconds
@@ -196,8 +197,9 @@ public class TotpListActivity extends SherlockTimeoutActivity {
         private final LayoutInflater inflater;
         private final float scale;  // Of the font size setting
         private List<Code> codes = new ArrayList<Code>();
-        // When the rows were last bound, see update(). Rows bind after it,
-        // never before, so a change since then is never missed.
+        // When the rows were last rebound, by setCodes() or update(). Every
+        // row on screen was bound at or after it, so a change since then is
+        // never missed.
         private long boundTime;
 
         CodeAdapter(Context context) {
@@ -214,8 +216,8 @@ public class TotpListActivity extends SherlockTimeoutActivity {
 
         /**
          * Bind the rows again if one of them shows something new since they
-         * were last bound: a code whose period has ended, or the seconds left
-         * of a code with another period.
+         * were last rebound: a code whose period has ended, or the seconds
+         * left of a code with another period.
          *
          * @param now milliseconds since the epoch.
          */
